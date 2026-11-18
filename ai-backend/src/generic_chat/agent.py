@@ -125,7 +125,9 @@ async def _within_budget(
     out_of_time = time.monotonic() - ctx.deps.started_at > _TOOLS_CUTOFF_S
     # Open choices: the next answer is the question which one.
     asking = bool(ctx.deps.choices)
-    return None if out_of_requests or out_of_time or asking else tool_def
+    # A feed button's answer is cached, so it stands on our data alone.
+    off_web = tool_def.name == "web_search" and ctx.deps.preset is not None
+    return None if out_of_requests or out_of_time or asking or off_web else tool_def
 
 
 @dataclass
@@ -187,13 +189,17 @@ async def search(ctx: RunContext[GenericChatDeps], args: SearchInput) -> ToolRes
 
 
 async def get_vote(ctx: RunContext[GenericChatDeps], args: GetVoteInput) -> DebateResult:
-    """One roll-call vote by its poll_id with every party's tally, plus the
-    debate on the same Drucksache when the feed has one. With party_ids, each
-    party's statements and motions on the law, for 'why' questions."""
-    if not ctx.deps.knows("poll_id", args.poll_id):
-        return DebateResult(note=_unknown("poll_id", args.poll_id, "a vote document"))
+    """One roll-call vote by its poll_id (default: the chat's vote) with every
+    party's tally, plus the debate on the same Drucksache when the feed has one.
+    With party_ids, each party's statements and motions on the law, for 'why'
+    questions."""
+    poll_id = args.poll_id or ctx.deps.anchor_poll_id()
+    if poll_id is None:
+        return DebateResult(note="This chat is not about one vote: pass the poll_id from a vote document.")
+    if not ctx.deps.knows("poll_id", poll_id):
+        return DebateResult(note=_unknown("poll_id", poll_id, "a vote document"))
     return await _logged(
-        "get_vote", lambda: tools.get_vote(ctx.deps, args.poll_id, args.party_ids), ctx.deps
+        "get_vote", lambda: tools.get_vote(ctx.deps, poll_id, args.party_ids), ctx.deps
     )
 
 

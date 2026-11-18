@@ -169,3 +169,22 @@ async def test_a_tool_never_takes_an_id_no_tool_showed(fake_io: FakeIO) -> None:
     assert found.documents[0].poll_id == POLL_ID
     vote = await agent.get_vote(ctx, GetVoteInput(poll_id=POLL_ID))  # type: ignore[arg-type]
     assert vote.documents and vote.documents[0].source_type == "vote_record"
+
+
+async def test_numbers_follow_the_parties_asked_not_who_answers_first(
+    corpus: list[dict], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import asyncio
+
+    speeches = positions._speeches
+
+    async def slow_for_spd(vorgang_id: str, party_id: str, cap: int) -> list[dict]:
+        if party_id == "spd":
+            await asyncio.sleep(0.05)
+        return await speeches(vorgang_id, party_id, cap)
+
+    monkeypatch.setattr(positions, "_speeches", slow_for_spd)
+    docs = await positions.party_positions(make_deps(), [LAW], ["spd", "cdu"], "Nachrichtendienste")
+
+    first_cdu = next(d.id for d in docs if d.title == "Rede s3")
+    assert all(d.id < first_cdu for d in docs if d.title in {"Rede s1", "Rede s2"})

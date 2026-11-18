@@ -5,8 +5,9 @@
 """One generic-chat turn as the chat's existing SSE events.
 
 Order: responding_parties ["wahl-chat"] → tool_status* → sources_ready →
-text deltas + party_chunk → party_complete → quick_replies_title. The
-answer is not cached: tool results depend on the day's feed and the web.
+text deltas + party_chunk → party_complete → quick_replies_title. Only a
+feed button's first question is cached (see ``presets``); typed questions
+depend on the day's feed and the web.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
+from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Literal, Optional
 
 from fastapi import Request as FastAPIRequest
@@ -47,7 +49,7 @@ from src.core.utils import (
     sanitize_references,
 )
 from src.generic_chat import agent as agent_module
-from src.generic_chat import prompt
+from src.generic_chat import presets, prompt
 from src.generic_chat import tools
 from src.generic_chat.schemas import Anchor, GenericChatDeps
 from src.models.chat import Message, Role
@@ -201,7 +203,7 @@ def _text_of(event: object) -> Optional[str]:
 
 async def _quick_replies(
     body: Any, answer: str, replies: Optional[list[str]] = None, guidelines: Optional[str] = None
-) -> Optional[str]:
+) -> Optional[QuickRepliesAndTitleDto]:
     turns = [
         Message(role=t.role, content=t.content, party_id=t.party_id)
         for t in body.chat_history
@@ -220,12 +222,40 @@ async def _quick_replies(
     except Exception as exc:  # noqa: BLE001 (quick replies are optional)
         logger.error("generic chat: quick replies failed: %s", exc, exc_info=True)
         return None
-    dto = QuickRepliesAndTitleDto(
+    return QuickRepliesAndTitleDto(
         session_id=body.session_id,
         quick_replies=replies or generated.quick_replies,
         title=generated.chat_title,
     )
-    return data_event({"type": "quick_replies_title", **dto.model_dump()})
+
+
+def _replay(session_id: str, turn: presets.CachedTurn) -> list[str]:
+    """A cached answer as the same events a live turn sends."""
+    text_id = str(uuid.uuid4())
+    sources = SourcesDto(
+        session_id=session_id, party_id=PARTY_ID, rag_query=None, sources=turn.sources
+    )
+    complete = PartyResponseCompleteDto(
+        session_id=session_id,
+        party_id=PARTY_ID,
+        complete_message=turn.answer,
+        message_id=text_id,
+        status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
+    )
+    events = [
+        data_event({"type": "sources_ready", **sources.model_dump()}),
+        text_start(text_id),
+        text_delta(text_id, turn.answer),
+        _party_chunk(session_id, turn.answer),
+        text_end(text_id),
+        data_event({"type": "party_complete", **complete.model_dump()}),
+    ]
+    if turn.quick_replies:
+        replies = QuickRepliesAndTitleDto(
+            session_id=session_id, quick_replies=turn.quick_replies, title=turn.title
+        )
+        events.append(data_event({"type": "quick_replies_title", **replies.model_dump()}))
+    return [*events, finish_step(), finish(), DONE]
 
 
 async def stream_generic_chat(
@@ -245,6 +275,7 @@ async def stream_generic_chat(
     text_id: Optional[str] = None
     answer = ""
     guidelines: Optional[str] = None
+    cache_key: Optional[str] = None
     try:
         deps = GenericChatDeps(
             context=context,
@@ -256,6 +287,10 @@ async def stream_generic_chat(
         guidelines = prompt.quick_reply_guidelines(deps.parties)
 
         anchor = getattr(body, "anchor", None)
+        history = message_history(body)
+        # A button's question opens the chat; later turns are the reader's own.
+        if anchor is not None and not history:
+            deps.preset = getattr(body, "preset", None)
         if anchor is not None:
             anchor_tool = (
                 "get_process"
@@ -263,14 +298,25 @@ async def stream_generic_chat(
                 else "get_debate" if anchor.feed_item_id else "get_vote"
             )
             yield _tool_status(session_id, "anchor", anchor_tool, "running", language)
-            deps.anchor = await tools.resolve_anchor(deps, anchor)
+            deps.anchor = await tools.resolve_anchor(
+                deps, anchor, deps.fraktionen() if deps.preset == "why" else None
+            )
             yield _tool_status(session_id, "anchor", anchor_tool, "done", language)
+
+        if deps.preset is not None and deps.anchor is not None:
+            cache_key = presets.cache_key(deps, body.user_message, resolve_model())
+            cached = await presets.aload(cache_key)
+            if cached is not None:
+                logger.info("generic chat: preset answer from cache")
+                for part in _replay(session_id, cached):
+                    yield part
+                return
 
         sources_sent = 0
         output: Optional[str] = None
         async with agent_module.agent.run_stream_events(
             body.user_message,
-            message_history=message_history(body),
+            message_history=history,
             deps=deps,
             model=resolve_model(),
             usage_limits=agent_module.USAGE_LIMITS,
@@ -354,7 +400,18 @@ async def stream_generic_chat(
         body, answer, replies=choices or None, guidelines=guidelines
     )
     if quick_replies is not None:
-        yield quick_replies
+        yield data_event({"type": "quick_replies_title", **quick_replies.model_dump()})
+    if cache_key is not None and answer:
+        await presets.astore(
+            cache_key,
+            presets.CachedTurn(
+                answer=answer,
+                sources=deps.sources.snapshot(),
+                quick_replies=quick_replies.quick_replies if quick_replies else [],
+                title=quick_replies.title if quick_replies else "",
+                created_at=datetime.now(timezone.utc),
+            ),
+        )
     yield finish_step()
     yield finish()
     yield DONE

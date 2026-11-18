@@ -120,14 +120,17 @@ def _tagged(doc: NumberedDocument, tier: Tier) -> NumberedDocument:
     return doc.model_copy(update={"tier": tier})
 
 
-async def _one_party(
+_Fetched = tuple[list[dict], list[dict], list[dict], list[dict]]
+
+
+async def _fetch_party(
     deps: GenericChatDeps,
     party: ContextParty,
     vorgang_ids: list[str],
     query: str,
     caps: tuple[int, int, int, int],
     skip: set[str],
-) -> list[NumberedDocument]:
+) -> _Fetched:
     n_speeches, n_motions, n_report, n_context = caps
     law = vorgang_ids[0]
     results = await asyncio.gather(
@@ -140,20 +143,23 @@ async def _one_party(
         ),
         return_exceptions=True,
     )
-    speeches, motions, report, context = (
-        [] if isinstance(r, BaseException) else r for r in results
-    )
     for part, result in zip(("speeches", "motions", "report", "context"), results):
         if isinstance(result, BaseException):
             logger.warning("positions: %s for %s failed: %s", part, party.party_id, result)
+    speeches, motions, report, context = (
+        [] if isinstance(r, BaseException) else r for r in results
+    )
+    fresh = [p for p in speeches if str(p.get("citation_title")) not in skip][:n_speeches]
+    return fresh, motions, report, context
 
+
+def _register_party(deps: GenericChatDeps, fetched: _Fetched, query: str) -> list[NumberedDocument]:
     from src.generic_chat.process import _register_document  # noqa: PLC0415 (process imports tools)
 
-    out: list[NumberedDocument] = []
-    fresh = [p for p in speeches if str(p.get("citation_title")) not in skip][:n_speeches]
-    out += [
+    speeches, motions, report, context = fetched
+    out = [
         _tagged(tools._register_speech(deps, p, query, tools._clip(p.get("text"), _SPEECH_CHARS)), "this_procedure")
-        for p in fresh
+        for p in speeches
     ]
     out += [_tagged(_register_document(deps, p), "this_procedure") for p in [*motions, *report]]
     out += [_tagged(tools._register_payload(deps, p, query), "context") for p in context]
@@ -175,9 +181,11 @@ async def party_positions(
     if not vorgang_ids or not parties:
         return []
     caps = _FULL if len(parties) <= 2 else _LEAN
-    bundles = await asyncio.gather(
-        *(_one_party(deps, party, vorgang_ids, query, caps, skip or set()) for party in parties)
+    fetched = await asyncio.gather(
+        *(_fetch_party(deps, party, vorgang_ids, query, caps, skip or set()) for party in parties)
     )
+    # Numbered in the order asked, so the same question gets the same numbers.
+    bundles = [_register_party(deps, f, query) for f in fetched]
     # A report passage can name several Fraktionen: show it once.
     seen: set[int] = set()
     out: list[NumberedDocument] = []

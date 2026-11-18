@@ -25,6 +25,9 @@ VORGANG_ID_PATTERN = r"^\d{1,12}$"
 
 SearchSourceType = Literal["vote_record", "parliamentary_speech", "party_manifesto"]
 FeedItemKind = Literal["debate", "vote"]
+# A fixed question from a feed button: "why" asks each Fraktion's reasons,
+# "ask" is any other.
+Preset = Literal["ask", "why"]
 
 
 class Anchor(BaseModel):
@@ -95,7 +98,10 @@ _PARTY_IDS_DESCRIPTION = (
 
 
 class GetVoteInput(BaseModel):
-    poll_id: int = Field(ge=1, le=10**9, description="abgeordnetenwatch poll id.")
+    poll_id: Optional[int] = Field(
+        None, ge=1, le=10**9,
+        description="abgeordnetenwatch poll id; leave out for the vote this chat is about.",
+    )
     party_ids: list[str] = Field(
         default_factory=list, max_length=8, description=_PARTY_IDS_DESCRIPTION
     )
@@ -358,6 +364,8 @@ class AnchorContext:
 
     label: str
     result: ToolResult
+    # Each Fraktion's statements and motions on the law are among the documents.
+    with_parties: bool = False
 
 
 _ID_KEYS = frozenset({"poll_id", "feed_item_id", "vorgang_id"})
@@ -371,6 +379,7 @@ class GenericChatDeps:
     session_id: str
     sources: SourceRegistry = field(default_factory=SourceRegistry)
     anchor: Optional[AnchorContext] = None
+    preset: Optional[Preset] = None
     # Parties the user pinned for the whole chat, a subset of ``parties``.
     focus: list[ContextParty] = field(default_factory=list)
     # Procedures a name left open this turn; shown as quick replies.
@@ -403,6 +412,20 @@ class GenericChatDeps:
         elif isinstance(value, list):
             for item in value:
                 self.learn(item)
+
+    def anchor_poll_id(self) -> Optional[int]:
+        """The vote the chat is about, if it is about one."""
+        if self.anchor is None or isinstance(self.anchor.result, ProcessResult):
+            return None
+        item = getattr(self.anchor.result, "item", None)
+        if item is not None and item.poll_id is not None:
+            return int(item.poll_id)
+        # A vote anchor's first document is the vote itself.
+        documents = self.anchor.result.documents
+        return documents[0].poll_id if documents else None
+
+    def fraktionen(self) -> list[str]:
+        return [p.party_id for p in self.parties if p.is_already_in_parliament]
 
     def knows(self, key: str, value: object) -> bool:
         return f"{key}:{value}" in self.known_ids

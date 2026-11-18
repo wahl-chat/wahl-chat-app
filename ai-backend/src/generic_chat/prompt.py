@@ -79,8 +79,8 @@ procedure, your whole answer is one short question which one the user means,
 even if other tools returned something; the app shows the choices as buttons.
 Why a party voted or argued as it did: call get_vote with party_ids (the
 parties asked about, or every Fraktion for "die Fraktionen") before you
-answer, also in a chat about a feed item; for a law without a vote,
-get_process with party_id.
+answer, also in a chat about a feed item, unless the Bezug already brings
+them; for a law without a vote, get_process with party_id.
 Documents carry a tier: "this_item" was said at this vote or debate, "this_procedure"
 was said or tabled in the same procedure (earlier readings, the party's own
 amendments and resolutions and how they were voted on, the committee
@@ -129,6 +129,11 @@ def _anchor_block(anchor: Optional[AnchorContext]) -> str:
             " source. Its original sources are already retrieved below; cite them by"
             " id.\n"
             + (f"{item.model_dump_json(exclude_none=True)}\n" if item is not None else "")
+        )
+    if anchor.with_parties:
+        intro += (
+            "Each Fraktion's statements and motions on this law, and a little of"
+            " its wider record, are already among the documents; do not fetch them again.\n"
         )
     return (
         "\n\n## Bezug\n"

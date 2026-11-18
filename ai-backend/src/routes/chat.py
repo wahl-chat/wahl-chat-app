@@ -25,7 +25,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from sse_starlette.sse import EventSourceResponse
 
-from src.generic_chat.schemas import Anchor
+from src.generic_chat.schemas import Anchor, Preset
 from src.services.chat.service import generate_chat_stream
 from src.models.chat import Role
 
@@ -84,6 +84,8 @@ class ChatRequestDto(BaseModel):
     # Generic chat only: the feed item or poll the conversation is about, and
     # the website's language (the answer follows the user's own language).
     anchor: Optional[Anchor] = None
+    # The question came from a feed button, not typed (see generic_chat.presets).
+    preset: Optional[Preset] = None
     language: Literal["de", "en"] = "de"
 
     @field_validator("anchor", mode="before")

@@ -599,15 +599,27 @@ async def _debate_documents(
     return documents, note if documents else "No speeches found for this debate."
 
 
-async def get_debate(deps: GenericChatDeps, feed_item_id: str) -> DebateResult:
+async def get_debate(
+    deps: GenericChatDeps, feed_item_id: str, party_ids: Optional[list[str]] = None
+) -> DebateResult:
     item = await load_feed_item(feed_item_id)
     if item is None:
         return DebateResult(note=f"Feed item {feed_item_id} not found.")
     if item.kind == "vote" and item.vote is not None:
-        return await get_vote(deps, item.vote.poll_id)
+        return await get_vote(deps, item.vote.poll_id, party_ids)
     documents, note = await _debate_documents(deps, item)
     deps.add_scope(item.procedure_ids)
     deps.settle(Anchor(feed_item_id=item.id))
+    if party_ids and item.procedure_ids:
+        from src.generic_chat.positions import party_positions  # noqa: PLC0415 (positions imports tools)
+
+        try:
+            documents += await party_positions(
+                deps, item.procedure_ids, party_ids, item.headline("de"),
+                skip={str(d.title) for d in documents},
+            )
+        except Exception as exc:  # noqa: BLE001 (the debate stands without them)
+            logger.warning("get_debate: party positions failed: %s", exc)
     return DebateResult(
         documents=documents, note=note, item=item.summary(deps.language)
     )
@@ -795,15 +807,17 @@ async def web_search(deps: GenericChatDeps, args: WebSearchInput) -> ToolResult:
 
 
 async def resolve_anchor(
-    deps: GenericChatDeps, anchor: Anchor
+    deps: GenericChatDeps, anchor: Anchor, party_ids: Optional[list[str]] = None
 ) -> Optional[AnchorContext]:
-    """Register the anchor's sources first; None (logged) when it is unknown."""
+    """Register the anchor's sources first; None (logged) when it is unknown.
+    With ``party_ids``, a vote or debate also brings each party's statements
+    and motions on the law."""
     if anchor.vorgang_id is not None:
         return await _resolve_procedure_anchor(deps, anchor.vorgang_id)
     if anchor.feed_item_id is not None:
-        result = await get_debate(deps, anchor.feed_item_id)
+        result = await get_debate(deps, anchor.feed_item_id, party_ids)
     else:
-        result = await get_vote(deps, cast(int, anchor.poll_id))
+        result = await get_vote(deps, cast(int, anchor.poll_id), party_ids)
     if result.item is None and not result.documents:
         logger.info("anchor miss: %s", anchor.model_dump(exclude_none=True))
         return None
@@ -819,7 +833,8 @@ async def resolve_anchor(
     else:
         first = result.documents[0]
         label = f"vote \"{first.title}\" ({first.date})"
-    return AnchorContext(label=label, result=result)
+    with_parties = bool(party_ids) and any(d.tier == "this_procedure" for d in result.documents)
+    return AnchorContext(label=label, result=result, with_parties=with_parties)
 
 
 async def _resolve_procedure_anchor(
