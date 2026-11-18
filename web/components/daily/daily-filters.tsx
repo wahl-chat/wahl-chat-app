@@ -51,7 +51,12 @@ import {
   useState,
 } from 'react';
 import { FOCUS_RING, MUTED_TEXT, PILL, PILL_ACTIVE } from './card-styles';
-import { SittingCalendarPanel, SittingStatusLine } from './sitting-calendar';
+import {
+  SittingCalendarPanel,
+  SittingStatusLine,
+  useCalendarFormat,
+  useStatusWords,
+} from './sitting-calendar';
 import TopicChip from './topic-chip';
 
 const CHECKBOX =
@@ -278,12 +283,14 @@ export function ParliamentSelector({
   const parliamentName = useParliamentName();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(states);
+  const statusWords = useStatusWords();
+  const calendarFormat = useCalendarFormat();
   const [today] = useState(berlinToday);
   // Closing for a jump into the feed: focus goes to the day, not back here.
   const jumping = useRef(false);
   const waiting = waitingDays(calendar, editionDates, waitingEditions, today);
   const status = states.includes(BUNDESTAG)
-    ? sittingStatus(calendar, today, waiting)
+    ? sittingStatus(calendar, today, waiting, statusWords, calendarFormat)
     : null;
 
   const openChange = (next: boolean) => {

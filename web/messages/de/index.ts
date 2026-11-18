@@ -17,6 +17,7 @@ import legal from './legal.json';
 import locale from './locale.json';
 import meta from './meta.json';
 import nav from './nav.json';
+import opinions from './opinions.json';
 import share from './share.json';
 import sources from './sources.json';
 import study from './study.json';
@@ -44,6 +45,7 @@ const messages = {
   locale,
   meta,
   nav,
+  opinions,
   swiper,
   topics,
   topicsPage,

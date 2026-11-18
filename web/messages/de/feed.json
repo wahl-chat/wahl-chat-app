@@ -106,5 +106,89 @@
   "dayFailed": "Dieser Tag konnte nicht geladen werden.",
   "retry": "Erneut versuchen",
   "keyPoints": "Kernpunkte",
-  "tapPerson": "Tippe auf eine Person für mehr"
+  "tapPerson": "Tippe auf eine Person für mehr",
+  "calendar": {
+    "sitsToday": "Tagt heute",
+    "sitsTodayThenNext": "Tagt heute · nächste Sitzung {when}",
+    "inProgress": "{dates} in Arbeit",
+    "nextDay": "nächste Sitzung {date}",
+    "nextWeek": "nächste Sitzungswoche {range}",
+    "nextDayAlone": "Nächste Sitzung {date}",
+    "nextWeekAlone": "Nächste Sitzungswoche {range}",
+    "plannedOn": "Sitzung am {day} geplant.",
+    "agenda": "Tagesordnung",
+    "sitsTodayNote": "Der Bundestag tagt heute.",
+    "sittingOn": "Sitzung am {day}:",
+    "contentFollows": "Die Inhalte erscheinen hier, sobald das Plenarprotokoll online ist.",
+    "closeNote": "Hinweis schließen",
+    "legend": {
+      "online": "online",
+      "today": "heute",
+      "pending": "folgt",
+      "upcoming": "geplant"
+    },
+    "label": "Sitzungstage des Bundestages",
+    "previousMonth": "Vorheriger Monat",
+    "nextMonth": "Nächster Monat",
+    "monthLabel": "Sitzungstage {month}",
+    "cell": {
+      "online": "Sitzungstag, Inhalte online",
+      "today": "Sitzungstag heute",
+      "pending": "Sitzungstag, Inhalte noch nicht online",
+      "upcoming": "Sitzungstag geplant"
+    }
+  },
+  "sources": {
+    "from": "ab {time}",
+    "video": "Video",
+    "protocolPage": "Plenarprotokoll S. {page}",
+    "protocol": "Plenarprotokoll"
+  },
+  "scroll": {
+    "back": "{label}: zurück",
+    "forward": "{label}: weiter"
+  },
+  "loadingOlderDays": "Ältere Tage laden",
+  "glossary": {
+    "explain": "{term}: Erklärung anzeigen",
+    "source": "Quelle:"
+  },
+  "politician": {
+    "tenure": "{since} · {terms, plural, one {# Wahlperiode} other {# Wahlperioden}}",
+    "direct": "Direkt gewählt · Wahlkreis {number} – {name}",
+    "list": "Landesliste {land}",
+    "fraktion": "Fraktion {name}",
+    "committees": "Ausschüsse",
+    "otherBodies": "Weitere Gremien & Ämter",
+    "rollCalls": "Aktuelle namentliche Abstimmungen",
+    "voteLabel": {
+      "yes": "ja",
+      "no": "nein",
+      "abstain": "enthalten",
+      "absent": "nicht abg.",
+      "other": "sonstige"
+    },
+    "allVotes": "Alle Abstimmungen auf bundestag.de",
+    "disclosures": "Veröffentlichungspflichtige Angaben",
+    "memberExplanation": "Erläuterungen des Abgeordneten",
+    "party": "Partei",
+    "speaksFor": "{name} ist kein Mitglied des Bundestages und spricht dort für {institutions}.",
+    "speaksForGovernment": "{name} ist kein Mitglied des Bundestages und spricht dort für die Bundesregierung.",
+    "since": "Im Bundestag seit",
+    "profession": "Beruf",
+    "mandate": "Mandat",
+    "photo": "Foto: {credit}",
+    "source": "Quelle: Deutscher Bundestag",
+    "sourceAsOf": "Quelle: Deutscher Bundestag, Stand {stand}",
+    "profile": "Profil auf bundestag.de",
+    "close": "Schließen",
+    "watchSpeech": "Rede in dieser Debatte ansehen",
+    "notAMember": "{name} ist kein Mitglied des Bundestages, daher gibt es hier kein Bundestagsprofil.",
+    "noProfile": "Für diese Person liegt kein Profil des Bundestages vor."
+  },
+  "speakers": {
+    "label": "Redner·innen",
+    "openWithDuration": "{name}, Rede {duration} Minuten – Profil öffnen",
+    "open": "{name} – Profil öffnen"
+  }
 }

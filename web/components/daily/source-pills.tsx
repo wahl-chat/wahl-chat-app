@@ -8,6 +8,7 @@ import {
   sourceTooltip,
   toViewerSource,
 } from '@/lib/daily/sources';
+import { useTranslations } from 'next-intl';
 
 /**
  * The chat's citation pills after a bullet or position: "Video 2" opens the
@@ -22,6 +23,7 @@ export function SourcePills({
   numbers: number[];
   sources: NumberedSources;
 }) {
+  const t = useTranslations('feed.sources');
   const viewer = useMediaViewer();
   if (numbers.length === 0) {
     return null;
@@ -50,7 +52,14 @@ export function SourcePills({
         getReferenceName={(index) => (at(index) ? String(index + 1) : null)}
         getReferenceTooltip={(index) => {
           const source = at(index);
-          return source ? sourceTooltip(source) : null;
+          return source
+            ? sourceTooltip(source, {
+                from: (time) => t('from', { time }),
+                video: t('video'),
+                protocolPage: (page) => t('protocolPage', { page }),
+                protocol: t('protocol'),
+              })
+            : null;
         }}
         getReferenceIsVideo={(index) => {
           const source = at(index);

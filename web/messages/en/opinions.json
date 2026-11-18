@@ -1,0 +1,33 @@
+{
+  "consent": {
+    "title": "Save your opinion?",
+    "description": "Only with your consent",
+    "opinion": "How you would have voted and which positions you agree with reveal your political opinions. That is specially protected data. We store it only if you consent.",
+    "storage": "We store your ratings with your account or your anonymous user ID, on servers in the EU. We do not pass on your personal statements. Others see only the anonymous total of all ratings, and only from 10 answers. We also use these totals to show how our users as a whole view votes and positions.",
+    "withdraw": "You can withdraw your consent at any time: in the menu under “Delete my ratings” or in the privacy policy. Under an anonymous ID we delete them after six months without a visit. More in the <link>privacy policy</link> (the German version is binding).",
+    "no": "No",
+    "yes": "Yes, save"
+  },
+  "delete": {
+    "button": "Delete my ratings",
+    "title": "Delete my ratings?",
+    "description": "We delete all your ratings of positions and votes and take them out of the overall results. This withdraws your consent.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "done": "Your ratings have been deleted.",
+    "failed": "Deleting did not work. Please try again."
+  },
+  "saveFailed": "Your rating could not be saved.",
+  "vote": {
+    "question": "How would you have voted?",
+    "accept": "Accept",
+    "reject": "Reject",
+    "tooFew": "Too few votes for a result yet"
+  },
+  "position": {
+    "rate": "Rate the position of {party}",
+    "question": "Do you support this?",
+    "agree": "Agree",
+    "disagree": "Disagree"
+  }
+}

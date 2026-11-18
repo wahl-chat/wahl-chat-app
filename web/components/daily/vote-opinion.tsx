@@ -5,23 +5,24 @@ import { SEAT_FILLS } from '@/lib/daily/palette';
 import type { FeedOpinions } from '@/lib/daily/use-feed-opinions';
 import { cn } from '@/lib/utils';
 import { CheckIcon, XIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useId } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { CommunityHemicycle } from './hemicycle';
 
 const CHOICES: {
   value: VoteChoice;
-  label: string;
+  label: 'accept' | 'reject';
   color: string;
   Icon: typeof CheckIcon;
 }[] = [
   {
     value: 'accept',
-    label: 'Annehmen',
+    label: 'accept',
     color: SEAT_FILLS.yes,
     Icon: CheckIcon,
   },
-  { value: 'reject', label: 'Ablehnen', color: SEAT_FILLS.no, Icon: XIcon },
+  { value: 'reject', label: 'reject', color: SEAT_FILLS.no, Icon: XIcon },
 ];
 
 /**
@@ -31,6 +32,7 @@ const CHOICES: {
  * it back.
  */
 export function VoteOpinion({ opinions }: { opinions: FeedOpinions }) {
+  const t = useTranslations('opinions.vote');
   const headingId = useId();
   const choice = opinions.opinion.vote;
   const counts = opinions.counts;
@@ -40,7 +42,7 @@ export function VoteOpinion({ opinions }: { opinions: FeedOpinions }) {
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-2.5">
       <h3 id={headingId} className={SECTION_LABEL}>
-        Wie hättest du abgestimmt?
+        {t('question')}
       </h3>
       {choice === null ? (
         <div className="flex gap-2">
@@ -57,7 +59,7 @@ export function VoteOpinion({ opinions }: { opinions: FeedOpinions }) {
               style={{ backgroundColor: color }}
             >
               <Icon className="size-4" strokeWidth={3} aria-hidden />
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
@@ -70,7 +72,7 @@ export function VoteOpinion({ opinions }: { opinions: FeedOpinions }) {
                 <button
                   key={value}
                   type="button"
-                  aria-label={label}
+                  aria-label={t(label)}
                   aria-pressed={chosen}
                   onClick={() => choose(value)}
                   className={cn(
@@ -111,7 +113,7 @@ export function VoteOpinion({ opinions }: { opinions: FeedOpinions }) {
           )}
           {counts && !counts.vote && (
             <p className={cn('flex-1 text-center text-[13px]', MUTED_TEXT)}>
-              Noch zu wenige Stimmen für ein Ergebnis
+              {t('tooFew')}
             </p>
           )}
         </div>

@@ -2,6 +2,7 @@
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { withdrawFeedOpinions } from '@/lib/daily/use-feed-opinions';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -22,6 +23,7 @@ type Props = {
 /** Withdraws the consent to storing opinions on feed items: every stored
  * opinion is deleted and taken out of the totals. */
 function DeleteOpinionsDialog({ open, onOpenChange }: Props) {
+  const t = useTranslations('opinions.delete');
   const { refreshUser } = useAnonymousAuth();
   const [deleting, setDeleting] = useState(false);
 
@@ -30,11 +32,11 @@ function DeleteOpinionsDialog({ open, onOpenChange }: Props) {
     try {
       await withdrawFeedOpinions();
       await refreshUser();
-      toast.success('Deine Bewertungen wurden gelöscht.');
+      toast.success(t('done'));
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-      toast.error('Das Löschen hat nicht geklappt. Bitte versuch es erneut.');
+      toast.error(t('failed'));
     } finally {
       setDeleting(false);
     }
@@ -44,13 +46,9 @@ function DeleteOpinionsDialog({ open, onOpenChange }: Props) {
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>
-            Meine Bewertungen löschen?
-          </ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Wir löschen alle deine Bewertungen von Positionen und Abstimmungen
-            und nehmen sie aus den Gesamtergebnissen. Deine Einwilligung ist
-            damit widerrufen.
+            {t('description')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <ResponsiveDialogFooter>
@@ -60,7 +58,7 @@ function DeleteOpinionsDialog({ open, onOpenChange }: Props) {
               className="w-full"
               onClick={() => onOpenChange(false)}
             >
-              Abbrechen
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -68,7 +66,7 @@ function DeleteOpinionsDialog({ open, onOpenChange }: Props) {
               disabled={deleting}
               onClick={confirm}
             >
-              Löschen
+              {t('confirm')}
             </Button>
           </div>
         </ResponsiveDialogFooter>

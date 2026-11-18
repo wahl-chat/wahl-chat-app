@@ -16,64 +16,63 @@ export function berlinToday(now: Date = new Date()): string {
   }).format(now);
 }
 
-const MONTHS = [
-  'Januar',
-  'Februar',
-  'März',
-  'April',
-  'Mai',
-  'Juni',
-  'Juli',
-  'August',
-  'September',
-  'Oktober',
-  'November',
-  'Dezember',
-];
-const MONTHS_SHORT = [
-  'Jan.',
-  'Feb.',
-  'März',
-  'Apr.',
-  'Mai',
-  'Juni',
-  'Juli',
-  'Aug.',
-  'Sept.',
-  'Okt.',
-  'Nov.',
-  'Dez.',
-];
-const WEEKDAYS_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-
 function parts(day: string): { year: number; month: number; day: number } {
   const [year, month, date] = day.split('-').map(Number);
   return { year, month, day: date };
 }
 
+function utc(day: string): Date {
+  return new Date(`${day}T00:00:00Z`);
+}
+
 /** 0 for Monday … 6 for Sunday. */
 function weekday(day: string): number {
-  return (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
+  return (utc(day).getUTCDay() + 6) % 7;
 }
 
-/** "6. Nov." */
-export function shortDate(day: string): string {
-  const { month, day: date } = parts(day);
-  return `${date}. ${MONTHS_SHORT[month - 1]}`;
-}
+/** How the calendar writes its dates in one language. */
+export type CalendarFormat = {
+  /** "6. Nov." */
+  shortDate: (day: string) => string;
+  /** "Fr, 6. Nov." */
+  shortDay: (day: string) => string;
+  /** "9.–13. Nov.", or "30. Nov. – 4. Dez." across a month. */
+  shortRange: (start: string, end: string) => string;
+  /** "November 2026", from `YYYY-MM`. */
+  monthLabel: (month: string) => string;
+  /** The grid's column heads, Monday first: "Mo" … "So". */
+  weekdays: string[];
+};
 
-/** "Fr, 6. Nov." */
-export function shortDay(day: string): string {
-  return `${WEEKDAYS_SHORT[weekday(day)]}, ${shortDate(day)}`;
-}
-
-/** "9.–13. Nov.", or "30. Nov. – 4. Dez." across a month. */
-export function shortRange(start: string, end: string): string {
-  const s = parts(start);
-  const e = parts(end);
-  return s.month === e.month
-    ? `${s.day}.–${e.day}. ${MONTHS_SHORT[e.month - 1]}`
-    : `${shortDate(start)} – ${shortDate(end)}`;
+/** `intl` is the BCP 47 tag of the reader's language (`LOCALE_INFO`). */
+export function calendarFormat(intl: string): CalendarFormat {
+  const date = new Intl.DateTimeFormat(intl, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+  // Engines differ on the abbreviation's full stop ("Fr" or "Fr."); the
+  // calendar writes it without.
+  const weekdayName = (d: Date) =>
+    new Intl.DateTimeFormat(intl, { weekday: 'short', timeZone: 'UTC' })
+      .format(d)
+      .replace(/\.$/, '');
+  const month = new Intl.DateTimeFormat(intl, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  const shortDate = (day: string) => date.format(utc(day));
+  return {
+    shortDate,
+    shortDay: (day) => `${weekdayName(utc(day))}, ${shortDate(day)}`,
+    shortRange: (start, end) => date.formatRange(utc(start), utc(end)),
+    monthLabel: (m) => month.format(utc(`${m}-01`)),
+    // 2024-01-01 was a Monday.
+    weekdays: Array.from({ length: 7 }, (_, i) =>
+      weekdayName(utc(`2024-01-0${i + 1}`)),
+    ),
+  };
 }
 
 /** A known sitting day, or a whole sitting week whose days are not
@@ -98,12 +97,6 @@ export function upcomingSlots(
             .map((s) => ({ kind: 'day', date: s.date }))
         : [{ kind: 'week', start: week.start, end: week.end }],
     );
-}
-
-function slotDay(slot: Slot): string {
-  return slot.kind === 'day'
-    ? shortDay(slot.date)
-    : shortRange(slot.start, slot.end);
 }
 
 function sitsToday(slots: Slot[], today: string): boolean {
@@ -149,11 +142,35 @@ export function waitingDays(
 }
 
 /** "4.–5. Nov.", or "4. Nov." for one day. */
-function waitingDates(waiting: readonly WaitingDay[]): string {
+function waitingDates(
+  waiting: readonly WaitingDay[],
+  format: CalendarFormat,
+): string {
   const first = waiting[0].date;
   const last = waiting[waiting.length - 1].date;
-  return first === last ? shortDate(first) : shortRange(first, last);
+  return first === last
+    ? format.shortDate(first)
+    : format.shortRange(first, last);
 }
+
+/** The status line's sentences in the reader's language; each takes the
+ * dates already written out. */
+export type StatusWords = {
+  /** "Tagt heute" */
+  sitsToday: string;
+  /** "Tagt heute · nächste Sitzung …" */
+  sitsTodayThenNext: (when: string) => string;
+  /** "4.–5. Nov. in Arbeit" */
+  inProgress: (dates: string) => string;
+  /** "nächste Sitzung …", after the days in progress. */
+  nextDay: (date: string) => string;
+  /** "nächste Sitzungswoche …", after the days in progress. */
+  nextWeek: (range: string) => string;
+  /** "Nächste Sitzung …", on its own. */
+  nextDayAlone: (date: string) => string;
+  /** "Nächste Sitzungswoche …", on its own. */
+  nextWeekAlone: (range: string) => string;
+};
 
 export type SittingStatus = {
   live: boolean;
@@ -167,16 +184,23 @@ export type SittingStatus = {
 export function sittingStatus(
   calendar: SittingCalendar | null,
   today: string,
-  waiting: readonly WaitingDay[] = [],
+  waiting: readonly WaitingDay[],
+  words: StatusWords,
+  format: CalendarFormat,
 ): SittingStatus | null {
   const slots = upcomingSlots(calendar, today);
+  const range = (slot: { start: string; end: string }) =>
+    format.shortRange(slot.start, slot.end);
   if (sitsToday(slots, today)) {
+    const after = slots[1];
     return {
       live: true,
       waiting: false,
-      text: slots[1]
-        ? `Tagt heute · nächste Sitzung ${slotDay(slots[1])}`
-        : 'Tagt heute',
+      text: after
+        ? words.sitsTodayThenNext(
+            after.kind === 'day' ? format.shortDay(after.date) : range(after),
+          )
+        : words.sitsToday,
     };
   }
   const [next] = slots;
@@ -184,12 +208,12 @@ export function sittingStatus(
     const upcoming =
       next &&
       (next.kind === 'day'
-        ? `nächste Sitzung ${shortDate(next.date)}`
-        : `nächste Sitzungswoche ${shortRange(next.start, next.end)}`);
+        ? words.nextDay(format.shortDate(next.date))
+        : words.nextWeek(range(next)));
     return {
       live: false,
       waiting: true,
-      text: [`${waitingDates(waiting)} in Arbeit`, upcoming]
+      text: [words.inProgress(waitingDates(waiting, format)), upcoming]
         .filter(Boolean)
         .join(' · '),
     };
@@ -202,8 +226,8 @@ export function sittingStatus(
     waiting: false,
     text:
       next.kind === 'day'
-        ? `Nächste Sitzung ${shortDay(next.date)}`
-        : `Nächste Sitzungswoche ${shortRange(next.start, next.end)}`,
+        ? words.nextDayAlone(format.shortDay(next.date))
+        : words.nextWeekAlone(range(next)),
   };
 }
 
@@ -217,12 +241,6 @@ function nextMonth(month: string): string {
   return m === 12
     ? `${year + 1}-01`
     : `${year}-${String(m + 1).padStart(2, '0')}`;
-}
-
-/** "November 2026" */
-export function monthLabel(month: string): string {
-  const { year, month: m } = parts(`${month}-01`);
-  return `${MONTHS[m - 1]} ${year}`;
 }
 
 /** The months the grid can show: from when the feed begins to the last

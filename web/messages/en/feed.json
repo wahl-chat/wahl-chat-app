@@ -106,5 +106,89 @@
   "dayFailed": "This day could not be loaded.",
   "retry": "Try again",
   "keyPoints": "Key points",
-  "tapPerson": "Tap a person for more"
+  "tapPerson": "Tap a person for more",
+  "calendar": {
+    "sitsToday": "Sitting today",
+    "sitsTodayThenNext": "Sitting today · next sitting {when}",
+    "inProgress": "{dates} in progress",
+    "nextDay": "next sitting {date}",
+    "nextWeek": "next sitting week {range}",
+    "nextDayAlone": "Next sitting {date}",
+    "nextWeekAlone": "Next sitting week {range}",
+    "plannedOn": "Sitting planned for {day}.",
+    "agenda": "Agenda (German)",
+    "sitsTodayNote": "The Bundestag is sitting today.",
+    "sittingOn": "Sitting on {day}:",
+    "contentFollows": "The content appears here as soon as the plenary record is online.",
+    "closeNote": "Close note",
+    "legend": {
+      "online": "online",
+      "today": "today",
+      "pending": "to follow",
+      "upcoming": "planned"
+    },
+    "label": "Sitting days of the Bundestag",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "monthLabel": "Sitting days {month}",
+    "cell": {
+      "online": "Sitting day, content online",
+      "today": "Sitting day today",
+      "pending": "Sitting day, content not online yet",
+      "upcoming": "Sitting day planned"
+    }
+  },
+  "sources": {
+    "from": "from {time}",
+    "video": "Video",
+    "protocolPage": "Plenary record (German), p. {page}",
+    "protocol": "Plenary record (German)"
+  },
+  "scroll": {
+    "back": "{label}: back",
+    "forward": "{label}: next"
+  },
+  "loadingOlderDays": "Loading earlier days",
+  "glossary": {
+    "explain": "{term}: show explanation",
+    "source": "Source (German):"
+  },
+  "politician": {
+    "tenure": "{since} · {terms, plural, one {# parliamentary term} other {# parliamentary terms}}",
+    "direct": "Directly elected · constituency {number} – {name}",
+    "list": "State list {land}",
+    "fraktion": "{name} parliamentary group",
+    "committees": "Committees",
+    "otherBodies": "Other bodies & offices",
+    "rollCalls": "Recent roll-call votes",
+    "voteLabel": {
+      "yes": "yes",
+      "no": "no",
+      "abstain": "abstained",
+      "absent": "did not vote",
+      "other": "other"
+    },
+    "allVotes": "All votes on bundestag.de (German)",
+    "disclosures": "Mandatory disclosures",
+    "memberExplanation": "The member's explanations",
+    "party": "Party",
+    "speaksFor": "{name} is not a member of the Bundestag and speaks there for {institutions}.",
+    "speaksForGovernment": "{name} is not a member of the Bundestag and speaks there for the Federal Government.",
+    "since": "In the Bundestag since",
+    "profession": "Profession",
+    "mandate": "Mandate",
+    "photo": "Photo: {credit}",
+    "source": "Source: German Bundestag",
+    "sourceAsOf": "Source: German Bundestag, as of {stand}",
+    "profile": "Profile on bundestag.de (German)",
+    "close": "Close",
+    "watchSpeech": "Watch the speech in this debate",
+    "notAMember": "{name} is not a member of the Bundestag, so there is no Bundestag profile here.",
+    "noProfile": "The Bundestag has no profile for this person."
+  },
+  "speakers": {
+    "label": "Speakers",
+    "openWithDuration": "{name}, speech {duration} minutes – open profile",
+    "open": "{name} – open profile"
+  }
 }

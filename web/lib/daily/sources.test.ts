@@ -110,11 +110,20 @@ describe('toViewerSource', () => {
   });
 });
 
+const WORDS = {
+  from: (time: string) => `ab ${time}`,
+  video: 'Video',
+  protocolPage: (page: number) => `Plenarprotokoll S. ${page}`,
+  protocol: 'Plenarprotokoll',
+};
+
 describe('sourceTooltip', () => {
   it('names the speaker and where the passage is', () => {
-    expect(sourceTooltip(ANNA)).toBe('Anna (SPD) · ab 1:23');
-    expect(sourceTooltip(BERND)).toBe('Bernd (CSU) · Plenarprotokoll S. 14');
-    expect(sourceTooltip({ ...BERND, page: null })).toBe(
+    expect(sourceTooltip(ANNA, WORDS)).toBe('Anna (SPD) · ab 1:23');
+    expect(sourceTooltip(BERND, WORDS)).toBe(
+      'Bernd (CSU) · Plenarprotokoll S. 14',
+    );
+    expect(sourceTooltip({ ...BERND, page: null }, WORDS)).toBe(
       'Bernd (CSU) · Plenarprotokoll',
     );
   });

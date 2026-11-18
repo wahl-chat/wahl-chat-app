@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import { CARD_SURFACE } from './card-styles';
 
 const BLOCK = 'animate-pulse rounded bg-[var(--daily-surface)]';
@@ -21,10 +22,11 @@ function CardSkeleton({ media }: { media?: boolean }) {
 /** A sitting day's shape while older days load: the Hot Topic, then the
  * start of the day's swipe row, so the feed does not jump when it arrives. */
 function DaySkeleton() {
+  const t = useTranslations('feed');
   return (
     <div
       aria-busy="true"
-      aria-label="Ältere Tage laden"
+      aria-label={t('loadingOlderDays')}
       className="flex w-full flex-col gap-8"
     >
       <div aria-hidden className="flex flex-col gap-3">

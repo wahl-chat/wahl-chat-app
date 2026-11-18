@@ -7,6 +7,7 @@ import {
 } from '@/lib/daily/scroll-edges';
 import { cn } from '@/lib/utils';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   type ReactNode,
   type RefObject,
@@ -47,6 +48,7 @@ export function ScrollRow({
   onScroll?: () => void;
   bleed?: boolean;
 }) {
+  const t = useTranslations('feed.scroll');
   const ownRef = useRef<HTMLDivElement>(null);
   const ref = scrollerRef ?? ownRef;
   const [edges, setEdges] = useState<ScrollEdges>({ start: false, end: false });
@@ -104,7 +106,7 @@ export function ScrollRow({
       {edges.start && (
         <button
           type="button"
-          aria-label={`${label}: zurück`}
+          aria-label={t('back', { label })}
           onClick={() => scroll(-1)}
           className={cn(CHEVRON, FOCUS_RING, 'left-1')}
         >
@@ -114,7 +116,7 @@ export function ScrollRow({
       {edges.end && (
         <button
           type="button"
-          aria-label={`${label}: weiter`}
+          aria-label={t('forward', { label })}
           onClick={() => scroll(1)}
           className={cn(CHEVRON, FOCUS_RING, 'right-1')}
         >

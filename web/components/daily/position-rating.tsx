@@ -4,6 +4,7 @@ import type { PositionOpinion } from '@/lib/daily/opinions';
 import { SEAT_FILLS } from '@/lib/daily/palette';
 import { cn } from '@/lib/utils';
 import { ArrowBigDownIcon, ArrowBigUpIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { FOCUS_RING } from './card-styles';
 
 const CHOICE_COLOR: Record<PositionOpinion, string> = {
@@ -32,21 +33,22 @@ export function PositionRating({
   score: number | null;
   onChoose: (value: PositionOpinion | null) => void;
 }) {
+  const t = useTranslations('opinions.position');
   const toggle = (value: PositionOpinion) =>
     onChoose(choice === value ? null : value);
   const color = choice ? CHOICE_COLOR[choice] : undefined;
   return (
     <div
       role="group"
-      aria-label={`Position von ${partyName} bewerten`}
+      aria-label={t('rate', { party: partyName })}
       className="-mr-2 inline-flex shrink-0 items-center"
     >
       <span className="mr-1 text-[13px] font-medium text-[var(--daily-muted)]">
-        Unterstützt du das?
+        {t('question')}
       </span>
       <button
         type="button"
-        aria-label="Stimme zu"
+        aria-label={t('agree')}
         aria-pressed={choice === 'up'}
         onClick={() => toggle('up')}
         className={ARROW_BUTTON}
@@ -67,7 +69,7 @@ export function PositionRating({
       )}
       <button
         type="button"
-        aria-label="Stimme nicht zu"
+        aria-label={t('disagree')}
         aria-pressed={choice === 'down'}
         onClick={() => toggle('down')}
         className={ARROW_BUTTON}
