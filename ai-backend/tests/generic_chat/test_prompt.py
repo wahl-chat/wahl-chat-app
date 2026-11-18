@@ -77,3 +77,14 @@ def test_follow_ups_name_only_parties_in_the_bundestag() -> None:
     text = quick_reply_guidelines(parties())
     assert "SPD, CDU/CSU" in text
     assert "Volt" not in text
+
+
+def test_the_federal_parties_carry_government_or_opposition() -> None:
+    deps = make_deps()
+    deps.context = deps.context.model_copy(update={"context_id": "bundestag-aktuell"})
+    prompt = build_system_prompt(deps, today=date(2026, 11, 14))
+
+    assert "id spd: in the Bundestag, government" in prompt
+    assert "id cdu: in the Bundestag, government" in prompt
+    assert "id volt: not in the Bundestag\n" in prompt
+    assert "never the coalition's reasons" in prompt and "liegt uns nicht vor" in prompt

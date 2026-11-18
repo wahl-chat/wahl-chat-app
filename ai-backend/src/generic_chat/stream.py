@@ -48,6 +48,7 @@ from src.core.utils import (
     build_chat_history_string,
     sanitize_references,
 )
+from src.generic_chat.citations import drop_unknown_citations
 from src.generic_chat import agent as agent_module
 from src.generic_chat import presets, prompt
 from src.generic_chat import tools
@@ -364,7 +365,7 @@ async def stream_generic_chat(
             # A tool ran after the text began; the client replaces the sources.
             yield _sources_ready(session_id, deps)
 
-        answer = sanitize_references(answer)
+        answer = drop_unknown_citations(sanitize_references(answer), len(deps.sources.entries))
         complete = PartyResponseCompleteDto(
             session_id=session_id,
             party_id=PARTY_ID,
