@@ -11,6 +11,7 @@ import {
   rankFeed,
   windowedDigests,
 } from '@/lib/daily/feed';
+import { deeperState, trailDepth } from '@/lib/daily/feed-trail';
 import {
   DEFAULT_FILTER,
   type FeedFilter,
@@ -93,7 +94,8 @@ function syncUrl({ states, filter, item }: View) {
   set(TOPICS_PARAM, filter.topics.join(',') || null);
   set(KIND_PARAM, kindParamValue(filter.kinds));
   set(ITEM_PARAM, item);
-  window.history.replaceState(null, '', url);
+  // Keeps the entry's state: the router's and the item trail's depth.
+  window.history.replaceState(window.history.state, '', url);
 }
 
 function storedStates(): StateSelection {
@@ -198,7 +200,9 @@ function DailyFeed({
   );
   const [filter, setFilter] = useState(initialFilter);
   const [openKey, setOpenKey] = useState<string | null>(initialItem ?? null);
-  const [trail, setTrail] = useState<string[]>([]);
+  const [depth, setDepth] = useState(0);
+  // A back already asked for; a second close before it lands is ignored.
+  const backPending = useRef(false);
   const [pages, setPages] = useState<Pages>(() => ({
     bundestag: [feeds.bundestag],
     landtag_st: [feeds.landtag_st],
@@ -355,8 +359,10 @@ function DailyFeed({
     null;
 
   useEffect(() => {
-    const onPop = () => {
-      setTrail((keys) => keys.slice(0, -1));
+    setDepth(trailDepth(window.history.state));
+    const onPop = (event: PopStateEvent) => {
+      backPending.current = false;
+      setDepth(trailDepth(event.state));
       setOpenKey(new URL(window.location.href).searchParams.get(ITEM_PARAM));
     };
     window.addEventListener('popstate', onPop);
@@ -415,12 +421,23 @@ function DailyFeed({
     }
     const url = new URL(window.location.href);
     url.searchParams.set(ITEM_PARAM, key);
-    window.history.pushState(null, '', url);
-    setTrail((keys) => [...keys, key]);
+    const state = deeperState(window.history.state);
+    window.history.pushState(state, '', url);
+    setDepth(trailDepth(state));
     setOpenKey(key);
     return true;
   };
-  const close = () => (trail.length > 0 ? window.history.back() : open(null));
+  const close = () => {
+    if (backPending.current) {
+      return;
+    }
+    if (depth > 0) {
+      backPending.current = true;
+      window.history.back();
+    } else {
+      open(null);
+    }
+  };
 
   return (
     <GlossaryProvider entries={glossary}>
@@ -506,7 +523,7 @@ function DailyFeed({
             item={openItem}
             heat={openHeat}
             onClose={close}
-            backToItem={trail.length > 0}
+            backToItem={depth > 0}
           />
         </div>
       </OpenFeedItemContext.Provider>

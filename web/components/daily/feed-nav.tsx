@@ -11,8 +11,3 @@ export const OpenFeedItemContext = createContext<
 export function useOpenFeedItem() {
   return useContext(OpenFeedItemContext);
 }
-
-/** The item key a feed link points at. */
-export function feedItemKeyOf(href: string): string | null {
-  return new URL(href, 'https://wahl.chat').searchParams.get('item');
-}

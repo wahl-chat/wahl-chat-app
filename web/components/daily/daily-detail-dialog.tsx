@@ -27,7 +27,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, MessageCircleIcon, ShareIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { GlossaryText } from './glossary-text';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
@@ -384,6 +384,28 @@ export function DailyDetailDialog({
       setOpened(null);
     }
   };
+  // Where each item was scrolled to, so going back to one resumes there.
+  const scrolled = useRef(new Map<string, number>());
+  const body = useRef<HTMLDivElement | null>(null);
+  const shownKey = useRef<string | null>(null);
+  const key = item?.key ?? null;
+  useEffect(() => {
+    const previous = shownKey.current;
+    shownKey.current = key;
+    if (key === null) {
+      scrolled.current.clear();
+      return;
+    }
+    const node = body.current;
+    if (!node || previous === null || previous === key) {
+      return;
+    }
+    node.scrollTop = scrolled.current.get(key) ?? 0;
+    // Another item in the open dialog: screen readers hear its title.
+    const title = node.querySelector<HTMLElement>('h2');
+    title?.setAttribute('tabindex', '-1');
+    title?.focus({ preventScroll: true });
+  }, [key]);
   const context = item
     ? `${item.kind === 'vote' ? 'Abstimmung' : 'Plenarsitzung'} · ${longDayFormat.format(new Date(`${item.digest.date}T00:00:00Z`))}`
     : '';
@@ -432,6 +454,10 @@ export function DailyDetailDialog({
               </header>
               <div
                 key={item.key}
+                ref={body}
+                onScroll={(event) =>
+                  scrolled.current.set(item.key, event.currentTarget.scrollTop)
+                }
                 className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6"
               >
                 {item.kind === 'vote' ? (

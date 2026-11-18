@@ -1,5 +1,6 @@
 'use client';
 
+import { feedItemKeyOf, isPlainClick } from '@/lib/daily/feed-trail';
 import {
   type ProcedureMarker,
   type ProcedureRow,
@@ -26,7 +27,7 @@ import {
 import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, PILL, SECTION_LABEL } from './card-styles';
-import { feedItemKeyOf, useOpenFeedItem } from './feed-nav';
+import { useOpenFeedItem } from './feed-nav';
 import { SourceLink } from './vote-panels';
 
 const shortDay = new Intl.DateTimeFormat('de-DE', {
@@ -69,7 +70,7 @@ function FeedLink({ link }: { link: StepFeedLink }) {
   // feed opens it from the URL.
   const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     const key = feedItemKeyOf(link.href);
-    if (openItem && key && !event.metaKey && !event.ctrlKey && openItem(key)) {
+    if (openItem && key && isPlainClick(event) && openItem(key)) {
       event.preventDefault();
     }
   };
