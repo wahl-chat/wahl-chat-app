@@ -70,6 +70,8 @@ class PageReport:
         row[2] += meta.get("page_end") is not None
 
     def render(self) -> str:
+        if not self.chunks:
+            return "\n".join(self._footer())
         lines = [
             "| doc_type | doc_section | chunks | page_start | rate | page_end |",
             "|---|---|---:|---:|---:|---:|",
@@ -83,6 +85,10 @@ class PageReport:
         lines.append(
             f"| **all** | | {total[0]} | {total[1]} | {_rate(total)} | {total[2]} |"
         )
+        return "\n".join(lines + self._footer())
+
+    def _footer(self) -> list[str]:
+        lines: list[str] = []
         if self.documents or self.no_pdf:
             lines.append(
                 f"\ndocuments placed: {self.documents}, without a readable PDF: {len(self.no_pdf)}"
@@ -92,7 +98,7 @@ class PageReport:
                 f"protocol stages with a PDF page: {self.stages_placed}/{self.stages}, "
                 f"records written: {self.records_written}"
             )
-        return "\n".join(lines)
+        return lines
 
 
 def _rate(row: list[int]) -> str:
