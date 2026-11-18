@@ -5,6 +5,7 @@ import { ArrowUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Logo from './chat/logo';
 import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
+import AutoGrowTextarea from './ui/auto-grow-textarea';
 import { Button } from './ui/button';
 
 type Props = {
@@ -43,8 +44,9 @@ function StickyInput({
     };
   }, [ref]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+    if (!input.trim() || isLoading) return;
     onSubmit(input);
   };
 
@@ -56,11 +58,18 @@ function StickyInput({
     <div
       ref={ref}
       className={cn(
-        'sticky bottom-[-1px] -mx-2 md:pb-2 pb-4 z-40 transition-all duration-300 ease-out',
+        'group/sticky sticky bottom-[-1px] -mx-2 md:pb-2 pb-4 z-40 transition-all duration-300 ease-out',
         !isSticky && 'mx-0',
         className,
       )}
     >
+      {/* With the keyboard open on a phone, what lies below the box shows
+          above the keyboard; cover it while typing. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-full hidden h-dvh group-focus-within/sticky:block md:!hidden"
+        style={{ background: 'var(--daily-canvas, hsl(var(--background)))' }}
+      />
       <form
         onSubmit={handleSubmit}
         className={cn(
@@ -93,14 +102,14 @@ function StickyInput({
           variant="small"
           className="absolute bottom-2 left-2 size-8 translate-y-0 rounded-full border border-border p-1"
         />
-        <input
+        <AutoGrowTextarea
           className="w-full bg-chat-input px-12 py-3 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
           name="question"
           placeholder={placeholder}
           aria-label={placeholder}
           value={input}
-          type="text"
           onChange={(e) => setInput(e.target.value)}
+          onSubmit={() => handleSubmit()}
           maxLength={500}
         />
         <Button
