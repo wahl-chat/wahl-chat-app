@@ -119,3 +119,22 @@ def test_a_fraktion_page_is_that_party_speaking() -> None:
     assert [(d.tier, d.preferred_outlet) for d in docs] == [("party_site", None), ("press", True)]
     assert deps.sources.entries[docs[0].id]["party_id"] == "spd"
     assert isinstance(docs[0], NumberedDocument)
+
+
+async def test_a_cached_answer_carries_its_expiry(
+    turn_io: FakeIO, cache: dict, monkeypatch: pytest.MonkeyPatch  # noqa: F811
+) -> None:
+    await _run(Script(say("Ja [0].")), monkeypatch, user_message=WHY, anchor={"poll_id": POLL_ID}, preset="why")
+    turn = next(iter(cache.values()))
+    assert turn.expire_at is not None and turn.expire_at - turn.created_at == presets.MAX_AGE
+
+
+async def test_a_bare_number_as_name_is_checked_like_an_id() -> None:
+    from types import SimpleNamespace
+
+    from src.generic_chat import agent
+    from src.generic_chat.schemas import GetProcessInput
+
+    ctx = SimpleNamespace(deps=make_deps())
+    result = await agent.get_process(ctx, GetProcessInput(name="12345"))  # type: ignore[arg-type]
+    assert result.procedure is None and "not returned by any tool" in (result.note or "")

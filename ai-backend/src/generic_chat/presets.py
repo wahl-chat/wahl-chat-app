@@ -20,28 +20,19 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
 
 from src.generic_chat.prompt import build_system_prompt
-from src.generic_chat.schemas import GenericChatDeps
+from src.generic_chat.schemas import CachedTurn, GenericChatDeps
 from src.services.firebase_service import async_db
 
 logger = logging.getLogger(__name__)
 
 _COLLECTION = "cached_chat_answers"
-_MAX_AGE = timedelta(days=7)
+MAX_AGE = timedelta(days=7)
 # The key ignores the day, so an answer lives across days.
 _KEY_DAY = date(2000, 1, 1)
 # Bump when the cached shape or the way answers are made changes.
 _VERSION = "6"
-
-
-class CachedTurn(BaseModel):
-    answer: str
-    sources: list[dict]
-    quick_replies: list[str] = Field(default_factory=list)
-    title: str = ""
-    created_at: datetime
 
 
 def cache_key(deps: GenericChatDeps, question: str, model: Any) -> str:
@@ -67,7 +58,7 @@ async def aload(key: str) -> Optional[CachedTurn]:
     except Exception as exc:  # noqa: BLE001 (a cache miss, never an error)
         logger.warning("preset cache read failed: %s", exc)
         return None
-    if datetime.now(timezone.utc) - turn.created_at > _MAX_AGE:
+    if datetime.now(timezone.utc) - turn.created_at > MAX_AGE:
         return None
     return turn
 

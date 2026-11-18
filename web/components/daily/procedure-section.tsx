@@ -354,8 +354,8 @@ function moreLabel(more: ProcedureRow[]): string {
 const DIP_LABEL = 'Verfahren im Dokumentationssystem des Bundestags (DIP)';
 
 /** Where the item's law stands, with this item's step highlighted, each
- * step opening what happened there, and the ways into the chat about it
- * (flows F-11/F-12). Nothing without procedures. */
+ * step opening what happened there, and the ways into the chat about it.
+ * Nothing without procedures. */
 /** The feed's other items about a procedure; empty until loaded or when
  * loading fails, and the timeline reads fine without them. */
 function useRelatedItems(vorgangId: string | null): FeedItem[] {

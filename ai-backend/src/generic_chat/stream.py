@@ -526,6 +526,7 @@ async def stream_generic_chat(
     yield DONE
     # An answer that stands on a failed lookup is not served to everyone.
     if cache_key is not None and answer and not deps.degraded:
+        stored_at = datetime.now(timezone.utc)
         task = asyncio.create_task(
             presets.astore(
                 cache_key,
@@ -534,7 +535,8 @@ async def stream_generic_chat(
                     sources=deps.sources.snapshot(),
                     quick_replies=quick_replies.quick_replies if quick_replies else [],
                     title=quick_replies.title if quick_replies else "",
-                    created_at=datetime.now(timezone.utc),
+                    created_at=stored_at,
+                    expire_at=stored_at + presets.MAX_AGE,
                 ),
             )
         )

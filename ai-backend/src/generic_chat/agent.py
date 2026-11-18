@@ -237,6 +237,9 @@ async def get_process(
     returns choices instead; then ask the user."""
     if args.vorgang_id is not None and not ctx.deps.knows("vorgang_id", args.vorgang_id):
         return ProcessResult(note=_unknown("vorgang_id", args.vorgang_id, "a search result's procedures, or pass the name"))
+    # A bare number as name is an id too.
+    if args.name and args.name.strip().isdigit() and not ctx.deps.knows("vorgang_id", args.name.strip()):
+        return ProcessResult(note=_unknown("vorgang_id", args.name.strip(), "a search result's procedures, or pass the name"))
     result = await _logged(
         "get_process", lambda: process.get_process(ctx.deps, args), ctx.deps, ProcessResult
     )

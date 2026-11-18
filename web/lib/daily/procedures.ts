@@ -475,7 +475,7 @@ export function votedOnAmendment(voteTitle: string | undefined): boolean {
   return /\((Änderungsantrag|Entschließungsantrag)\)\s*$/.test(voteTitle ?? '');
 }
 
-/** What the detail view shows for an item's procedures (see flows F-11):
+/** What the detail view shows for an item's procedures:
  * a law gets a timeline with the item's step highlighted, a debate on
  * Anträge only a list, anything else nothing. */
 export function procedureSection(

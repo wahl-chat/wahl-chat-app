@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -452,3 +452,15 @@ class GenericChatDeps:
             if party.party_id == party_id:
                 return party.name
         return party_id
+
+
+class CachedTurn(BaseModel):
+    """A feed button's answer as stored in ``cached_chat_answers``."""
+
+    answer: str
+    sources: list[dict]
+    quick_replies: list[str] = Field(default_factory=list)
+    title: str = ""
+    created_at: datetime
+    # For a Firestore TTL policy; reads also check the age.
+    expire_at: Optional[datetime] = None
