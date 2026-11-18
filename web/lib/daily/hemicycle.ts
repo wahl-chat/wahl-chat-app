@@ -179,6 +179,48 @@ export function layoutHemicycle(
   return { seats, arcs, seatRadius: rowWidth * 0.4 };
 }
 
+/** Seats in the readers' chart: enough to read a split at a glance, few
+ * enough to stay legible at the size of a button column. */
+export const SHARE_SEATS = 100;
+
+/**
+ * The readers' "Wie hättest du abgestimmt?" as a small chamber: Annehmen
+ * from the left, Ablehnen from the right, each block sized by its share.
+ * A side with any votes keeps at least one seat, so a lone vote is never
+ * rounded away; with no votes at all every seat is hollow.
+ */
+export function layoutShare(
+  accept: number,
+  reject: number,
+  seats: number = SHARE_SEATS,
+): { seats: Seat[]; seatRadius: number } {
+  const total = accept + reject;
+  let acceptSeats = total > 0 ? Math.round((seats * accept) / total) : 0;
+  if (accept > 0) {
+    acceptSeats = Math.max(acceptSeats, 1);
+  }
+  if (reject > 0) {
+    acceptSeats = Math.min(acceptSeats, seats - 1);
+  }
+  const rejectSeats = total > 0 ? seats - acceptSeats : 0;
+  const { positions, rowWidth } = seatPositions(seats);
+  return {
+    seats: positions.map((position, i) => ({
+      x: position.x,
+      y: position.y,
+      angle: position.angle,
+      partyId: '',
+      vote:
+        i < acceptSeats
+          ? 'yes'
+          : i < acceptSeats + rejectSeats
+            ? 'no'
+            : 'absent',
+    })),
+    seatRadius: rowWidth * 0.4,
+  };
+}
+
 // Fixed precision so the server-rendered SVG and the hydrating client agree
 // to the character; raw trig results can differ in their last digits.
 export function coord(value: number): string {

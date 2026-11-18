@@ -8,6 +8,7 @@ import {
   coord,
   isUnaffiliated,
   layoutHemicycle,
+  layoutShare,
   seatShape,
   voteBreakdown,
   voteTotals,
@@ -255,5 +256,32 @@ export function PartyVoteBreakdown({
         ))}
       </ul>
     </section>
+  );
+}
+
+/** The readers' answers to "Wie hättest du abgestimmt?" as a small chamber,
+ * shown once the reader has answered themselves. */
+export function CommunityHemicycle({
+  accept,
+  reject,
+  className,
+}: {
+  accept: number;
+  reject: number;
+  className?: string;
+}) {
+  const layout = useMemo(() => layoutShare(accept, reject), [accept, reject]);
+  return (
+    <svg
+      viewBox="-1.05 -1.05 2.1 1.1"
+      className={cn('w-full', className)}
+      role="img"
+      aria-label={`Community: ${accept} annehmen, ${reject} ablehnen`}
+    >
+      {layout.seats.map((seat, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: stable per layout
+        <circle key={i} {...seatShape(seat, layout.seatRadius)} />
+      ))}
+    </svg>
   );
 }

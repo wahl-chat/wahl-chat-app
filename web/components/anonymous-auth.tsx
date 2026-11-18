@@ -31,6 +31,12 @@ export type WahlChatUser = {
     region: string;
     joined_at: Date | Timestamp;
   };
+  // Opt-in to storing the reader's opinions on feed items (GDPR Art. 9).
+  // Set and removed only by the web server, see `api/feed-opinions`.
+  feed_opinion_consent?: {
+    version: number;
+    given_at: Date | Timestamp;
+  };
 };
 
 export type SerializableFirebaseUser = UserInfo & {

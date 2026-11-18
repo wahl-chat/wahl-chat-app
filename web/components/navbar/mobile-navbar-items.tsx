@@ -11,9 +11,16 @@ type Props = {
   userDetails?: UserDetails;
   mobileClose?: () => void;
   onFeedback: () => void;
+  /** Shown only to readers who consented to storing their opinions. */
+  onDeleteOpinions?: () => void;
 };
 
-function MobileNavbarItems({ userDetails, mobileClose, onFeedback }: Props) {
+function MobileNavbarItems({
+  userDetails,
+  mobileClose,
+  onFeedback,
+  onDeleteOpinions,
+}: Props) {
   const tabs: NavbarItemDetails[] = [
     // The start page is the parliament feed, wahl.chat's News.
     {
@@ -56,6 +63,15 @@ function MobileNavbarItems({ userDetails, mobileClose, onFeedback }: Props) {
       >
         Feedback
       </button>
+      {onDeleteOpinions && (
+        <button
+          type="button"
+          onClick={onDeleteOpinions}
+          className="relative flex items-center gap-1 rounded-md p-2 text-sm text-primary/50 hover:text-primary/70"
+        >
+          Meine Bewertungen löschen
+        </button>
+      )}
 
       <Separator orientation="horizontal" className="my-4 w-1/2" />
       <LoginButton
