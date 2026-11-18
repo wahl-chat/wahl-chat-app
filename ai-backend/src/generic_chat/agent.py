@@ -7,6 +7,7 @@ Studio, then OpenAI, with the tools from ``tools.py``."""
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import time
@@ -55,6 +56,8 @@ TURN_TIMEOUT_S = 60.0
 # After this, the next request gets no tools, so the answer starts in time.
 _TOOLS_CUTOFF_S = 40.0
 _TOOL_TIMEOUT_S = 20.0
+# Inside the framework's timeout, so a slow lookup becomes a note, not a retry.
+_CALL_TIMEOUT_S = _TOOL_TIMEOUT_S - 2
 
 # Same models as the top of RESPONSE_GENERATION_LLMS in src/config/llms.py.
 GEMINI_MODEL = "gemini-3.6-flash"
@@ -181,7 +184,7 @@ async def _logged(
     """Run a tool; a failing lookup becomes a note, never the end of the turn."""
     started = time.monotonic()
     try:
-        result = await call()
+        result = await asyncio.wait_for(call(), _CALL_TIMEOUT_S)
     except Exception as exc:  # noqa: BLE001 (the model answers from what it has)
         deps.degraded = True
         logger.warning("generic chat tool %s failed: %r", name, exc)

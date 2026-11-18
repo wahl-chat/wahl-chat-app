@@ -7,8 +7,6 @@ of the LLM (AC-3, AC-4, AC-5, AC-6, AC-12, AC-13)."""
 
 from __future__ import annotations
 
-import asyncio
-
 import json
 import re
 from typing import Any, AsyncIterator, Callable
@@ -133,8 +131,6 @@ async def _run(script: Script, monkeypatch: pytest.MonkeyPatch, **extra: Any) ->
         part if part == "[DONE]" else json.loads(part)
         async for part in stream.stream_generic_chat(_body(**extra), None, general_context())
     ]
-    # Cache writes run after the response.
-    await asyncio.gather(*stream._background)
     return parts
 
 

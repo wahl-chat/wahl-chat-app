@@ -235,8 +235,7 @@ async def _quick_replies(
 _CHECK_TIMEOUT_S = 5.0
 _ANCHOR_TIMEOUT_S = 20.0
 _QUICK_REPLIES_TIMEOUT_S = 10.0
-# Cache writes outlive the response; held here so they are not collected.
-_background: set[asyncio.Task[Any]] = set()
+_CACHE_WRITE_TIMEOUT_S = 5.0
 
 
 def _entry(deps: GenericChatDeps, number: int) -> dict:
@@ -271,7 +270,10 @@ def _step_documents(result: Any) -> list[NumberedDocument]:
             title=f"{step.name} ({step.chamber})",
             date=step.date,
             text=" ".join(
-                filter(None, [step.date, step.chamber, step.name, step.document, *step.decisions, step.summary])
+                filter(
+                    None,
+                    [step.date, step.chamber, step.name, step.document, *step.decisions, step.summary],
+                )
             ),
         )
         for step in steps
@@ -399,7 +401,9 @@ async def stream_generic_chat(
                 )
             except Exception as exc:  # noqa: BLE001 (the turn goes on without its Bezug)
                 deps.degraded = True
-                logger.warning("generic chat: anchor %s failed: %r", anchor.model_dump(exclude_none=True), exc)
+                logger.warning(
+                    "generic chat: anchor %s failed: %r", anchor.model_dump(exclude_none=True), exc
+                )
             yield _tool_status(session_id, "anchor", anchor_tool, "done", language)
 
         if deps.preset is not None and deps.anchor is not None:
@@ -496,6 +500,11 @@ async def stream_generic_chat(
                 {"type": "anchor", "session_id": session_id,
                  "anchor": settled.model_dump(exclude_none=True)}
             )
+    except (asyncio.CancelledError, GeneratorExit):
+        # The client left mid-turn: no reply call keeps running for nobody.
+        if replies_task is not None:
+            replies_task.cancel()
+        raise
     except Exception as exc:  # noqa: BLE001 (terminal error contract, as the election path)
         logger.error("generic chat turn failed: %s", exc, exc_info=True)
         if replies_task is not None:
@@ -525,20 +534,18 @@ async def stream_generic_chat(
     yield finish()
     yield DONE
     # An answer that stands on a failed lookup is not served to everyone.
+    # Awaited inside the request: an instance gets CPU only while one is open.
     if cache_key is not None and answer and not deps.degraded:
         stored_at = datetime.now(timezone.utc)
-        task = asyncio.create_task(
-            presets.astore(
-                cache_key,
-                presets.CachedTurn(
-                    answer=answer,
-                    sources=deps.sources.snapshot(),
-                    quick_replies=quick_replies.quick_replies if quick_replies else [],
-                    title=quick_replies.title if quick_replies else "",
-                    created_at=stored_at,
-                    expire_at=stored_at + presets.MAX_AGE,
-                ),
-            )
+        turn = presets.CachedTurn(
+            answer=answer,
+            sources=deps.sources.snapshot(),
+            quick_replies=quick_replies.quick_replies if quick_replies else [],
+            title=quick_replies.title if quick_replies else "",
+            created_at=stored_at,
+            expire_at=stored_at + presets.MAX_AGE,
         )
-        _background.add(task)
-        task.add_done_callback(_background.discard)
+        try:
+            await asyncio.wait_for(presets.astore(cache_key, turn), _CACHE_WRITE_TIMEOUT_S)
+        except TimeoutError:
+            logger.warning("preset cache write timed out")

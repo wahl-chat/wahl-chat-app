@@ -64,6 +64,28 @@ async def test_a_failing_tool_becomes_a_note(turn_io: FakeIO, monkeypatch: pytes
     assert "lookup failed" in returned
 
 
+async def test_a_slow_tool_twice_still_gets_an_answer(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch  # noqa: F811
+) -> None:
+    import asyncio
+
+    from src.generic_chat import agent
+
+    async def slow(*_a: Any, **_k: Any) -> Any:
+        await asyncio.sleep(1)
+
+    monkeypatch.setattr(agent, "_CALL_TIMEOUT_S", 0.05)
+    monkeypatch.setattr(tools, "search", slow)
+    script = Script(
+        call(("search", {"query": "Mieten"})),
+        call(("search", {"query": "Mieten Berlin"})),
+        say("Ohne Quellen."),
+    )
+    parts = await _run(script, monkeypatch)
+    assert _answer(parts) == "Ohne Quellen." and _events(parts, "error") == []
+    assert "lookup failed" in str(script.requests[2][0][-1])
+
+
 async def test_a_preset_answer_on_a_failed_check_is_not_cached(
     turn_io: FakeIO, cache: dict, monkeypatch: pytest.MonkeyPatch  # noqa: F811
 ) -> None:
@@ -112,10 +134,10 @@ def test_a_fraktion_page_is_that_party_speaking() -> None:
     from src.generic_chat.schemas import WebResult
 
     deps = make_deps()
-    docs = web_context._register(deps, [
+    docs = web_context.register_results(deps, [
         WebResult(title="Fraktion <b>", url="https://www.spdfraktion.de/x", snippet="…", date="2026-11-13", domain="spdfraktion.de", preferred=True),
         WebResult(title="Tagesschau", url="https://www.tagesschau.de/x", snippet="…", date="2026-11-13", domain="tagesschau.de", preferred=True),
-    ])
+    ], "press")
     assert [(d.tier, d.preferred_outlet) for d in docs] == [("party_site", None), ("press", True)]
     assert deps.sources.entries[docs[0].id]["party_id"] == "spd"
     assert isinstance(docs[0], NumberedDocument)
@@ -138,3 +160,36 @@ async def test_a_bare_number_as_name_is_checked_like_an_id() -> None:
     ctx = SimpleNamespace(deps=make_deps())
     result = await agent.get_process(ctx, GetProcessInput(name="12345"))  # type: ignore[arg-type]
     assert result.procedure is None and "not returned by any tool" in (result.note or "")
+
+
+async def test_the_cache_is_written_before_the_stream_ends(
+    turn_io: FakeIO, cache: dict, monkeypatch: pytest.MonkeyPatch  # noqa: F811
+) -> None:
+    monkeypatch.setattr(stream, "resolve_model", lambda: Script(say("Ja [0].")).model)
+    from tests.generic_chat.test_stream import _body, general_context
+
+    async for _ in stream.stream_generic_chat(
+        _body(user_message=WHY, anchor={"poll_id": POLL_ID}, preset="why"), None, general_context()
+    ):
+        pass
+    assert len(cache) == 1
+
+
+async def test_web_search_marks_a_party_page_as_that_party(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.generic_chat import web_search as web
+    from src.generic_chat.schemas import WebResult, WebSearchInput
+
+    async def search_web(*_a: Any, **_k: Any) -> Any:
+        return [
+            WebResult(title="AfD", url="https://afdbundestag.de/x", snippet="…", date="2026-11-13", domain="afdbundestag.de", preferred=False),
+            WebResult(title="Spiegel", url="https://www.spiegel.de/x", snippet="…", date="2026-11-13", domain="spiegel.de", preferred=True),
+            WebResult(title="Blog", url="https://blog.example/x", snippet="…", date="2026-11-13", domain="blog.example", preferred=False),
+        ], None
+
+    monkeypatch.setattr(web, "search_web", search_web)
+    deps = make_deps()
+    result = await tools.web_search(deps, WebSearchInput(query="Rente", scope="news"))
+    assert [(d.tier, d.preferred_outlet) for d in result.documents] == [
+        ("party_site", None), (None, True), (None, False),
+    ]
+    assert deps.sources.entries[result.documents[0].id]["party_id"] == "afd"

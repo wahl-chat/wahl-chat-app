@@ -161,8 +161,6 @@ def _in_range(payload: dict, window: Any) -> bool:
         and (window.lt is None or day < window.lt.date().isoformat())
     )
 
-
-
 def retrieve_signature_check(query: str, **kwargs: Any) -> None:
     """Fakes of retrieve() accept only what the real one does."""
     import inspect
@@ -170,6 +168,7 @@ def retrieve_signature_check(query: str, **kwargs: Any) -> None:
     from src.retrieve import retrieve
 
     inspect.signature(retrieve).bind(query, **kwargs)
+
 
 @dataclass
 class FakeIO:
