@@ -25,16 +25,21 @@ function useKeyboardGap(
       return;
     }
     const measure = () => {
-      const open = window.innerHeight - viewport.height > KEYBOARD_PX;
+      // A pinch zoom shrinks the visual viewport too; only a keyboard does at scale 1.
+      const open =
+        window.innerHeight - viewport.height * viewport.scale > KEYBOARD_PX;
       const node = ref.current;
       setTop(open && node ? node.getBoundingClientRect().bottom : null);
     };
     measure();
     viewport.addEventListener('resize', measure);
     viewport.addEventListener('scroll', measure);
+    // The box moves with the page when it is not stuck to the bottom.
+    window.addEventListener('scroll', measure, { passive: true });
     return () => {
       viewport.removeEventListener('resize', measure);
       viewport.removeEventListener('scroll', measure);
+      window.removeEventListener('scroll', measure);
     };
   }, [ref, focused]);
   return top;
