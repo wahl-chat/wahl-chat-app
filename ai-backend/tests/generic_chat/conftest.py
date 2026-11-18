@@ -162,6 +162,15 @@ def _in_range(payload: dict, window: Any) -> bool:
     )
 
 
+
+def retrieve_signature_check(query: str, **kwargs: Any) -> None:
+    """Fakes of retrieve() accept only what the real one does."""
+    import inspect
+
+    from src.retrieve import retrieve
+
+    inspect.signature(retrieve).bind(query, **kwargs)
+
 @dataclass
 class FakeIO:
     """Records every call the tools make to the corpus and the feed."""
@@ -178,6 +187,7 @@ class FakeIO:
         return [0.0] * 8
 
     async def retrieve(self, query: str, **kwargs: Any) -> list:
+        retrieve_signature_check(query, **kwargs)
         self.retrieve_calls.append({"query": query, **kwargs})
         hits = [
             (payload, score)

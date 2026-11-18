@@ -34,7 +34,9 @@ logger = logging.getLogger(__name__)
 _FULL = (3, 2, 2, 2)
 _LEAN = (2, 1, 1, 1)
 _SPEECH_CHARS = 1200
-_REPORT_CANDIDATES = 12
+# The shared query vector does not carry the party's name, so take more
+# candidates and let the name decide.
+_REPORT_CANDIDATES = 20
 _CONTEXT_YEARS = 2
 
 
@@ -65,11 +67,13 @@ async def _speeches(vorgang_id: str, party_id: str, cap: int) -> list[dict]:
     return picked[:cap]
 
 
-async def _motions(vorgang_id: str, party_id: str, query: str, cap: int) -> list[dict]:
+async def _motions(
+    vorgang_id: str, party_id: str, query: str, vector: Optional[list[float]], cap: int
+) -> list[dict]:
     """The overview of Drucksachen the party tabled in the procedure."""
     hits = await _payloads(
-        query, source_type="drucksache", vorgang_id=vorgang_id, party_id=party_id,
-        doc_section=["overview"], limit=cap * 3,
+        query, query_vector=vector, source_type="drucksache", vorgang_id=vorgang_id,
+        party_id=party_id, doc_section=["overview"], limit=cap * 3,
     )
     by_document: dict[str, dict] = {}
     for payload in hits:
@@ -77,11 +81,13 @@ async def _motions(vorgang_id: str, party_id: str, query: str, cap: int) -> list
     return list(by_document.values())[:cap]
 
 
-async def _report(vorgang_id: str, party: ContextParty, query: str, cap: int) -> list[dict]:
+async def _report(
+    vorgang_id: str, party: ContextParty, query: str, vector: Optional[list[float]], cap: int
+) -> list[dict]:
     """Committee report passages that name the Fraktion. Report chunks carry
     no party, so the name decides."""
     hits = await _payloads(
-        f"{query} Fraktion {party.name}", source_type="drucksache", vorgang_id=vorgang_id,
+        query, query_vector=vector, source_type="drucksache", vorgang_id=vorgang_id,
         doc_section=["report"], limit=_REPORT_CANDIDATES,
     )
     names = _names(party)
@@ -89,19 +95,25 @@ async def _report(vorgang_id: str, party: ContextParty, query: str, cap: int) ->
 
 
 async def _context(
-    party_id: str, query: str, scope: set[str], region_path: list[str], level: Optional[str], cap: int
+    party_id: str,
+    query: str,
+    vector: Optional[list[float]],
+    scope: set[str],
+    region_path: list[str],
+    level: Optional[str],
+    cap: int,
 ) -> list[dict]:
     """The party's recent speeches on the topic outside the procedure, then
     its manifesto."""
     since = datetime.now(timezone.utc) - timedelta(days=365 * _CONTEXT_YEARS)
     speeches, manifesto = await asyncio.gather(
         _payloads(
-            query, source_type="parliamentary_speech", party_id=party_id,
+            query, query_vector=vector, source_type="parliamentary_speech", party_id=party_id,
             region_path=region_path, level=level, limit=cap + 6,
             publish_range=DatetimeRange(gte=since),
         ),
         _payloads(
-            query, source_type="party_manifesto", party_id=party_id,
+            query, query_vector=vector, source_type="party_manifesto", party_id=party_id,
             region_path=region_path, level=level, limit=1,
         ),
     )
@@ -128,6 +140,7 @@ async def _fetch_party(
     party: ContextParty,
     vorgang_ids: list[str],
     query: str,
+    vector: Optional[list[float]],
     caps: tuple[int, int, int, int],
     skip: set[str],
 ) -> _Fetched:
@@ -135,16 +148,17 @@ async def _fetch_party(
     law = vorgang_ids[0]
     results = await asyncio.gather(
         _speeches(law, party.party_id, n_speeches + len(skip)),
-        _motions(law, party.party_id, query, n_motions),
-        _report(law, party, query, n_report),
+        _motions(law, party.party_id, query, vector, n_motions),
+        _report(law, party, query, vector, n_report),
         _context(
-            party.party_id, query, set(vorgang_ids), deps.context.region_path,
+            party.party_id, query, vector, set(vorgang_ids), deps.context.region_path,
             deps.context.level, n_context,
         ),
         return_exceptions=True,
     )
     for part, result in zip(("speeches", "motions", "report", "context"), results):
         if isinstance(result, BaseException):
+            deps.degraded = True
             logger.warning("positions: %s for %s failed: %s", part, party.party_id, result)
     speeches, motions, report, context = (
         [] if isinstance(r, BaseException) else r for r in results
@@ -181,8 +195,14 @@ async def party_positions(
     if not vorgang_ids or not parties:
         return []
     caps = _FULL if len(parties) <= 2 else _LEAN
+    # One embedding for every party's searches.
+    try:
+        vector: Optional[list[float]] = await tools.embed_query(query)
+    except Exception as exc:  # noqa: BLE001 (each search embeds on its own then)
+        logger.warning("positions: embedding failed: %s", exc)
+        vector = None
     fetched = await asyncio.gather(
-        *(_fetch_party(deps, party, vorgang_ids, query, caps, skip or set()) for party in parties)
+        *(_fetch_party(deps, party, vorgang_ids, query, vector, caps, skip or set()) for party in parties)
     )
     # Numbered in the order asked, so the same question gets the same numbers.
     bundles = [_register_party(deps, f, query) for f in fetched]

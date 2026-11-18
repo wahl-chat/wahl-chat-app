@@ -393,6 +393,8 @@ class GenericChatDeps:
     # call may name, so a made-up one never reaches the data.
     known_ids: set[str] = field(default_factory=set)
     started_at: float = field(default_factory=time.monotonic)
+    # Set when a lookup failed and the answer stands on less: never cached.
+    degraded: bool = False
     # Procedures whose press coverage was already fetched this turn.
     press_seen: set[str] = field(default_factory=set)
 

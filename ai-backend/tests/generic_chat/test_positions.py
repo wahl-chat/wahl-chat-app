@@ -16,7 +16,7 @@ import src.generic_chat.positions as positions
 import src.generic_chat.tools as tools
 from src.generic_chat.schemas import Anchor, SearchInput
 from src.generic_chat.stream import settled_anchor
-from tests.generic_chat.conftest import FakeIO, make_deps
+from tests.generic_chat.conftest import FakeIO, make_deps, retrieve_signature_check
 
 LAW = "338341"
 
@@ -52,6 +52,7 @@ def corpus(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
         )
 
     async def retrieve(query: str, **kw: Any) -> list[dict]:
+        retrieve_signature_check(query, **kw)
         calls.append(kw)
         if kw.get("source_type") == "drucksache" and kw.get("doc_section") == ["report"]:
             return [
@@ -66,8 +67,12 @@ def corpus(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
                  "citation_url": "https://example.org/p.pdf", "publish_date": "2025-02-23", "text": "…",
                  "meta": {"page_start": 3}}]
 
+    async def embed(query: str) -> list[float]:
+        return [0.1] * 8
+
     monkeypatch.setattr(positions.procedure_service, "aget_procedure_view", view)
     monkeypatch.setattr(positions, "retrieve", retrieve)
+    monkeypatch.setattr(positions.tools, "embed_query", embed)
     return calls
 
 
@@ -188,3 +193,15 @@ async def test_numbers_follow_the_parties_asked_not_who_answers_first(
 
     first_cdu = next(d.id for d in docs if d.title == "Rede s3")
     assert all(d.id < first_cdu for d in docs if d.title in {"Rede s1", "Rede s2"})
+
+
+def test_fakes_reject_arguments_retrieve_does_not_take() -> None:
+    with pytest.raises(TypeError):
+        retrieve_signature_check("x", doc_sections=["overview"])
+    retrieve_signature_check("x", source_type="drucksache", doc_section=["report"], vorgang_id="1")
+
+
+async def test_every_party_search_reuses_one_embedding(corpus: list[dict]) -> None:
+    await positions.party_positions(make_deps(), [LAW], ["spd", "cdu"], "Nachrichtendienste")
+    assert corpus and all(call.get("query_vector") == [0.1] * 8 for call in corpus)
+    assert {tuple(c["doc_section"]) for c in corpus if c.get("doc_section")} == {("overview",), ("report",)}
