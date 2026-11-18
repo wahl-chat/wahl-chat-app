@@ -30,3 +30,9 @@ def test_all_unknown_and_none() -> None:
 def test_markdown_links_are_untouched() -> None:
     text = "Siehe [12](https://example.org)."
     assert drop_unknown_citations(text, 1) == text
+
+
+def test_word_tags_go_numbers_stay() -> None:
+    text = "Das Gesetz wurde verkündet [8][procedure], es gilt [procedure]."
+    assert drop_unknown_citations(text, 9) == "Das Gesetz wurde verkündet [8], es gilt."
+    assert drop_unknown_citations("Siehe [Quelle](https://x.de) [step, 2].", 3) == "Siehe [Quelle](https://x.de) [2]."
