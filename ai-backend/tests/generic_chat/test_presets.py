@@ -126,3 +126,50 @@ async def test_get_vote_without_an_id_takes_the_chat_vote(fake_io: FakeIO) -> No
     deps.anchor = await tools.resolve_anchor(deps, Anchor(poll_id=POLL_ID))
     found = await agent.get_vote(ctx, GetVoteInput(party_ids=["spd"]))  # type: ignore[arg-type]
     assert found.documents[0].poll_id == POLL_ID
+
+
+async def test_a_citation_the_check_re_points_reaches_the_answer_and_the_cache(
+    turn_io: FakeIO, cache: dict, asked: list, monkeypatch: pytest.MonkeyPatch  # noqa: F811
+) -> None:
+    from src.generic_chat import citation_check, stream
+    from tests.generic_chat.conftest import manifesto_payload
+    from tests.generic_chat.test_stream import call
+
+    monkeypatch.setenv(citation_check.ENV, "on")
+    turn_io.retrieve_results = {
+        "party_manifesto": [
+            (manifesto_payload("volt"), 0.7),
+            ({**manifesto_payload("volt"), "citation_title": "volt Kurzprogramm"}, 0.6),
+        ]
+    }
+
+    async def check(answer: str, sources: Any, model: Any = None) -> citation_check.CheckResult:
+        # The second Volt programme states it, not the first.
+        return citation_check.CheckResult(
+            verdicts=[citation_check.Verdict(s, {2}) for s in citation_check.cited_sentences(answer)]
+        )
+
+    monkeypatch.setattr(stream.citation_check, "check", check)
+    script = Script(
+        call(("search", {"query": "Mieten", "source_types": ["party_manifesto"]})),
+        say("Volt will bezahlbare Mieten [1]."),
+    )
+    parts = await _run(script, monkeypatch, user_message=WHY, anchor={"poll_id": POLL_ID}, preset="ask")
+
+    assert _answer(parts) == "Volt will bezahlbare Mieten [2]."
+    assert next(iter(cache.values())).answer == "Volt will bezahlbare Mieten [2]."
+
+
+async def test_a_failing_check_keeps_the_answer(
+    turn_io: FakeIO, cache: dict, asked: list, monkeypatch: pytest.MonkeyPatch  # noqa: F811
+) -> None:
+    from src.generic_chat import citation_check, stream
+
+    monkeypatch.setenv(citation_check.ENV, "on")
+
+    async def broken(*_args: Any, **_kwargs: Any) -> citation_check.CheckResult:
+        raise RuntimeError("model down")
+
+    monkeypatch.setattr(stream.citation_check, "check", broken)
+    parts = await _run(Script(say("Die SPD stimmte mit Ja [0].")), monkeypatch, user_message=WHY, anchor={"poll_id": POLL_ID})
+    assert _answer(parts) == "Die SPD stimmte mit Ja [0]."

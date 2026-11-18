@@ -27,7 +27,9 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 CHECK_MODEL = "gemini-3.1-flash-lite"
-_SOURCE_CHARS = 1200
+ENV = "GENERIC_CHAT_CITATION_CHECK"
+# Above every tool's own clip, so the check reads what the answer read.
+_SOURCE_CHARS = 3000
 _MIN_QUOTE_WORDS = 4
 _QUOTE_RATIO = 0.85
 
@@ -74,6 +76,12 @@ class CheckResult:
     input_tokens: int = 0
     output_tokens: int = 0
     seconds: float = 0.0
+
+
+def enabled() -> bool:
+    import os
+
+    return os.getenv(ENV, "on") != "off"
 
 
 def _ids(group: str) -> list[int]:

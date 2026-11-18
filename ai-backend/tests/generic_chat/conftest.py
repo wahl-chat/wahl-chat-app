@@ -232,3 +232,11 @@ def _no_press(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.generic_chat import web_context
 
     monkeypatch.setenv(web_context.ENV, "off")
+
+
+@pytest.fixture(autouse=True)
+def _no_citation_check(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No check model from tests; test_presets switches it on with a fake."""
+    from src.generic_chat import citation_check
+
+    monkeypatch.setenv(citation_check.ENV, "off")

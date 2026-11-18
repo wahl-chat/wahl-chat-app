@@ -12,6 +12,7 @@ depend on the day's feed and the web.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import uuid
@@ -48,11 +49,12 @@ from src.core.utils import (
     build_chat_history_string,
     sanitize_references,
 )
+from src.generic_chat import citation_check
 from src.generic_chat.citations import drop_unknown_citations
 from src.generic_chat import agent as agent_module
 from src.generic_chat import presets, prompt
 from src.generic_chat import tools
-from src.generic_chat.schemas import Anchor, GenericChatDeps
+from src.generic_chat.schemas import Anchor, GenericChatDeps, NumberedDocument
 from src.models.chat import Message, Role
 from src.models.context import Context
 from src.models.dtos import (
@@ -230,6 +232,52 @@ async def _quick_replies(
     )
 
 
+_CHECK_TIMEOUT_S = 5.0
+
+
+def _voice(deps: GenericChatDeps, number: int) -> Optional[str]:
+    entry = deps.sources.entries[number] if number < len(deps.sources.entries) else {}
+    party = entry.get("party_id")
+    # The CSU speaks within the Union's Fraktion.
+    return "cdu" if party == "csu" else party
+
+
+async def _checked(
+    answer: str, deps: GenericChatDeps, documents: list[NumberedDocument]
+) -> str:
+    """The answer with each citation re-pointed to a source of the same voice
+    that states its sentence, or dropped; unchanged when the check fails."""
+    if not answer or not documents or not citation_check.enabled():
+        return answer
+    sources = [
+        citation_check.Source(id=d.id, title=d.title or "", text=d.text, voice=_voice(deps, d.id))
+        for d in documents
+    ]
+    try:
+        result = await asyncio.wait_for(citation_check.check(answer, sources), _CHECK_TIMEOUT_S)
+        repaired = citation_check.repair(answer, result.verdicts, sources)
+    except Exception as exc:  # noqa: BLE001 (the unchecked answer still stands)
+        logger.warning("citation check failed, answer kept: %r", exc)
+        return answer
+    known = {s.id for s in sources}
+    voices = {s.id: s.voice for s in sources}
+    kinds = [
+        kind
+        for verdict in result.verdicts
+        for kind in citation_check.classify(verdict, known, voices).values()
+    ]
+    logger.info(
+        "citation check: %d citations, %d re-pointed, %d dropped, %.1fs, %d/%d tokens",
+        len(kinds),
+        kinds.count("repointable"),
+        sum(kinds.count(k) for k in ("other_voice", "unsupported", "nonexistent")),
+        result.seconds,
+        result.input_tokens,
+        result.output_tokens,
+    )
+    return repaired
+
+
 def _replay(session_id: str, turn: presets.CachedTurn) -> list[str]:
     """A cached answer as the same events a live turn sends."""
     text_id = str(uuid.uuid4())
@@ -313,6 +361,9 @@ async def stream_generic_chat(
                     yield part
                 return
 
+        # Every document the model saw this turn, for the citation check.
+        anchored = getattr(deps.anchor.result, "documents", []) if deps.anchor else []
+        seen: dict[int, NumberedDocument] = {d.id: d for d in anchored}
         sources_sent = 0
         output: Optional[str] = None
         async with agent_module.agent.run_stream_events(
@@ -329,6 +380,8 @@ async def stream_generic_chat(
                         session_id, event.tool_call_id, event.part.tool_name, "running", language
                     )
                 elif isinstance(event, FunctionToolResultEvent):
+                    returned = getattr(getattr(event.part, "content", None), "documents", None)
+                    seen.update({d.id: d for d in returned or []})
                     yield _tool_status(
                         session_id, event.tool_call_id, event.part.tool_name, "done", language
                     )
@@ -366,6 +419,7 @@ async def stream_generic_chat(
             yield _sources_ready(session_id, deps)
 
         answer = drop_unknown_citations(sanitize_references(answer), len(deps.sources.entries))
+        answer = await _checked(answer, deps, list(seen.values()))
         complete = PartyResponseCompleteDto(
             session_id=session_id,
             party_id=PARTY_ID,
