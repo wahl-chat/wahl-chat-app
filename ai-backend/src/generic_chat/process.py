@@ -33,6 +33,7 @@ from src.generic_chat.schemas import (
     ProcessStep,
 )
 from src.services import procedure_service
+from src.services.chat.service import _source_snippet
 from wahlchat_common.procedures import Milestone, ProcedureKind, ProcedureRecord, milestones
 
 logger = logging.getLogger(__name__)
@@ -391,16 +392,23 @@ async def reading_speeches(
 def _register_document(deps: GenericChatDeps, payload: dict) -> NumberedDocument:
     meta = tools._meta(payload)
     title = payload.get("citation_title")
-    number = deps.sources.register(
-        {
-            "source": title,
-            "page": 1,
-            "document_publish_date": payload.get("publish_date"),
-            "url": payload.get("citation_url") or meta.get("pdf_url"),
-            "source_document": title,
-            "source_type": "drucksache",
-        }
-    )
+    entry = {
+        "source": title,
+        "page": 1,
+        "document_publish_date": payload.get("publish_date"),
+        "url": payload.get("citation_url") or meta.get("pdf_url"),
+        "source_document": title,
+        "source_type": "drucksache",
+    }
+    parties = payload.get("party_ids") or []
+    if len(parties) == 1:
+        entry["party_id"] = parties[0]
+    # The chunk opens with a breadcrumb line that is not in the PDF.
+    body = str(payload.get("text") or "").split("\n\n", 1)[-1]
+    snippet = _source_snippet(body)
+    if snippet:
+        entry["snippet"] = snippet
+    number = deps.sources.register(entry)
     authors = ", ".join(meta.get("urheber") or [])
     section = " › ".join(meta.get("section_path") or [])
     return NumberedDocument(

@@ -263,3 +263,20 @@ def test_an_exact_title_shared_by_parallel_drafts_picks_the_live_one(monkeypatch
     dead_twin = variant(HBG, vorgang_id="338367", beratungsstand="Erledigt durch Ablauf der Wahlperiode")
     picked = process.narrow("Haushaltsbegleitgesetz 2027", [(dead_twin, 0.8), (HBG, 0.79)])
     assert [r.vorgang_id for r in picked] == ["338366"]
+
+
+def test_a_drucksache_source_carries_its_party_and_passage() -> None:
+    deps = make_deps()
+    doc = process._register_document(deps, {
+        "citation_title": "Drucksache 21/9163: Änderungsantrag",
+        "citation_url": "https://dserver.bundestag.de/btd/21/091/2109163.pdf",
+        "party_ids": ["gruene"],
+        "text": "Drucksache 21/9163 › Antrag\n\nDer Bundestag   wolle beschließen,",
+        "meta": {"doc_type": "Änderungsantrag", "urheber": ["Fraktion BÜNDNIS 90/DIE GRÜNEN"]},
+    })
+    entry = deps.sources.entries[doc.id]
+    assert entry["party_id"] == "gruene"
+    assert entry["snippet"] == "Der Bundestag wolle beschließen,"
+
+    joint = process._register_document(deps, {"citation_title": "Drucksache 21/1", "party_ids": ["spd", "cdu"], "text": "x"})
+    assert "party_id" not in deps.sources.entries[joint.id]
