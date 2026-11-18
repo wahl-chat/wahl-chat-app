@@ -14,8 +14,12 @@ from wahlchat_common.procedures import ProcedureSummary
 from .samples import sample_items, sittings, vote
 
 SUMMARY = ProcedureSummary(
-    vorgang_id="338366", titel="Haushaltsbegleitgesetz 2027", vorgangstyp="Gesetzgebung",
-    kind="legislation", latest_stage="1. Beratung", latest_stage_on=date(2026, 9, 8),
+    vorgang_id="338366",
+    titel="Haushaltsbegleitgesetz 2027",
+    vorgangstyp="Gesetzgebung",
+    kind="legislation",
+    latest_stage="1. Beratung",
+    latest_stage_on=date(2026, 9, 8),
     dip_url="https://dip.bundestag.de/vorgang/338366",
 )
 
@@ -33,15 +37,21 @@ def test_items_get_procedure_ids_and_summaries() -> None:
         return ["338366"], [SUMMARY]
 
     items, changed = attach_source_facts(sample_items(), _plan(), None, facts)
-    assert all(i.procedure_ids == ["338366"] and i.procedures == [SUMMARY] for i in items)
+    assert all(
+        i.procedure_ids == ["338366"] and i.procedures == [SUMMARY] for i in items
+    )
     assert changed == {i.id for i in items}
     # a debate hands its speeches' links over; a vote has none
     assert any(n > 0 for _, n in seen)
 
 
 def test_unchanged_procedures_do_not_mark_items_changed() -> None:
-    items, _ = attach_source_facts(sample_items(), _plan(), None, lambda i, s: (["338366"], [SUMMARY]))
-    _, changed = attach_source_facts(items, _plan(), None, lambda i, s: (["338366"], [SUMMARY]))
+    items, _ = attach_source_facts(
+        sample_items(), _plan(), None, lambda i, s: (["338366"], [SUMMARY])
+    )
+    _, changed = attach_source_facts(
+        items, _plan(), None, lambda i, s: (["338366"], [SUMMARY])
+    )
     assert changed == set()
 
 

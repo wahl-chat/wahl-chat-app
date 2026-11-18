@@ -26,10 +26,8 @@ ProcedureKind = Literal[
 Chamber = Literal["BT", "BR", "BV", "EK"]
 
 # overview: Vorblatt, Antrag text; report: a committee's Bericht (how it was
-# deliberated, each Fraktion's stance); body: law text and Begründung.
-DocSection = Literal["overview", "report", "body"]
-# What chat retrieval reads by default; body text is not ingested.
-READ_BY_DEFAULT: tuple[DocSection, ...] = ("overview", "report")
+# deliberated, each Fraktion's stance). Law text and Begründung are not stored.
+DocSection = Literal["overview", "report"]
 
 LinkMethod = Literal[
     # votes
@@ -74,11 +72,23 @@ class ProcedureStage(BaseModel):
     position_id: str
     date: Date
     chamber: Chamber
-    name: str = Field(..., description="e.g. '1. Beratung', 'Beschlussempfehlung und Bericht'")
+    name: str = Field(
+        ..., description="e.g. '1. Beratung', 'Beschlussempfehlung und Bericht'"
+    )
     document_kind: Optional[Literal["Drucksache", "Plenarprotokoll"]] = None
-    document_number: Optional[str] = Field(None, description="e.g. '21/7860' or '21/91'")
+    document_number: Optional[str] = Field(
+        None, description="e.g. '21/7860' or '21/91'"
+    )
     page: Optional[str] = Field(None, description="Plenarprotokoll page, e.g. '11363C'")
-    url: Optional[str] = Field(None, description="PDF link, with a page anchor for protocols")
+    url: Optional[str] = Field(
+        None, description="PDF link, with a page anchor for protocols"
+    )
+    pdf_page: Optional[int] = Field(
+        None,
+        ge=1,
+        description="1-based PDF page of a Plenarprotokoll step; a Drucksache "
+        "step starts on page 1",
+    )
     decisions: list[StageDecision] = Field(default_factory=list)
 
 

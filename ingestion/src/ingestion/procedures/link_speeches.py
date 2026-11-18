@@ -115,17 +115,24 @@ class ProtocolIndex:
         if len(same_last) == 1:
             return self._by_name[same_last[0]], True
         scored = sorted(
-            ((SequenceMatcher(None, key, k, autojunk=False).ratio(), k) for k in self._by_name),
+            (
+                (SequenceMatcher(None, key, k, autojunk=False).ratio(), k)
+                for k in self._by_name
+            ),
             reverse=True,
         )
-        if scored and scored[0][0] >= _FUZZY_MIN and (
-            len(scored) == 1 or scored[1][0] < scored[0][0]
+        if (
+            scored
+            and scored[0][0] >= _FUZZY_MIN
+            and (len(scored) == 1 or scored[1][0] < scored[0][0])
         ):
             return self._by_name[scored[0][1]], True
         return [], False
 
 
-def resolve_protocol(speeches: list[Speech], activities: list[dict[str, Any]]) -> dict[str, SpeechLinkResult]:
+def resolve_protocol(
+    speeches: list[Speech], activities: list[dict[str, Any]]
+) -> dict[str, SpeechLinkResult]:
     """Link every speech of one protocol; unmatched speeches get ``none``."""
     index = ProtocolIndex(activities)
     # A speaker's video speeches in order, to pair with their spoken activities.

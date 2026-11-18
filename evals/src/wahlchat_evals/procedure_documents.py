@@ -2,20 +2,18 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-"""Does Drucksache text make answers better, and how should it be reached?
+"""Do procedures and their documents make answers better?
 
-For each question the same context is built four ways and answered by the
+For each question the same context is built two ways and answered by the
 same model:
 
-    S0  speeches + votes (what the chat has today)
-    S1  S0 + procedure profiles + Drucksache overview chunks (Vorblatt, Anträge)
-    S2  S0 + procedure profiles + Drucksache chunks, overview and body in one ranking
-    S3  S0 + procedure profiles + overview, then the body of the best hit's procedure
-    S1B S1 + the committee Bericht (how it was deliberated, each Fraktion's stance)
+    today       speeches + votes
+    procedures  speeches + votes + procedure profiles + Drucksache chunks
+                (Vorblatt, Anträge, committee reports)
 
-Speech and vote slots are identical across strategies, the way the generic
-chat's search tool fills one slot per source type. The report shows the
-answers side by side with per-strategy metrics; a person reads and decides.
+Speech and vote slots are identical, the way the generic chat's search tool
+fills one slot per source type. The report shows the answers side by side
+with metrics; a person reads and decides.
 
     python -m wahlchat_evals.procedure_documents --out report.md
 """
@@ -49,8 +47,13 @@ from ingestion.llm_clients import gemini
 from ingestion.setup_collection import COLLECTION_NAME
 from wahlchat_common.embeddings import get_embeddings
 
-QUESTIONS = Path(__file__).resolve().parents[2] / "data" / "procedure_documents" / "questions.json"
-STRATEGIES = ("S0", "S1", "S1B", "S2", "S3")
+QUESTIONS = (
+    Path(__file__).resolve().parents[2]
+    / "data"
+    / "procedure_documents"
+    / "questions.json"
+)
+STRATEGIES = ("today", "procedures")
 MODEL = "gemini-3.7-flash"
 SLOTS = {"speeches": 6, "votes": 3, "procedures": 2, "documents": 4}
 
@@ -68,7 +71,7 @@ Quellen:
 
 @dataclass
 class Source:
-    kind: str  # speech | vote | procedure | overview | body
+    kind: str  # speech | vote | procedure | overview | report
     title: str
     text: str
     vorgang_ids: list[str]
@@ -91,7 +94,7 @@ def _search(
         using="dense",
         query_filter=models.Filter(must=must),
         limit=limit,
-        with_payload={"exclude": ["meta.sentence_map"]},
+        with_payload=models.PayloadSelectorExclude(exclude=["meta.sentence_map"]),
     ).points
     return [dict(h.payload or {}) for h in hits]
 
@@ -103,7 +106,9 @@ def _eq(key: str, value: Any) -> models.FieldCondition:
 def _sources(kind: str, payloads: list[dict[str, Any]]) -> list[Source]:
     return [
         Source(
-            kind=kind if kind != "document" else str(p.get("doc_section") or "body"),
+            kind=kind
+            if kind != "document"
+            else str(p.get("doc_section") or "document"),
             title=str(p.get("citation_title") or ""),
             text=str(p.get("text") or "")[:1800],
             vorgang_ids=[str(v) for v in p.get("vorgang_ids") or []],
@@ -113,61 +118,59 @@ def _sources(kind: str, payloads: list[dict[str, Any]]) -> list[Source]:
 
 
 def contexts(qdrant: QdrantClient, vector: list[float]) -> dict[str, list[Source]]:
-    """The four contexts for one question vector."""
+    """Both contexts for one question vector."""
     base = _sources(
-        "speech", _search(qdrant, vector, [_eq("source_type", "parliamentary_speech")], SLOTS["speeches"])
+        "speech",
+        _search(
+            qdrant,
+            vector,
+            [_eq("source_type", "parliamentary_speech")],
+            SLOTS["speeches"],
+        ),
     ) + _sources(
         "vote",
-        _search(qdrant, vector, [_eq("source_type", "vote_record"), _eq("region", "DE")], SLOTS["votes"]),
+        _search(
+            qdrant,
+            vector,
+            [_eq("source_type", "vote_record"), _eq("region", "DE")],
+            SLOTS["votes"],
+        ),
     )
     profiles = _sources(
-        "procedure", _search(qdrant, vector, [_eq("source_type", "procedure")], SLOTS["procedures"])
+        "procedure",
+        _search(qdrant, vector, [_eq("source_type", "procedure")], SLOTS["procedures"]),
     )
-    k = SLOTS["documents"]
-    doc = [_eq("source_type", "drucksache")]
-    overview = _search(qdrant, vector, [*doc, _eq("doc_section", "overview")], k)
-    # S1B is what the corpus holds: overview plus the committee reports.
-    mixed = _search(qdrant, vector, doc, k)
-    with_bericht = _search(
-        qdrant,
-        vector,
-        [*doc, models.FieldCondition(key="doc_section", match=models.MatchAny(any=["overview", "report"]))],
-        k,
+    documents = _sources(
+        "document",
+        _search(qdrant, vector, [_eq("source_type", "drucksache")], SLOTS["documents"]),
     )
-    target = next((v for p in overview for v in p.get("vorgang_ids") or []), None)
-    body = (
-        _search(qdrant, vector, [*doc, _eq("doc_section", "body"), _eq("vorgang_ids", target)], k)
-        if target
-        else []
-    )
-    keep = max(1, k // 2)
-    return {
-        "S0": base,
-        "S1": base + profiles + _sources("document", overview),
-        "S1B": base + profiles + _sources("document", with_bericht),
-        "S2": base + profiles + _sources("document", mixed),
-        "S3": base + profiles + _sources("document", overview[:keep] + body[: k - keep]),
-    }
+    return {"today": base, "procedures": base + profiles + documents}
 
 
 def _render_sources(sources: list[Source]) -> str:
-    return "\n\n".join(f"[{i}] ({s.kind}) {s.title}\n{s.text}" for i, s in enumerate(sources, 1))
+    return "\n\n".join(
+        f"[{i}] ({s.kind}) {s.title}\n{s.text}" for i, s in enumerate(sources, 1)
+    )
 
 
 def _metrics(outcome: Outcome, expected: list[str]) -> dict[str, Any]:
     cited = {int(n) for n in re.findall(r"\[(\d+)\]", outcome.answer)}
     kinds = [s.kind for s in outcome.sources]
-    cited_kinds = [outcome.sources[n - 1].kind for n in cited if 0 < n <= len(outcome.sources)]
+    cited_kinds = [
+        outcome.sources[n - 1].kind for n in cited if 0 < n <= len(outcome.sources)
+    ]
     on_target = [
-        s.kind for s in outcome.sources if expected and set(s.vorgang_ids) & set(expected)
+        s.kind
+        for s in outcome.sources
+        if expected and set(s.vorgang_ids) & set(expected)
     ]
     return {
         "overview_chunks": kinds.count("overview"),
-        "body_chunks": kinds.count("body"),
+        "report_chunks": kinds.count("report"),
         "on_target_sources": len(on_target),
-        "on_target_documents": sum(1 for k in on_target if k in ("overview", "body")),
+        "on_target_documents": sum(1 for k in on_target if k in ("overview", "report")),
         "citations": len(cited),
-        "cited_documents": sum(1 for k in cited_kinds if k in ("overview", "body")),
+        "cited_documents": sum(1 for k in cited_kinds if k in ("overview", "report")),
         "cited_procedures": cited_kinds.count("procedure"),
         "cited_speeches_votes": sum(1 for k in cited_kinds if k in ("speech", "vote")),
         "answer_words": len(outcome.answer.split()),
@@ -175,14 +178,21 @@ def _metrics(outcome: Outcome, expected: list[str]) -> dict[str, Any]:
 
 
 async def _answer(llm: Any, question: str, sources: list[Source]) -> str:
-    message = await llm.ainvoke(_PROMPT.format(question=question, sources=_render_sources(sources)))
+    message = await llm.ainvoke(
+        _PROMPT.format(question=question, sources=_render_sources(sources))
+    )
     content = message.content
     if isinstance(content, list):
-        content = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
+        content = "".join(
+            part.get("text", "") if isinstance(part, dict) else str(part)
+            for part in content
+        )
     return str(content).strip()
 
 
-async def evaluate(questions: list[dict[str, Any]], *, limit: Optional[int] = None) -> list[dict[str, Any]]:
+async def evaluate(
+    questions: list[dict[str, Any]], *, limit: Optional[int] = None
+) -> list[dict[str, Any]]:
     qdrant = QdrantClient(
         url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         api_key=os.getenv("QDRANT_API_KEY") or None,
@@ -194,24 +204,32 @@ async def evaluate(questions: list[dict[str, Any]], *, limit: Optional[int] = No
         vector = embed.embed_query(q["question"])
         built = contexts(qdrant, vector)
         outcomes = [Outcome(s, built[s]) for s in STRATEGIES]
-        answers = await asyncio.gather(*(_answer(llm, q["question"], o.sources) for o in outcomes))
+        answers = await asyncio.gather(
+            *(_answer(llm, q["question"], o.sources) for o in outcomes)
+        )
         for outcome, answer in zip(outcomes, answers, strict=True):
             outcome.answer = answer
             outcome.metrics = _metrics(outcome, q.get("vorgang_ids") or [])
         results.append({**q, "outcomes": outcomes})
-        print(f"{q['id']}: " + "  ".join(f"{o.strategy} {o.metrics}" for o in outcomes), flush=True)
+        print(
+            f"{q['id']}: " + "  ".join(f"{o.strategy} {o.metrics}" for o in outcomes),
+            flush=True,
+        )
     return results
 
 
 def render(results: list[dict[str, Any]]) -> str:
-    lines = ["# Drucksache experiment: S0–S3", ""]
-    lines += ["| Question | Group | " + " | ".join(STRATEGIES) + " |", "|---|---|" + "---|" * len(STRATEGIES)]
+    lines = ["# Procedures in answers: today vs. with procedures", ""]
+    lines += [
+        "| Question | Group | " + " | ".join(STRATEGIES) + " |",
+        "|---|---|" + "---|" * len(STRATEGIES),
+    ]
     for r in results:
         cells = []
         for o in r["outcomes"]:
             m = o.metrics
             cells.append(
-                f"docs {m['overview_chunks']}o/{m['body_chunks']}b · on-target {m['on_target_documents']} "
+                f"docs {m['overview_chunks']}o/{m['report_chunks']}r · on-target {m['on_target_documents']} "
                 f"· cited docs {m['cited_documents']} · cited profiles {m['cited_procedures']} "
                 f"· cited S+V {m['cited_speeches_votes']}"
             )
@@ -220,8 +238,16 @@ def render(results: list[dict[str, Any]]) -> str:
     for r in results:
         lines += [f"## {r['id']}: {r['question']}", ""]
         for o in r["outcomes"]:
-            lines += [f"> [!example]- {o.strategy}", *[f"> {line}" for line in o.answer.splitlines()], ""]
-            titles = [f"[{i}] {s.kind}: {s.title}" for i, s in enumerate(o.sources, 1) if s.kind not in ("speech", "vote")]
+            lines += [
+                f"> [!example]- {o.strategy}",
+                *[f"> {line}" for line in o.answer.splitlines()],
+                "",
+            ]
+            titles = [
+                f"[{i}] {s.kind}: {s.title}"
+                for i, s in enumerate(o.sources, 1)
+                if s.kind not in ("speech", "vote")
+            ]
             if titles:
                 lines += [f"> Sources beyond speeches/votes: {'; '.join(titles)}", ""]
     return "\n".join(lines)
@@ -238,12 +264,23 @@ def main(argv: Optional[list[str]] = None) -> int:
     args.out.write_text(render(results), encoding="utf-8")
     if args.json:
         raw = [
-            {**{k: v for k, v in r.items() if k != "outcomes"},
-             "outcomes": [{"strategy": o.strategy, "answer": o.answer, "metrics": o.metrics,
-                           "sources": [s.__dict__ for s in o.sources]} for o in r["outcomes"]]}
+            {
+                **{k: v for k, v in r.items() if k != "outcomes"},
+                "outcomes": [
+                    {
+                        "strategy": o.strategy,
+                        "answer": o.answer,
+                        "metrics": o.metrics,
+                        "sources": [s.__dict__ for s in o.sources],
+                    }
+                    for o in r["outcomes"]
+                ],
+            }
             for r in results
         ]
-        args.json.write_text(json.dumps(raw, ensure_ascii=False, indent=1), encoding="utf-8")
+        args.json.write_text(
+            json.dumps(raw, ensure_ascii=False, indent=1), encoding="utf-8"
+        )
     print(f"report: {args.out}")
     return 0
 

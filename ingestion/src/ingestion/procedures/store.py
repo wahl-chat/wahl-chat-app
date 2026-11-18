@@ -47,7 +47,9 @@ class ProcedureStore:
             refs = [collection.document(vid) for vid in batch]
             for snapshot in self._db.get_all(refs):
                 if snapshot.exists:
-                    out[snapshot.id] = ProcedureRecord.model_validate(snapshot.to_dict())
+                    out[snapshot.id] = ProcedureRecord.model_validate(
+                        snapshot.to_dict()
+                    )
         return out
 
     def all(self) -> dict[str, ProcedureRecord]:
@@ -61,7 +63,10 @@ class ProcedureStore:
         for batch in _chunks(list(records), _FIRESTORE_BATCH):
             writes = self._db.batch()
             for record in batch:
-                writes.set(collection.document(record.vorgang_id), record.model_dump(mode="json"))
+                writes.set(
+                    collection.document(record.vorgang_id),
+                    record.model_dump(mode="json"),
+                )
             writes.commit()
 
     def set_has_links(self, flags: dict[str, bool]) -> None:
@@ -76,6 +81,18 @@ class ProcedureStore:
         self._db.collection(PROCEDURES_COLLECTION).document(vorgang_id).update(
             {"step_summaries": {n: s.model_dump(mode="json") for n, s in summaries.items()}}
         )
+
+    def set_stages(self, records: Iterable[ProcedureRecord]) -> None:
+        """Rewrite only the records' stages; content_hash stays as stored."""
+        collection = self._db.collection(PROCEDURES_COLLECTION)
+        for batch in _chunks(list(records), _FIRESTORE_BATCH):
+            writes = self._db.batch()
+            for record in batch:
+                writes.update(
+                    collection.document(record.vorgang_id),
+                    {"stages": [s.model_dump(mode="json") for s in record.stages]},
+                )
+            writes.commit()
 
     def sync_state(self) -> dict[str, Any]:
         snapshot = self._db.collection(META_COLLECTION).document(SYNC_DOC).get()
@@ -122,13 +139,17 @@ def stored_parent_points(
             )
             for point in points:
                 payload = point.payload or {}
-                out[payload["source_parent_key"]][str(point.id)] = payload.get("content_hash")
+                out[payload["source_parent_key"]][str(point.id)] = payload.get(
+                    "content_hash"
+                )
             if offset is None:
                 break
     return out
 
 
-def _groups(keys: list[str], parents: dict[str, list[ChunkRecord]]) -> Iterator[list[str]]:
+def _groups(
+    keys: list[str], parents: dict[str, list[ChunkRecord]]
+) -> Iterator[list[str]]:
     """Parents grouped to about one embedding batch of chunks each."""
     group: list[str] = []
     size = 0

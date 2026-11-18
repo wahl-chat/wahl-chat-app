@@ -75,14 +75,17 @@ class _Item:
 
 
 def _needs_link(today: date) -> models.Filter:
-    recent = datetime.combine(today - timedelta(days=RECHECK_DAYS), time(), tzinfo=timezone.utc)
+    recent = datetime.combine(
+        today - timedelta(days=RECHECK_DAYS), time(), tzinfo=timezone.utc
+    )
     return models.Filter(
         should=[
             models.IsEmptyCondition(is_empty=models.PayloadField(key="procedure_link")),
             models.Filter(
                 must=[
                     models.FieldCondition(
-                        key="procedure_link.method", match=models.MatchValue(value="none")
+                        key="procedure_link.method",
+                        match=models.MatchValue(value="none"),
                     ),
                     models.FieldCondition(
                         key="publish_date", range=models.DatetimeRange(gte=recent)
@@ -123,8 +126,12 @@ def _items(points: Iterable[Any]) -> list[_Item]:
 
 def _base(source_type: str, wahlperioden: list[int]) -> list[Any]:
     return [
-        models.FieldCondition(key="source_type", match=models.MatchValue(value=source_type)),
-        models.FieldCondition(key="wahlperiode", match=models.MatchAny(any=wahlperioden)),
+        models.FieldCondition(
+            key="source_type", match=models.MatchValue(value=source_type)
+        ),
+        models.FieldCondition(
+            key="wahlperiode", match=models.MatchAny(any=wahlperioden)
+        ),
     ]
 
 
@@ -138,7 +145,11 @@ def _day(value: Any) -> Optional[date]:
 def protocol_of(speech_key: Optional[str]) -> Optional[str]:
     """'de-21-91-stefan-seidler-top12' → '21/91'."""
     parts = (speech_key or "").split("-")
-    if len(parts) < 3 or parts[0] != "de" or not (parts[1].isdigit() and parts[2].isdigit()):
+    if (
+        len(parts) < 3
+        or parts[0] != "de"
+        or not (parts[1].isdigit() and parts[2].isdigit())
+    ):
         return None
     return f"{parts[1]}/{parts[2]}"
 
@@ -154,7 +165,9 @@ class Linker:
         collection: str,
         procedures: dict[str, ProcedureRecord],
         today: date,
-        add_procedures: Optional[Callable[[set[str]], dict[str, ProcedureRecord]]] = None,
+        add_procedures: Optional[
+            Callable[[set[str]], dict[str, ProcedureRecord]]
+        ] = None,
         dry_run: bool = False,
     ) -> None:
         self._dip = dip
@@ -166,7 +179,9 @@ class Linker:
         self._dry_run = dry_run
         self.report = LinkReport()
         self._tried: set[str] = set()
-        self._pending: dict[tuple[tuple[str, ...], tuple[str, ...], str], list[str]] = defaultdict(list)
+        self._pending: dict[tuple[tuple[str, ...], tuple[str, ...], str], list[str]] = (
+            defaultdict(list)
+        )
 
     # -- shared --------------------------------------------------------
 
@@ -191,16 +206,22 @@ class Linker:
         known = self._known(vorgang_ids)
         if vorgang_ids and not known:
             method = "out_of_scope"
-        sachgebiete = sorted({s for vid in known for s in self._procedures[vid].sachgebiete})
+        sachgebiete = sorted(
+            {s for vid in known for s in self._procedures[vid].sachgebiete}
+        )
         self.report.methods[method] += 1
         key = (tuple(known), tuple(sachgebiete), method)
         self._pending[key].extend(item.point_ids)
 
-    def _try_stamp(self, item: _Item, vorgang_ids: list[str], method: LinkMethod) -> None:
+    def _try_stamp(
+        self, item: _Item, vorgang_ids: list[str], method: LinkMethod
+    ) -> None:
         try:
             self._stamp(item, vorgang_ids, method)
         except ProcedureSyncError:
-            logger.exception("Item %s left unstamped", item.payload.get("source_item_id"))
+            logger.exception(
+                "Item %s left unstamped", item.payload.get("source_item_id")
+            )
             self.report.failed.append(str(item.payload.get("source_item_id")))
 
     def flush(self) -> None:
@@ -208,7 +229,10 @@ class Linker:
             payload = {
                 "vorgang_ids": list(vorgang_ids),
                 "sachgebiete": list(sachgebiete),
-                "procedure_link": {"method": method, "checked_on": self._today.isoformat()},
+                "procedure_link": {
+                    "method": method,
+                    "checked_on": self._today.isoformat(),
+                },
             }
             for start in range(0, len(point_ids), _WRITE_BATCH):
                 batch = point_ids[start : start + _WRITE_BATCH]
@@ -228,7 +252,9 @@ class Linker:
         flt = models.Filter(
             must=[
                 *_base("vote_record", wahlperioden),
-                models.FieldCondition(key="region", match=models.MatchValue(value="DE")),
+                models.FieldCondition(
+                    key="region", match=models.MatchValue(value="DE")
+                ),
                 _needs_link(self._today),
             ]
         )
@@ -253,7 +279,9 @@ class Linker:
                     drucksache_vorgaenge=self._dip.drucksache_vorgaenge,
                 )
             except Exception:  # noqa: BLE001 — left unstamped, retried next run
-                logger.exception("Vote %s: DIP read failed", item.payload.get("source_item_id"))
+                logger.exception(
+                    "Vote %s: DIP read failed", item.payload.get("source_item_id")
+                )
                 self.report.failed.append(str(item.payload.get("source_item_id")))
                 continue
             self._try_stamp(item, result.vorgang_ids, result.method)
@@ -263,7 +291,10 @@ class Linker:
 
     def link_speeches(self, wahlperioden: list[int]) -> None:
         flt = models.Filter(
-            must=[*_base("parliamentary_speech", wahlperioden), _needs_link(self._today)]
+            must=[
+                *_base("parliamentary_speech", wahlperioden),
+                _needs_link(self._today),
+            ]
         )
         dates: set[date] = set()
         protocols: set[str] = set()
@@ -278,7 +309,9 @@ class Linker:
             self._link_day(day, protocols, wahlperioden)
             self.flush()
 
-    def _link_day(self, day: date, protocols: set[str], wahlperioden: list[int]) -> None:
+    def _link_day(
+        self, day: date, protocols: set[str], wahlperioden: list[int]
+    ) -> None:
         """All speeches of the day: a speaker's order needs every one of them."""
         start = datetime.combine(day, time(), tzinfo=timezone.utc)
         flt = models.Filter(
@@ -319,7 +352,9 @@ class Linker:
             return
         flt = models.Filter(
             must=[
-                models.FieldCondition(key="vorgang_ids", match=models.MatchAny(any=ids)),
+                models.FieldCondition(
+                    key="vorgang_ids", match=models.MatchAny(any=ids)
+                ),
                 models.FieldCondition(
                     key="source_type",
                     match=models.MatchAny(any=["vote_record", "parliamentary_speech"]),
@@ -328,7 +363,11 @@ class Linker:
         )
         for item in _items(_scroll(self._qdrant, self._collection, flt)):
             link = item.payload.get("procedure_link") or {}
-            self._try_stamp(item, list(item.payload.get("vorgang_ids") or []), link.get("method", "none"))
+            self._try_stamp(
+                item,
+                list(item.payload.get("vorgang_ids") or []),
+                link.get("method", "none"),
+            )
         self.flush()
 
 

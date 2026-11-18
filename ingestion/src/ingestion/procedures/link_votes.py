@@ -57,7 +57,11 @@ def tally_distance(text: str, totals: VoteTotals) -> Optional[int]:
     for y, n, a in _TALLY.findall(text or ""):
         counts = (int(y), int(n), int(a))
         for yes, no in ((counts[0], counts[1]), (counts[1], counts[0])):
-            diffs = (abs(yes - totals.yes), abs(no - totals.no), abs(counts[2] - totals.abstain))
+            diffs = (
+                abs(yes - totals.yes),
+                abs(no - totals.no),
+                abs(counts[2] - totals.abstain),
+            )
             if max(diffs) <= TOLERANCE:
                 distance = sum(diffs)
                 best = distance if best is None else min(best, distance)
@@ -88,7 +92,9 @@ def resolve_vote(
     tallied: set[str] = set()
     for position in positions:
         for decision in position.get("beschlussfassung") or []:
-            distance = tally_distance(decision.get("abstimm_ergebnis_bemerkung") or "", totals)
+            distance = tally_distance(
+                decision.get("abstimm_ergebnis_bemerkung") or "", totals
+            )
             if distance is None:
                 continue
             vid = str(position["vorgang_id"])

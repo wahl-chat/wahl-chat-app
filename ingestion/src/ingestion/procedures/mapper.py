@@ -104,6 +104,9 @@ def stage_from_position(position: dict[str, Any]) -> Optional[ProcedureStage]:
         document_number=fundstelle.get("dokumentnummer"),
         page=_page(fundstelle),
         url=fundstelle.get("pdf_url"),
+        # DIP cites a Drucksache step as the whole document; a protocol's
+        # PDF page comes from its page labels (pdf_pages.stage_pdf_pages).
+        pdf_page=1 if kind == "Drucksache" else None,
         decisions=[_decision(d) for d in position.get("beschlussfassung") or []],
     )
 
@@ -111,9 +114,13 @@ def stage_from_position(position: dict[str, Any]) -> Optional[ProcedureStage]:
 def drucksachen_from_positions(positions: list[dict[str, Any]]) -> list[DrucksacheRef]:
     """One ref per (chamber, number), in date order."""
     refs: dict[tuple[str, str], DrucksacheRef] = {}
-    for position in sorted(positions, key=lambda p: (p.get("datum") or "", str(p["id"]))):
+    for position in sorted(
+        positions, key=lambda p: (p.get("datum") or "", str(p["id"]))
+    ):
         fundstelle = position.get("fundstelle") or {}
-        if fundstelle.get("dokumentart") != "Drucksache" or not fundstelle.get("dokumentnummer"):
+        if fundstelle.get("dokumentart") != "Drucksache" or not fundstelle.get(
+            "dokumentnummer"
+        ):
             continue
         chamber = fundstelle.get("herausgeber") or position.get("zuordnung") or "BT"
         key = (chamber, fundstelle["dokumentnummer"])
@@ -133,10 +140,18 @@ def drucksachen_from_positions(positions: list[dict[str, Any]]) -> list[Drucksac
 
 
 def _record_hash(record: ProcedureRecord) -> str:
-    """Hash of everything stored except bookkeeping that changes on its own."""
+    """Hash of everything stored except bookkeeping that changes on its own
+    and the stages' PDF pages, which are filled in after mapping."""
     stored = record.model_dump(
         mode="json",
-        exclude={"content_hash", "has_links", "step_summaries", "stage_changed_on", "dip_updated_at"},
+        exclude={
+            "content_hash": True,
+            "has_links": True,
+            "step_summaries": True,
+            "stage_changed_on": True,
+            "dip_updated_at": True,
+            "stages": {"__all__": {"pdf_page"}},
+        },
     )
     return hashlib.sha256(
         json.dumps(stored, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -183,7 +198,9 @@ def build_record(
         initiative=initiative,
         initiative_party_ids=party_ids_of(initiative),
         sachgebiete=sorted(set(vorgang.get("sachgebiet") or [])),
-        deskriptoren=[d["name"] for d in vorgang.get("deskriptor") or [] if d.get("name")],
+        deskriptoren=[
+            d["name"] for d in vorgang.get("deskriptor") or [] if d.get("name")
+        ],
         gesta=vorgang.get("gesta"),
         started_on=_day(vorgang.get("datum")) or (stages[0].date if stages else None),
         stages=stages,
@@ -227,7 +244,9 @@ def profile_text(record: ProcedureRecord) -> str:
 
 def profile_chunk(record: ProcedureRecord, *, today: date) -> ChunkRecord:
     """One vector per procedure; the timeline itself lives in Firestore."""
-    source_item_id = compute_source_item_id(SourceType.PROCEDURE.value, record.vorgang_id)
+    source_item_id = compute_source_item_id(
+        SourceType.PROCEDURE.value, record.vorgang_id
+    )
     text = profile_text(record)
     parties = record.initiative_party_ids
     publish_date = record.latest_stage_on or record.started_on or today

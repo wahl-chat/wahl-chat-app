@@ -213,7 +213,6 @@ async def retrieve(
     score_threshold: Optional[float] = None,
     with_scores: bool = False,
     vorgang_id: Optional[str] = None,
-    doc_section: Optional[list[Literal["overview", "report", "body"]]] = None,
     _client: Optional[AsyncQdrantClient] = None,
     _embed_fn: Any = None,
 ) -> Union[list[dict], list[tuple[dict, float]]]:
@@ -299,9 +298,6 @@ async def retrieve(
         vorgang_id:     Keyword-only: only chunks linked to this Bundestag
                         procedure (DIP Vorgang id, indexed ``vorgang_ids``).
                         Selective: a procedure's chunks are few.
-        doc_section:    Keyword-only, drucksache chunks: any of ``"overview"``
-                        (Vorblatt, Antrag text), ``"report"`` (committee Bericht),
-                        ``"body"``. NOT selective alone.
         score_threshold: Minimum cosine similarity for a result to be included.
                         When None (default), Qdrant returns results without a score
                         cutoff — identical to the default behaviour so existing
@@ -437,10 +433,9 @@ async def retrieve(
         )
 
     if vorgang_id is not None:
-        must.append(FieldCondition(key="vorgang_ids", match=MatchValue(value=vorgang_id)))
-
-    if doc_section is not None:
-        must.append(FieldCondition(key="doc_section", match=MatchAny(any=list(doc_section))))
+        must.append(
+            FieldCondition(key="vorgang_ids", match=MatchValue(value=vorgang_id))
+        )
 
     if legislature_period_id is not None:
         # AW parliament_period ID — narrows to a specific legislature.

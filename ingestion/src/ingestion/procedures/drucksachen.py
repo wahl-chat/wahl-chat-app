@@ -9,12 +9,11 @@ A Drucksache is split at its own headings first: the Vorblatt sections
 Begründung (A./B., I./II., Zu Artikel n) and of a committee Bericht. Inside a
 section the corpus-wide splitter (1000/150) applies. Every chunk starts with
 a breadcrumb naming the document and section, because "§ 2 wird wie folgt
-geändert" means nothing on its own. Vorblatt and Anträge are the overview,
-a committee's Bericht is the report, law text and Begründung the body
-(``doc_section``). The ``overview`` mode reads overview and report only: the
-comparison in ``wahlchat_evals.procedure_documents`` found that law text adds
-detail but crowds out speeches and votes, while the Bericht adds the course
-and the Fraktionen's stances.
+geändert" means nothing on its own. Only the overview (Vorblatt, Anträge)
+and a committee's report (Bericht) become chunks (``doc_section``); law text
+and Begründung are split off and dropped: they added detail but crowded
+speeches and votes out of answers, while the Bericht adds the course and the
+Fraktionen's stances.
 """
 
 from __future__ import annotations
@@ -32,7 +31,9 @@ from qdrant_client import models
 
 from ingestion.chunking import chunk_text
 from ingestion.ids import compute_source_item_id, make_chunk_key
+from ingestion.feed.protocol_pages import ProtocolPdf
 from ingestion.procedures.mapper import NO_PARTY, party_ids_of
+from ingestion.procedures.pdf_pages import PdfSource, passage_pages
 from ingestion.procedures.store import replace_parents
 from ingestion.schemas import (
     AuthorityTier,
@@ -41,11 +42,13 @@ from ingestion.schemas import (
     ProcedureLink,
     SourceType,
 )
-from wahlchat_common.procedures import READ_BY_DEFAULT, DocSection, ProcedureRecord
+from wahlchat_common.procedures import DocSection, ProcedureRecord
+
+# Where a section belongs; only overview and report become chunks.
+SectionKind = Literal["overview", "report", "body"]
 
 logger = logging.getLogger(__name__)
 
-DrucksacheMode = Literal["off", "overview", "full"]
 
 # Document types worth reading; Kleine Anfragen, Antworten and Unterrichtungen
 # are no procedure's argument.
@@ -60,7 +63,9 @@ TEXT_TYPES: frozenset[str] = frozenset(
     }
 )
 # Short documents whose whole text states what is asked for.
-_WHOLE_OVERVIEW: frozenset[str] = frozenset({"Antrag", "Entschließungsantrag", "Änderungsantrag"})
+_WHOLE_OVERVIEW: frozenset[str] = frozenset(
+    {"Antrag", "Entschließungsantrag", "Änderungsantrag"}
+)
 MAX_TEXT_CHARS = 1_500_000
 # Raised when the rules for what yields a chunk change: Drucksachen once found
 # to have none are read again.
@@ -86,7 +91,7 @@ _ZU_ARTIKEL = re.compile(r"^Zu Artikel \d+[a-z]?(?: \(.{1,80}\))?$")
 class Section:
     path: tuple[str, ...]
     text: str
-    doc_section: DocSection
+    kind: SectionKind
 
 
 def _heading_level(line: str, in_vorblatt: bool) -> Optional[int]:
@@ -94,7 +99,11 @@ def _heading_level(line: str, in_vorblatt: bool) -> Optional[int]:
     numbered section, 4 Zu Artikel; None for body text."""
     if _TOP.match(line):
         return 1
-    if (in_vorblatt and _VORBLATT.match(line)) or _ARTIKEL.match(line) or _PART.match(line):
+    if (
+        (in_vorblatt and _VORBLATT.match(line))
+        or _ARTIKEL.match(line)
+        or _PART.match(line)
+    ):
         return 2
     if not in_vorblatt and _ROMAN.match(line):
         return 3
@@ -113,7 +122,11 @@ def _join(lines: list[str]) -> str:
     out: list[str] = []
     for line in lines:
         if out and line and (line[0].islower() or out[-1].endswith(("-", ","))):
-            joined = out[-1][:-1] + line if out[-1].endswith("-") and line[0].islower() else f"{out[-1]} {line}"
+            joined = (
+                out[-1][:-1] + line
+                if out[-1].endswith("-") and line[0].islower()
+                else f"{out[-1]} {line}"
+            )
             out[-1] = joined
         elif line:
             out.append(line)
@@ -133,12 +146,12 @@ def split_sections(text: str, doc_type: Optional[str]) -> list[Section]:
         content = _join(body)
         if content.strip():
             path = tuple(name for _, name in stack)
-            section: DocSection = "body"
+            kind: SectionKind = "body"
             if whole_overview or path[0] == "Vorblatt":
-                section = "overview"
+                kind = "overview"
             elif path[0] == "Bericht":
-                section = "report"
-            sections.append(Section(path, content, section))
+                kind = "report"
+            sections.append(Section(path, content, kind))
         body.clear()
 
     for line in lines:
@@ -186,28 +199,26 @@ def drucksache_chunks(
     doc: dict[str, Any],
     *,
     procedures: dict[str, ProcedureRecord],
-    mode: DrucksacheMode,
     today: date,
+    pdf: Optional[ProtocolPdf] = None,
 ) -> list[ChunkRecord]:
-    """Chunks of one DIP ``drucksache-text`` document; [] when mode is off."""
-    if mode == "off":
-        return []
+    """Chunks of the overview and report sections of one DIP ``drucksache-text``,
+    with the PDF pages each sits on when ``pdf`` is given."""
     number = str(doc["dokumentnummer"])
     doc_type = str(doc.get("drucksachetyp") or "Drucksache")
     text = str(doc.get("text") or "")
-    if len(text) > MAX_TEXT_CHARS:
-        if mode != "overview":
-            logger.warning("Drucksache %s: %d chars, skipped", number, len(text))
-            return []
-        # The Vorblatt opens the document; law text and Begründung follow.
-        text = text[:MAX_TEXT_CHARS]
+    # The Vorblatt opens the document; law text and Begründung follow.
+    text = text[:MAX_TEXT_CHARS]
     vorgang_ids = sorted(
         {str(ref["id"]) for ref in doc.get("vorgangsbezug") or []} & set(procedures)
     )
     titles = [procedures[v].titel for v in vorgang_ids]
     title = titles[0] if titles else _plain_title(str(doc.get("titel") or ""))
     sachgebiete = sorted({s for v in vorgang_ids for s in procedures[v].sachgebiete})
-    urheber = [str(u.get("titel") or u) if isinstance(u, dict) else str(u) for u in doc.get("urheber") or []]
+    urheber = [
+        str(u.get("titel") or u) if isinstance(u, dict) else str(u)
+        for u in doc.get("urheber") or []
+    ]
     parties = party_ids_of(urheber)
     fundstelle = doc.get("fundstelle") or {}
     pdf_url = fundstelle.get("pdf_url")
@@ -215,65 +226,80 @@ def drucksache_chunks(
     wahlperiode = int(number.split("/")[0]) if "/" in number else None
     source_item_id = compute_source_item_id(SourceType.DRUCKSACHE.value, f"BT:{number}")
 
+    pieces = [
+        (section, piece)
+        for section in split_sections(text, doc_type)
+        if section.kind != "body"
+        for piece in chunk_text(section.text)
+    ]
+    pages = (
+        passage_pages([piece for _, piece in pieces], pdf)
+        if pdf is not None
+        else [(None, None)] * len(pieces)
+    )
     chunks: list[ChunkRecord] = []
-    for section in split_sections(text, doc_type):
-        if mode == "overview" and section.doc_section not in READ_BY_DEFAULT:
-            continue
+    for (section, piece), (page_start, page_end) in zip(pieces, pages):
+        doc_section: DocSection = "overview" if section.kind == "overview" else "report"
         crumb = _breadcrumb(number, doc_type, title, section.path)
-        for piece in chunk_text(section.text):
-            index = len(chunks)
-            body = f"{crumb}\n\n{piece}"
-            meta = DrucksacheMeta(
-                number=number,
-                doc_type=doc_type,
-                title=title,
-                urheber=urheber,
-                section_path=list(section.path),
-                pdf_url=pdf_url,
-            ).model_dump(mode="json", exclude_none=True)
-            content_hash = hashlib.sha256(
-                json.dumps(
-                    {
-                        "text": body,
-                        "meta": meta,
-                        "parties": parties,
-                        "vorgang_ids": vorgang_ids,
-                        "sachgebiete": sachgebiete,
-                        "doc_section": section.doc_section,
-                        "publish_date": publish_date.isoformat(),
-                    },
-                    sort_keys=True,
-                    ensure_ascii=False,
-                ).encode("utf-8")
-            ).hexdigest()
-            chunks.append(
-                ChunkRecord(
-                    chunk_key=make_chunk_key(source_item_id, index),
-                    source_item_id=source_item_id,
-                    chunk_index=index,
-                    text=body,
-                    party_id=parties[0] if len(parties) == 1 else NO_PARTY,
-                    party_ids=parties or None,
-                    region="DE",
-                    # A Fraktion's own paper states its position; the rest
-                    # (government bills, committee reports) is the record.
-                    authority_tier=(
-                        AuthorityTier.SELF_REPORTED if parties else AuthorityTier.FACTUAL_RECORD
-                    ),
-                    source_type=SourceType.DRUCKSACHE,
-                    publish_date=publish_date,
-                    citation_url=pdf_url,
-                    citation_title=f"Drucksache {number}: {title}",
-                    wahlperiode=wahlperiode,
-                    source_parent_key=f"{SourceType.DRUCKSACHE.value}:BT:{number}",
-                    content_hash=content_hash,
-                    vorgang_ids=vorgang_ids or None,
-                    sachgebiete=sachgebiete or None,
-                    procedure_link=ProcedureLink(method="source", checked_on=today),
-                    doc_section=section.doc_section,
-                    meta=meta,
-                )
+        index = len(chunks)
+        body = f"{crumb}\n\n{piece}"
+        described = DrucksacheMeta(
+            number=number,
+            doc_type=doc_type,
+            title=title,
+            urheber=urheber,
+            section_path=list(section.path),
+            pdf_url=pdf_url,
+        )
+        # Hashed without pages, so pages found later re-embed nothing.
+        meta = described.model_dump(mode="json", exclude_none=True)
+        content_hash = hashlib.sha256(
+            json.dumps(
+                {
+                    "text": body,
+                    "meta": meta,
+                    "parties": parties,
+                    "vorgang_ids": vorgang_ids,
+                    "sachgebiete": sachgebiete,
+                    "doc_section": doc_section,
+                    "publish_date": publish_date.isoformat(),
+                },
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        chunks.append(
+            ChunkRecord(
+                chunk_key=make_chunk_key(source_item_id, index),
+                source_item_id=source_item_id,
+                chunk_index=index,
+                text=body,
+                party_id=parties[0] if len(parties) == 1 else NO_PARTY,
+                party_ids=parties or None,
+                region="DE",
+                # A Fraktion's own paper states its position; the rest
+                # (government bills, committee reports) is the record.
+                authority_tier=(
+                    AuthorityTier.SELF_REPORTED
+                    if parties
+                    else AuthorityTier.FACTUAL_RECORD
+                ),
+                source_type=SourceType.DRUCKSACHE,
+                publish_date=publish_date,
+                citation_url=pdf_url,
+                citation_title=f"Drucksache {number}: {title}",
+                wahlperiode=wahlperiode,
+                source_parent_key=f"{SourceType.DRUCKSACHE.value}:BT:{number}",
+                content_hash=content_hash,
+                vorgang_ids=vorgang_ids or None,
+                sachgebiete=sachgebiete or None,
+                procedure_link=ProcedureLink(method="source", checked_on=today),
+                doc_section=doc_section,
+                meta=described.model_copy(
+                    update={"page_start": page_start, "page_end": page_end}
+                ).model_dump(mode="json", exclude_none=True),
             )
+        )
     return chunks
 
 
@@ -305,6 +331,11 @@ class DrucksacheReport:
     empty: list[str] = field(default_factory=list)
 
 
+def _pdf_of(doc: dict[str, Any], pdfs: Optional[PdfSource]) -> Optional[ProtocolPdf]:
+    url = (doc.get("fundstelle") or {}).get("pdf_url")
+    return pdfs.pdf(url) if pdfs is not None and url else None
+
+
 def stored_drucksachen(qdrant: Any, collection: str) -> set[str]:
     """Numbers of the Drucksachen with chunks in the collection."""
     result = qdrant.facet(
@@ -313,7 +344,8 @@ def stored_drucksachen(qdrant: Any, collection: str) -> set[str]:
         facet_filter=models.Filter(
             must=[
                 models.FieldCondition(
-                    key="source_type", match=models.MatchValue(value=SourceType.DRUCKSACHE.value)
+                    key="source_type",
+                    match=models.MatchValue(value=SourceType.DRUCKSACHE.value),
                 )
             ]
         ),
@@ -321,7 +353,11 @@ def stored_drucksachen(qdrant: Any, collection: str) -> set[str]:
         exact=True,
     )
     prefix = f"{SourceType.DRUCKSACHE.value}:BT:"
-    return {str(hit.value)[len(prefix) :] for hit in result.hits if str(hit.value).startswith(prefix)}
+    return {
+        str(hit.value)[len(prefix) :]
+        for hit in result.hits
+        if str(hit.value).startswith(prefix)
+    }
 
 
 def ingest_drucksachen(
@@ -332,9 +368,9 @@ def ingest_drucksachen(
     collection: str,
     embed: Any,
     procedures: dict[str, ProcedureRecord],
-    mode: DrucksacheMode,
     today: date,
     batch_size: int = 10,
+    pdfs: Optional[PdfSource] = None,
 ) -> DrucksacheReport:
     """Read, chunk and write the given Drucksachen, a batch at a time.
 
@@ -353,18 +389,23 @@ def ingest_drucksachen(
             continue
         parents = {
             f"{SourceType.DRUCKSACHE.value}:BT:{number}": drucksache_chunks(
-                doc, procedures=procedures, mode=mode, today=today
+                doc, procedures=procedures, today=today, pdf=_pdf_of(doc, pdfs)
             )
             for number, doc in texts.items()
         }
         report.documents += len(parents)
-        report.empty.extend(k.rsplit(":", 1)[-1] for k, chunks in parents.items() if not chunks)
+        report.empty.extend(
+            k.rsplit(":", 1)[-1] for k, chunks in parents.items() if not chunks
+        )
         report.chunks += sum(len(c) for c in parents.values())
         written = replace_parents(qdrant, collection, embed, parents)
         report.written += written.written
         report.skipped += written.skipped
         report.failed.extend(k.rsplit(":", 1)[-1] for k in written.failed_parents)
         logger.info(
-            "Drucksachen %d/%d: %d chunks so far", min(start + batch_size, len(ordered)), len(ordered), report.chunks
+            "Drucksachen %d/%d: %d chunks so far",
+            min(start + batch_size, len(ordered)),
+            len(ordered),
+            report.chunks,
         )
     return report

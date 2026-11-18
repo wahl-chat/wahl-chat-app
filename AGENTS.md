@@ -147,8 +147,8 @@ Outside the registry (bespoke runner, like the manifesto bulk CLIs):
   Vorgang that reached the plenary (single Fragestunde questions excluded).
   Firestore `procedures/{vorgang_id}` holds the record (stages, decisions,
   Drucksachen, Sachgebiete); Qdrant holds one `procedure` profile vector each
-  and `drucksache` chunks (structure-aware: Vorblatt, Artikel, Begründung,
-  Bericht; `doc_section` overview/body). The same job links votes (date +
+  and `drucksache` chunks of each Vorblatt, Antrag and committee Bericht
+  (`doc_section` overview/report; law text and Begründung are not stored). The same job links votes (date +
   tally against DIP decisions) and speeches (DIP `aktivitaet`) by writing
   `vorgang_ids`, `sachgebiete` and `procedure_link` payload-only, and attaches
   procedure summaries to feed items. Runs after the speech and vote ingestion

@@ -27,20 +27,16 @@ from qdrant_client.models import (
 )
 
 from src.models.procedures import (
-    DrucksacheStrategy,
     ProcedureRecord,
     ProcedureSummary,
     ProcedureView,
 )
 from src.retrieve import COLLECTION_NAME, _get_qdrant, retrieve
-from wahlchat_common.procedures import PROCEDURES_COLLECTION, READ_BY_DEFAULT, ProcedureKind
+from wahlchat_common.procedures import PROCEDURES_COLLECTION, ProcedureKind
 from wahlchat_common.speech_dedup import dedup_prefer_op
 
 logger = logging.getLogger(__name__)
 
-# Overview and committee reports: law text added detail but crowded out
-# speeches and votes (make eval-procedure-documents).
-DEFAULT_STRATEGY: DrucksacheStrategy = "overview"
 # Speech payloads carry a sentence-by-sentence video map; a view needs none of it.
 _VIEW_PAYLOAD_EXCLUDE = ["meta.sentence_map"]
 
@@ -51,12 +47,16 @@ def _default_db() -> Any:
     return async_db
 
 
-async def aget_procedures(ids: Iterable[str], *, _db: Any = None) -> list[ProcedureRecord]:
+async def aget_procedures(
+    ids: Iterable[str], *, _db: Any = None
+) -> list[ProcedureRecord]:
     """Records in the order asked for; unknown ids are skipped."""
     db = _db or _default_db()
     wanted = list(dict.fromkeys(ids))
     collection = db.collection(PROCEDURES_COLLECTION)
-    snapshots = await asyncio.gather(*(collection.document(vid).get() for vid in wanted))
+    snapshots = await asyncio.gather(
+        *(collection.document(vid).get() for vid in wanted)
+    )
     return [
         ProcedureRecord.model_validate(snapshot.to_dict())
         for snapshot in snapshots
@@ -64,7 +64,9 @@ async def aget_procedures(ids: Iterable[str], *, _db: Any = None) -> list[Proced
     ]
 
 
-async def aget_procedure(vorgang_id: str, *, _db: Any = None) -> Optional[ProcedureRecord]:
+async def aget_procedure(
+    vorgang_id: str, *, _db: Any = None
+) -> Optional[ProcedureRecord]:
     found = await aget_procedures([vorgang_id], _db=_db)
     return found[0] if found else None
 
@@ -140,7 +142,12 @@ async def aget_procedure_view(
         _linked(client, vorgang_id, "parliamentary_speech", party_id, limit),
         _linked(client, vorgang_id, "drucksache", party_id, limit),
     )
-    return ProcedureView(procedure=procedure, votes=votes, speeches=speeches, documents=documents)
+    return ProcedureView(
+        procedure=procedure, votes=votes, speeches=speeches, documents=documents
+    )
+
+
+_MAX_KIND_FETCH = 200
 
 
 async def asearch_procedures(
@@ -158,24 +165,32 @@ async def asearch_procedures(
     legislation and motions and drops procedural items (elections, rulings
     on order), which are half of all procedures."""
     wanted = set(kinds) if kinds is not None else None
-    hits = await retrieve(
-        query,
-        source_type="procedure",
-        party_ids_contains=party_id,
-        limit=limit if wanted is None else limit * 3,
-        with_scores=True,
-        _client=_client,
-        _embed_fn=_embed_fn,
-    )
-    scored = [hit for hit in hits if isinstance(hit, tuple)]
-    ids = [vid for payload, _ in scored for vid in procedure_ids_of(payload)[:1]]
-    records = {r.vorgang_id: r for r in await aget_procedures(ids, _db=_db)}
-    out: list[tuple[ProcedureSummary, float]] = []
-    for payload, score in scored:
-        vid = next(iter(procedure_ids_of(payload)), None)
-        if vid in records and (wanted is None or records[vid].kind in wanted):
-            out.append((records[vid].summary(), score))
-    return out[:limit]
+    if wanted is not None and not wanted:
+        return []
+    # The profile payload has no kind, so a kind filter over-fetches and
+    # widens until the page is full or the hits run out.
+    fetch = limit if wanted is None else limit * 3
+    while True:
+        hits = await retrieve(
+            query,
+            source_type="procedure",
+            party_ids_contains=party_id,
+            limit=fetch,
+            with_scores=True,
+            _client=_client,
+            _embed_fn=_embed_fn,
+        )
+        scored = [hit for hit in hits if isinstance(hit, tuple)]
+        ids = [vid for payload, _ in scored for vid in procedure_ids_of(payload)[:1]]
+        records = {r.vorgang_id: r for r in await aget_procedures(ids, _db=_db)}
+        out: list[tuple[ProcedureSummary, float]] = []
+        for payload, score in scored:
+            vid = next(iter(procedure_ids_of(payload)), None)
+            if vid in records and (wanted is None or records[vid].kind in wanted):
+                out.append((records[vid].summary(), score))
+        if len(out) >= limit or len(hits) < fetch or fetch >= _MAX_KIND_FETCH:
+            return out[:limit]
+        fetch = min(fetch * 4, _MAX_KIND_FETCH)
 
 
 async def asearch_procedure_documents(
@@ -183,36 +198,21 @@ async def asearch_procedure_documents(
     *,
     vorgang_id: Optional[str] = None,
     limit: int = 5,
-    strategy: DrucksacheStrategy = DEFAULT_STRATEGY,
     _client: Any = None,
     _embed_fn: Any = None,
 ) -> list[dict[str, Any]]:
-    """Drucksache chunks for the query (see ``DrucksacheStrategy``).
-
-    ``vorgang_id`` keeps the search inside one procedure. ``drill_down``
-    gives half the slots to the overview and the rest to the body of the
-    procedure asked for, or of the one the best overview hit belongs to.
-    """
-    common: dict[str, Any] = {
-        "source_type": "drucksache",
-        "vorgang_id": vorgang_id,
-        "_client": _client,
-        "_embed_fn": _embed_fn,
-    }
-    if strategy == "all":
-        return _payloads(await retrieve(query, limit=limit, **common))
-    overview = _payloads(
-        await retrieve(query, limit=limit, doc_section=list(READ_BY_DEFAULT), **common)
+    """Drucksache chunks for the query: Vorblatt, Anträge and committee
+    reports, optionally inside one procedure."""
+    return _payloads(
+        await retrieve(
+            query,
+            source_type="drucksache",
+            vorgang_id=vorgang_id,
+            limit=limit,
+            _client=_client,
+            _embed_fn=_embed_fn,
+        )
     )
-    if strategy == "overview":
-        return overview
-    target = vorgang_id or next((vid for p in overview for vid in procedure_ids_of(p)), None)
-    if target is None:
-        return overview
-    body_common = {**common, "vorgang_id": target}
-    body = _payloads(await retrieve(query, limit=limit, doc_section=["body"], **body_common))
-    keep = max(1, limit // 2)
-    return [*overview[:keep], *body[: limit - keep]]
 
 
 def _payloads(hits: Any) -> list[dict[str, Any]]:

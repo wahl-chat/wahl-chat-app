@@ -17,6 +17,7 @@ from qdrant_client import QdrantClient
 
 from ingestion.procedures.dip import DipReader
 from ingestion.procedures.mapper import build_record, profile_chunk
+from ingestion.procedures.pdf_pages import PdfSource, stage_pdf_pages
 from ingestion.procedures.scope import CORE_TYPES, EXCLUDED_TYPES, in_scope
 from ingestion.procedures.store import ProcedureStore, replace_parents
 from wahlchat_common.procedures import ProcedureRecord
@@ -76,9 +77,11 @@ def sync_ids(
     today: date,
     dry_run: bool = False,
     verify_chunks: bool = False,
+    pdfs: Optional[PdfSource] = None,
 ) -> SyncReport:
     """Fetch, map and write the given Vorgänge; out-of-scope ones are skipped.
 
+    ``pdfs`` fills in the protocol stages' PDF pages of the records written.
     ``verify_chunks`` also hands unchanged records' profile chunks to the
     writer, which re-creates any that are missing from Qdrant (a rebuilt
     collection) and skips the rest by their hashes.
@@ -103,7 +106,9 @@ def sync_ids(
         unchanged: list[ProcedureRecord] = []
         for vid, vorgang in vorgaenge.items():
             mine = positions.get(vid, [])
-            if not in_scope(vorgang.get("vorgangstyp") or "", _has_bt_plenary_stage(mine)):
+            if not in_scope(
+                vorgang.get("vorgangstyp") or "", _has_bt_plenary_stage(mine)
+            ):
                 continue
             report.in_scope += 1
             old = previous.get(vid)
@@ -120,19 +125,25 @@ def sync_ids(
             changed.append(record)
             if old is None:
                 report.created.append(vid)
-            if old is not None and record.stage_changed_on == today != old.stage_changed_on:
+            if (
+                old is not None
+                and record.stage_changed_on == today != old.stage_changed_on
+            ):
                 report.new_stage.append(vid)
             if old is not None and old.sachgebiete != record.sachgebiete:
                 report.changed_sachgebiete.append(vid)
         if dry_run:
             report.written += len(changed)  # would write
             continue
+        if pdfs is not None:
+            changed = stage_pdf_pages(changed, pdfs, previous)
         to_check = changed + (unchanged if verify_chunks else [])
         if not to_check:
             continue
 
         parents = {
-            f"procedure:{r.vorgang_id}": [profile_chunk(r, today=today)] for r in to_check
+            f"procedure:{r.vorgang_id}": [profile_chunk(r, today=today)]
+            for r in to_check
         }
         written = replace_parents(qdrant, collection, embed, parents)
         failed = {key.split(":", 1)[1] for key in written.failed_parents}
@@ -160,6 +171,7 @@ def run_sync(
     today: date,
     now: Optional[datetime] = None,
     dry_run: bool = False,
+    pdfs: Optional[PdfSource] = None,
 ) -> SyncReport:
     """Backfill or delta, then persist the watermark.
 
@@ -195,6 +207,7 @@ def run_sync(
         today=today,
         dry_run=dry_run,
         verify_chunks=backfill,
+        pdfs=pdfs,
     )
     if not dry_run:
         new_state: dict[str, Any] = {"failed_ids": sorted(set(report.failed))}

@@ -18,12 +18,19 @@ TODAY = date(2026, 11, 17)
 
 
 def _record(vorgaenge: dict[str, Any], positions: dict[str, Any], vid: str, **kw: Any):
-    return build_record(vorgaenge[vid], positions.get(vid, []), previous=kw.get("previous"), today=TODAY)
+    return build_record(
+        vorgaenge[vid], positions.get(vid, []), previous=kw.get("previous"), today=TODAY
+    )
 
 
 def test_party_ids_from_fraktionen_and_gruppen_only() -> None:
     assert party_ids_of(
-        ["Fraktion der CDU/CSU", "Fraktion der SPD", "Bundesregierung", "Gruppe Die Linke"]
+        [
+            "Fraktion der CDU/CSU",
+            "Fraktion der SPD",
+            "Bundesregierung",
+            "Gruppe Die Linke",
+        ]
     ) == ["cdu", "linke", "spd"]
     assert party_ids_of(["Fraktion BÜNDNIS 90/DIE GRÜNEN"]) == ["gruene"]
     assert party_ids_of(["Haushaltsausschuss", "Bayern"]) == []
@@ -66,16 +73,26 @@ def test_first_sight_dates_the_change_to_the_newest_stage(vorgaenge, positions) 
 
 def test_a_new_stage_moves_stage_changed_on_to_today(vorgaenge, positions) -> None:
     pos = positions["338366"]
-    before = build_record(vorgaenge["338366"], pos[:-1], previous=None, today=date(2026, 11, 1))
+    before = build_record(
+        vorgaenge["338366"], pos[:-1], previous=None, today=date(2026, 11, 1)
+    )
     after = build_record(vorgaenge["338366"], pos, previous=before, today=TODAY)
     assert after.stage_changed_on == TODAY
     assert after.content_hash != before.content_hash
 
 
-def test_an_edit_without_a_new_stage_keeps_stage_changed_on(vorgaenge, positions) -> None:
+def test_an_edit_without_a_new_stage_keeps_stage_changed_on(
+    vorgaenge, positions
+) -> None:
     pos = positions["338366"]
-    before = build_record(vorgaenge["338366"], pos, previous=None, today=date(2026, 11, 1))
-    edited = {**vorgaenge["338366"], "beratungsstand": "Verabschiedet", "aktualisiert": "x"}
+    before = build_record(
+        vorgaenge["338366"], pos, previous=None, today=date(2026, 11, 1)
+    )
+    edited = {
+        **vorgaenge["338366"],
+        "beratungsstand": "Verabschiedet",
+        "aktualisiert": "x",
+    }
     after = build_record(edited, pos, previous=before, today=TODAY)
     assert after.stage_changed_on == before.stage_changed_on
     assert after.content_hash != before.content_hash
@@ -83,9 +100,17 @@ def test_an_edit_without_a_new_stage_keeps_stage_changed_on(vorgaenge, positions
 
 def test_an_unchanged_resync_has_the_same_hash(vorgaenge, positions) -> None:
     a = _record(vorgaenge, positions, "338366")
-    b = build_record({**vorgaenge["338366"], "aktualisiert": "later"}, positions["338366"], previous=a, today=TODAY)
+    b = build_record(
+        {**vorgaenge["338366"], "aktualisiert": "later"},
+        positions["338366"],
+        previous=a,
+        today=TODAY,
+    )
     assert a.content_hash == b.content_hash
-    assert profile_chunk(a, today=TODAY).content_hash == profile_chunk(b, today=date(2027, 1, 1)).content_hash
+    assert (
+        profile_chunk(a, today=TODAY).content_hash
+        == profile_chunk(b, today=date(2027, 1, 1)).content_hash
+    )
 
 
 def test_profile_chunk_names_topics_and_course(vorgaenge, positions) -> None:
@@ -108,8 +133,16 @@ def test_an_antrag_of_one_fraktion_is_that_partys(vorgaenge, positions) -> None:
 
 def test_profile_hash_covers_the_citation_title(vorgaenge, positions) -> None:
     a = _record(vorgaenge, positions, "341758")
-    renamed = build_record({**vorgaenge["341758"], "titel": "Anderer Titel"}, positions["341758"], previous=None, today=TODAY)
-    assert profile_chunk(a, today=TODAY).content_hash != profile_chunk(renamed, today=TODAY).content_hash
+    renamed = build_record(
+        {**vorgaenge["341758"], "titel": "Anderer Titel"},
+        positions["341758"],
+        previous=None,
+        today=TODAY,
+    )
+    assert (
+        profile_chunk(a, today=TODAY).content_hash
+        != profile_chunk(renamed, today=TODAY).content_hash
+    )
 
 
 def test_dip_url_carries_a_title_slug() -> None:

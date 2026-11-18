@@ -151,6 +151,14 @@ class DrucksacheMeta(BaseModel):
         description="Headings above the chunk, e.g. ['Begründung', 'Zu Artikel 3']",
     )
     pdf_url: Optional[str] = None
+    # Not part of content_hash: pages are found in the PDF and written onto
+    # stored chunks without re-embedding them.
+    page_start: Optional[int] = Field(
+        None, ge=1, description="1-based PDF page the chunk starts on"
+    )
+    page_end: Optional[int] = Field(
+        None, ge=1, description="1-based PDF page it ends on, when after page_start"
+    )
 
 
 class ProcedureLink(BaseModel):
@@ -353,8 +361,8 @@ class ChunkRecord(BaseModel):
     doc_section: Optional[DocSection] = Field(
         None,
         description=(
-            "drucksache chunks: 'overview' (Vorblatt, Antrag text), 'report' "
-            "(committee Bericht) or 'body' (Gesetzestext, Begründung). INDEXED keyword."
+            "drucksache chunks: 'overview' (Vorblatt, Antrag text) or 'report' "
+            "(committee Bericht). INDEXED keyword."
         ),
     )
     # Source-owned nested metadata (NOT indexed — descriptive fields only):
