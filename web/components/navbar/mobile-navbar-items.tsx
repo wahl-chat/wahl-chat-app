@@ -1,6 +1,7 @@
 import LoginButton from '@/components/auth/login-button';
 import UserAvatar from '@/components/auth/user-avatar';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
+import { LocaleSwitcher } from '@/components/locale/locale-switcher';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type UserDetails, cn } from '@/lib/utils';
@@ -88,6 +89,12 @@ function MobileNavbarItems({
       {/* The feed shows this menu on desktop too, where the toggle would
           otherwise align its dropdown to the start. */}
       <ThemeModeToggle align="center" />
+      {/* Sized like the theme toggle above, so the two read as a pair. */}
+      <LocaleSwitcher
+        align="center"
+        chevron={false}
+        className="size-8 justify-center border-0 px-0 hover:bg-muted"
+      />
     </nav>
   );
 }

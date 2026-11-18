@@ -4,6 +4,8 @@ import { useId } from 'react';
 
 // Inline SVG rather than flag emoji: Windows renders those as plain letters.
 // Every flag fills the same 20×14 frame, cropped to it like a postage stamp.
+// The size is forced: a menu item sizes every svg inside it to a 16px square,
+// which would squeeze the flag into the middle of its frame.
 
 function Germany() {
   return (
@@ -59,7 +61,7 @@ export function Flag({
   return (
     <span
       className={cn(
-        'inline-flex h-3.5 w-5 shrink-0 overflow-hidden rounded-[2px] ring-1 ring-black/10 dark:ring-white/20 [&>svg]:size-full',
+        'inline-flex h-3.5 w-5 shrink-0 overflow-hidden rounded-[2px] ring-1 ring-black/10 dark:ring-white/20 [&>svg]:!size-full',
         className,
       )}
     >

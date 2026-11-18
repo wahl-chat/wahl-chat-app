@@ -18,16 +18,14 @@ export const LOCALE_COOKIE = 'NEXT_LOCALE';
 type LocaleInfo = {
   /** The language's own name, shown in the selector. */
   endonym: string;
-  /** Shown next to the flag in the selector's trigger. */
-  short: string;
   /** BCP 47 tag for `Intl` date and number formatting. */
   intl: string;
   openGraph: string;
 };
 
 export const LOCALE_INFO: Record<Locale, LocaleInfo> = {
-  de: { endonym: 'Deutsch', short: 'DE', intl: 'de-DE', openGraph: 'de_DE' },
-  en: { endonym: 'English', short: 'EN', intl: 'en-GB', openGraph: 'en_GB' },
+  de: { endonym: 'Deutsch', intl: 'de-DE', openGraph: 'de_DE' },
+  en: { endonym: 'English', intl: 'en-GB', openGraph: 'en_GB' },
 };
 
 export function isLocale(value: unknown): value is Locale {

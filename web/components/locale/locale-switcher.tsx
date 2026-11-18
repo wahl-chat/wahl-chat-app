@@ -23,16 +23,20 @@ import { Flag } from './flags';
 const ONE_YEAR_S = 60 * 60 * 24 * 365;
 
 /**
- * "🇩🇪 DE ▾": switches the page to another language at the same path,
- * keeping the query, and remembers the choice for prefix-less links.
+ * "🇩🇪 ▾": switches the page to another language at the same path, keeping
+ * the query, and remembers the choice for prefix-less links. The flag alone
+ * names the language; the open menu writes each one out.
  */
 export function LocaleSwitcher({
   className,
   align = 'end',
+  chevron = true,
 }: {
   /** Trigger styling, so it can sit in each header's own look. */
   className?: string;
   align?: 'start' | 'center' | 'end';
+  /** Off where the trigger sits among icon buttons, like the menu's. */
+  chevron?: boolean;
 }) {
   const locale = useLocale();
   const t = useTranslations('locale');
@@ -65,10 +69,11 @@ export function LocaleSwitcher({
         )}
       >
         <Flag locale={locale} />
-        {LOCALE_INFO[locale].short}
         {/* On phones the header is tight; the bordered flag reads as a
             control without it. */}
-        <ChevronDownIcon className="hidden size-3.5 sm:block" aria-hidden />
+        {chevron && (
+          <ChevronDownIcon className="hidden size-3.5 sm:block" aria-hidden />
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="min-w-40">
         {LOCALES.map((option) => (

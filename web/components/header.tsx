@@ -20,7 +20,8 @@ async function Header() {
         </Link>
 
         <div className="flex items-center gap-2">
-          {!IS_EMBEDDED && <LocaleSwitcher className="h-9" />}
+          {/* On phones it sits in the menu, under the theme toggle. */}
+          {!IS_EMBEDDED && <LocaleSwitcher className="hidden h-9 md:flex" />}
           {!IS_EMBEDDED && <MobileNavbar userDetails={userDetails} />}
           <NavBar className="hidden md:flex" />
         </div>

@@ -1,7 +1,6 @@
 import LoginButton from '@/components/auth/login-button';
 import UserAvatar from '@/components/auth/user-avatar';
 import Logo from '@/components/chat/logo';
-import { LocaleSwitcher } from '@/components/locale/locale-switcher';
 import MobileNavbar from '@/components/navbar/mobile-navbar';
 import { Link } from '@/i18n/navigation';
 import { IS_EMBEDDED, cn } from '@/lib/utils';
@@ -11,10 +10,10 @@ import WeeklySignupButton from './weekly-signup-button';
 /**
  * The site header on the feed's column width, so the logo and the login
  * button line up with the cards: "wahl.chat / News", the product's name next
- * to the brand. "Meine Woche" asks readers to sign up for the weekly digest,
- * and the language selector sits next to it.
- * The rest (Chat, Anleitung, Spenden, Feedback) sits in the menu, which the
- * feed shows at every width since its column reads as the phone layout.
+ * to the brand. "Meine Woche" asks readers to sign up for the weekly digest.
+ * The rest (Chat, Anleitung, Spenden, Feedback, theme and language) sits in
+ * the menu, which the feed shows at every width since its column reads as
+ * the phone layout.
  */
 function DailyHeader() {
   return (
@@ -43,12 +42,6 @@ function DailyHeader() {
 
         {!IS_EMBEDDED && (
           <nav className="flex items-center gap-1 sm:gap-2">
-            <LocaleSwitcher
-              className={cn(
-                FOCUS_RING,
-                'gap-1.5 border-[var(--daily-border)] px-2 text-[var(--daily-muted)] hover:text-[var(--daily-ink)] sm:gap-2 sm:px-3',
-              )}
-            />
             {/* The root layout seeds the auth state from the session, so a
                 signed-in reader gets the avatar on first paint. */}
             <LoginButton
