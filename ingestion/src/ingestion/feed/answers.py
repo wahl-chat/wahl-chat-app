@@ -339,7 +339,7 @@ async def answer_item(
             if attempt == 0:
                 return item
             break
-        except Exception as exc:  # noqa: BLE001 — the item stands without them
+        except Exception as exc:  # noqa: BLE001 (the item stands without them)
             logger.warning("Answers of %s failed: %s", item.id, exc)
             problems = ["The reply failed or could not be read."]
             continue

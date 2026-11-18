@@ -1108,7 +1108,7 @@ async def _build_day(
     # Speeches as the units hold them: a stored item reaches here only while
     # its input hash matches, so they are the ones its texts came from.
     speeches = {u.item_id: u.agenda.speeches for u in plan.debates if u.buildable}
-    from ingestion.feed.answers import answer_item, needs_answers  # noqa: PLC0415 — imports this module
+    from ingestion.feed.answers import answer_item, needs_answers  # noqa: PLC0415 (imports this module)
 
     def answer_job(item: FeedItem) -> Callable[[], Awaitable[FeedItem]]:
         return lambda: answer_item(
