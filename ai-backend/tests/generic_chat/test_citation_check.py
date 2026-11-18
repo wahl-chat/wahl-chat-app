@@ -139,5 +139,27 @@ def test_a_named_speaker_keeps_the_citation_with_that_speaker() -> None:
     assert cc.repair(answer, [verdict], sources) == "Günter Krings führte an, Deutschland müsse mit Europa gleichziehen."
 
 
+def test_a_surname_inside_a_word_names_no_one() -> None:
+    sources = [
+        cc.Source(0, "Ricarda Lang, 2026-11-13", "…", voice="gruene", speaker="Ricarda Lang"),
+        cc.Source(1, "Abstimmung", "Outcome: angenommen", voice="record"),
+        cc.Source(2, "Abstimmung 2", "angenommen nach Debatte", voice="record"),
+    ]
+    answer = "Der Bundestag stimmte nach langer Debatte zu [1]."
+    verdict = cc.Verdict(cc.cited_sentences(answer)[0], {2})
+    assert cc.repair(answer, [verdict], sources) == "Der Bundestag stimmte nach langer Debatte zu [2]."
+
+
+def test_a_named_speaker_does_not_bind_a_record_citation() -> None:
+    sources = [
+        cc.Source(0, "Günter Krings, 2026-11-13", "…", voice="cdu", speaker="Günter Krings"),
+        cc.Source(1, "Abstimmung", "…", voice="record"),
+        cc.Source(2, "Abstimmung 2", "308 Ja-Stimmen", voice="record"),
+    ]
+    answer = "Nach der Rede von Krings fiel das Ergebnis mit 308 Ja-Stimmen aus [1]."
+    verdict = cc.Verdict(cc.cited_sentences(answer)[0], {2})
+    assert cc.repair(answer, [verdict], sources).endswith("aus [2].")
+
+
 def test_a_markdown_link_is_no_citation() -> None:
     assert cc.cited_sentences("Siehe [2](https://example.org) dazu.") == []

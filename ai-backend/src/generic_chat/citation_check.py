@@ -265,12 +265,16 @@ async def check(answer: str, sources: Sequence[Source], model: Any = None) -> Ch
 
 
 def _named(sentence: str, sources: Sequence[Source]) -> set[str]:
-    """The speakers of the turn's sources that the sentence names, by surname."""
-    text = sentence.casefold()
-    return {
-        s.speaker for s in sources
-        if s.speaker and s.speaker.split()[-1].casefold() in text
-    }
+    """The speakers of the turn's sources that the sentence names, by surname
+    as a whole word ("Lang", never "langer")."""
+    named = set()
+    for s in sources:
+        if not s.speaker:
+            continue
+        surname = re.escape(s.speaker.split()[-1])
+        if re.search(rf"(?<!\w){surname}(?!\w)", sentence):
+            named.add(s.speaker)
+    return named
 
 
 def classify(
@@ -327,7 +331,8 @@ def repair(
             for i, candidate in enumerate(spare):
                 if voice.get(candidate) != voice.get(n):
                     continue
-                if named and speaker.get(candidate) not in named:
+                # A named speaker binds only a speech citation to them.
+                if named and speaker.get(n) is not None and speaker.get(candidate) not in named:
                     continue
                 return spare.pop(i)
             return None
