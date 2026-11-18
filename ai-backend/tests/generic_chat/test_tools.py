@@ -381,3 +381,28 @@ async def test_search_offers_the_procedures_of_its_hits(
     refs = result.documents[0].procedures
     assert refs is not None and refs[0].vorgang_id == "338366"
     assert refs[0].latest_stage == "Beschlussempfehlung (2026-11-16)"
+
+
+async def test_get_vote_without_its_debate_brings_the_laws_readings(
+    fake_io: FakeIO, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from types import SimpleNamespace
+
+    import src.generic_chat.process as process
+
+    fake_io.votes[POLL_ID] = [vote_payload()]
+    fake_io.feed[VOTE_ITEM_ID] = {**feed_item(VOTE_ITEM_ID, "vote"), "procedure_ids": ["338341"]}
+    reading = [
+        {**speech_chunk(f"s{i}", 0, "…", party), "speech_key": f"s{i}", "publish_date": "2026-09-24"}
+        for i, party in enumerate(["cdu", "afd", "afd", "linke"])
+    ]
+
+    async def view(vorgang_id: str, **_: Any) -> Any:
+        return SimpleNamespace(speeches=reading) if vorgang_id == "338341" else None
+
+    monkeypatch.setattr(process.procedure_service, "aget_procedure_view", view)
+    result = await tools.get_vote(make_deps(), POLL_ID)
+
+    speeches = [d for d in result.documents if d.source_type == "parliamentary_speech"]
+    assert len(speeches) == 3
+    assert "readings of the law it belongs to (2026-09-24)" in (result.note or "")

@@ -95,6 +95,12 @@ _DEBATE_NOTE = (
     "The speeches above are from the debate on this vote ({date}): the reasons"
     " given for it."
 )
+# The vote's own debate is missing, the law's earlier readings are not.
+_LAW_DEBATE_NOTE = (
+    "No debate on the day of this vote is in our data. The speeches above are"
+    " from the readings of the law it belongs to ({dates}): reasons given for"
+    " the law, made before this vote; say when they were made."
+)
 # Neutral on why: some votes have no debate, others' speeches arrive days later.
 _NO_DEBATE_NOTE = (
     "No debate linked to this vote was found in our data. Speeches found"
@@ -578,12 +584,29 @@ async def get_vote(deps: GenericChatDeps, poll_id: int) -> DebateResult:
         if speeches:
             note = " ".join(filter(None, [_DEBATE_NOTE.format(date=debate.date), note]))
     else:
-        note = _NO_DEBATE_NOTE
+        speeches = await _law_speeches(deps, vote_item, str(payload.get("citation_title") or ""))
+        documents += speeches
+        days = sorted({str(d.date)[:10] for d in speeches if d.date})
+        note = _LAW_DEBATE_NOTE.format(dates=", ".join(days)) if speeches else _NO_DEBATE_NOTE
     return DebateResult(
         documents=documents,
         note=note,
         item=vote_item.summary(deps.language) if vote_item else None,
     )
+
+
+async def _law_speeches(
+    deps: GenericChatDeps, vote_item: Optional[FeedItemView], query: str
+) -> list[NumberedDocument]:
+    if vote_item is None or not vote_item.procedure_ids:
+        return []
+    from src.generic_chat.process import reading_speeches  # noqa: PLC0415 (process imports tools)
+
+    try:
+        return await reading_speeches(deps, vote_item.procedure_ids, query)
+    except Exception as exc:  # noqa: BLE001 (the vote stands without them)
+        logger.warning("get_vote: law speeches failed: %s", exc)
+        return []
 
 
 async def list_feed_items(

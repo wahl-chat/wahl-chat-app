@@ -168,8 +168,8 @@ async def test_capped_returns_steps_votes_speeches_documents(service) -> None:
     cited = [s for s in result.steps if s.id is not None]
     assert cited and all(deps.sources.entries[s.id]["source_type"] == "procedure_step" for s in cited)
     speeches = [d for d in result.documents if d.source_type == "parliamentary_speech"]
-    # One per party on the reading day, at most three.
-    assert len(speeches) == 3 and len({d.party for d in speeches}) == 3
+    # One per party on the reading day.
+    assert len(speeches) == len({d.party for d in speeches}) == 4
     drucksachen = [d for d in result.documents if d.source_type == "drucksache"]
     assert drucksachen[0].party == "Haushaltsausschuss"
     assert fake.document_queries == ["Was hat der Ausschuss geändert?"]
@@ -223,13 +223,25 @@ async def test_a_lone_resolution_stands_for_its_law(service) -> None:
     assert record is not None and record.vorgang_id == "325558" and choices == []
 
 
-def test_a_named_reading_day_gets_every_fraktion() -> None:
+def test_every_fraktion_of_a_reading_is_heard() -> None:
     speeches = [
         {"speech_key": f"s{i}", "party_id": party, "publish_date": "2026-09-24"}
-        for i, party in enumerate(["cdu", "spd", "afd", "gruene", "linke"])
+        for i, party in enumerate(["cdu", "cdu", "spd", "afd", "afd", "gruene", "linke"])
     ]
-    assert len(process._spread_speeches(speeches, None)) == 3
-    assert len(process._spread_speeches(speeches, None, "Was wurde am 24.09. gesagt?")) == 5
+    picked = process._spread_speeches(speeches, None)
+    assert [s["party_id"] for s in picked] == ["cdu", "spd", "afd", "gruene", "linke"]
+    own = [s for s in speeches if s["party_id"] == "afd"] * 2
+    assert len(process._spread_speeches(own, "afd")) == 2
+
+
+def test_the_newest_readings_win_when_speeches_run_over() -> None:
+    speeches = [
+        {"speech_key": f"{day}-{party}", "party_id": party, "publish_date": day}
+        for day in ["2026-03-01", "2026-06-01", "2026-09-01"]
+        for party in ["cdu", "spd", "afd", "gruene", "linke"]
+    ]
+    days = [s["publish_date"] for s in process._spread_speeches(speeches, None)]
+    assert days == ["2026-03-01"] * 2 + ["2026-06-01"] * 5 + ["2026-09-01"] * 5
 
 
 def test_steps_keep_the_vote_of_a_reading_listed_twice() -> None:

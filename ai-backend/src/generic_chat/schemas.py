@@ -284,6 +284,7 @@ class FeedItemView(_Lenient):
     debate: Optional[FeedDebateView] = None
     vote: Optional[FeedVoteView] = None
     content: dict[str, FeedContentView] = Field(default_factory=dict)
+    procedure_ids: list[str] = Field(default_factory=list)
 
     def headline(self, language: str) -> str:
         localized = self.content.get(language) or self.content.get("de")

@@ -48,7 +48,7 @@ _CANDIDATES = 8
 _SCORE_BAND = 0.05
 _MAX_CHOICES = 3
 _MAX_VOTES = 6
-_SPEECHES_PER_DAY = 3
+_PARTY_SPEECHES_PER_DAY = 3
 _MAX_SPEECHES = 12
 _MAX_DOCUMENTS = 5
 _SPEECH_CHARS = 1200
@@ -337,23 +337,10 @@ def _info(record: ProcedureRecord) -> ProcessInfo:
 # ---------------------------------------------------------------------------
 
 
-_ASKED_DAY = re.compile(r"\b(\d{1,2})\.(\d{1,2})\.")
-# Enough for every Fraktion of a reading the question names.
-_SPEECHES_ON_ASKED_DAY = 8
-
-
-def _asked_days(question: Optional[str]) -> set[str]:
-    """"am 24.09." → {"09-24"}: month-day keys of the dates a question names."""
-    return {f"{int(m):02d}-{int(d):02d}" for d, m in _ASKED_DAY.findall(question or "")}
-
-
-def _spread_speeches(
-    payloads: list[dict], party_id: Optional[str], question: Optional[str] = None
-) -> list[dict]:
-    """≤3 speeches per reading day from different parties (one per Fraktion
-    on a day the question names), or the party's first three (one chunk per
-    speech)."""
-    asked = _asked_days(question)
+def _spread_speeches(payloads: list[dict], party_id: Optional[str]) -> list[dict]:
+    """One speech per Fraktion and reading day, or the party's first few per
+    day (one chunk per speech); the newest readings first when the total runs
+    over."""
     by_day: dict[str, list[dict]] = defaultdict(list)
     seen: set[str] = set()
     for payload in payloads:
@@ -362,20 +349,39 @@ def _spread_speeches(
             continue
         seen.add(key)
         by_day[str(payload.get("publish_date") or "")[:10]].append(payload)
-    picked: list[dict] = []
-    for day in sorted(by_day):
-        speeches = by_day[day]
+    picked: dict[str, list[dict]] = {}
+    room = _MAX_SPEECHES
+    for day in sorted(by_day, reverse=True):
+        if room <= 0:
+            break
         if party_id:
-            picked += speeches[:_SPEECHES_PER_DAY]
-            continue
-        cap = _SPEECHES_ON_ASKED_DAY if day[5:] in asked else _SPEECHES_PER_DAY
-        parties_seen: set[str] = set()
-        for speech in speeches:
-            party = str(speech.get("party_id"))
-            if party not in parties_seen and len(parties_seen) < cap:
-                parties_seen.add(party)
-                picked.append(speech)
-    return picked[:_MAX_SPEECHES]
+            chosen = by_day[day][:_PARTY_SPEECHES_PER_DAY]
+        else:
+            parties: set[str] = set()
+            chosen = []
+            for speech in by_day[day]:
+                party = str(speech.get("party_id"))
+                if party not in parties:
+                    parties.add(party)
+                    chosen.append(speech)
+        picked[day] = chosen[:room]
+        room -= len(picked[day])
+    return [speech for day in sorted(picked) for speech in picked[day]]
+
+
+async def reading_speeches(
+    deps: GenericChatDeps, vorgang_ids: list[str], query: str
+) -> list[NumberedDocument]:
+    """The speeches of a law's readings, every Fraktion that spoke; empty
+    when none are linked."""
+    for vorgang_id in vorgang_ids:
+        view = await procedure_service.aget_procedure_view(vorgang_id, party_id=None, limit=60)
+        if view is not None and view.speeches:
+            return [
+                tools._register_speech(deps, p, query, tools._clip(p.get("text"), _SPEECH_CHARS))
+                for p in _spread_speeches(view.speeches, None)
+            ]
+    return []
 
 
 def _register_document(deps: GenericChatDeps, payload: dict) -> NumberedDocument:
@@ -427,7 +433,7 @@ async def _evidence(
         query = args.question or record.titel
         out += [
             tools._register_speech(deps, p, query, tools._clip(p.get("text"), _SPEECH_CHARS))
-            for p in _spread_speeches(view.speeches, args.party_id, args.question)
+            for p in _spread_speeches(view.speeches, args.party_id)
         ]
     out += [_register_document(deps, p) for p in documents]
     return out
