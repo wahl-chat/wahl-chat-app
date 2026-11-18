@@ -30,9 +30,7 @@ import argparse
 import logging
 import os
 import sys
-import tempfile
 from datetime import date
-from pathlib import Path
 from typing import Any, Optional
 
 from qdrant_client import QdrantClient
@@ -287,7 +285,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         feed=not args.no_feed,
         today=date.today(),
         dry_run=args.dry_run,
-        pdfs=PdfSource(Path(tempfile.gettempdir()) / "dip-pdfs"),
+        # Not cached: each PDF is read once per run, and a Cloud Run job's
+        # disk is its memory.
+        pdfs=PdfSource(),
     )
 
 
