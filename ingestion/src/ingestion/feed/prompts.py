@@ -26,6 +26,15 @@ TRANSLATION_PROMPT_VERSION = "1"
 # Part of each item's terms hash: bumping it looks for terms again. Stored on
 # each glossary definition.
 GLOSSARY_PROMPT_VERSION = "2"
+# Stored on each glossary entry's translation: bumping it re-translates the
+# terms and their definitions, never rewrites the German.
+GLOSSARY_TRANSLATION_PROMPT_VERSION = "1"
+# Part of a translation's terms hash: bumping it finds the words that render
+# each German term in the translations again.
+TERM_MAPPING_PROMPT_VERSION = "1"
+# Stored on each politician's translation: bumping it re-translates offices,
+# Gremien, roll-call titles and the other display texts of every record.
+POLITICIAN_TRANSLATION_PROMPT_VERSION = "1"
 
 # The shared rulebook.
 _AUDIENCE = "eine tägliche, neutrale Übersicht"
@@ -281,6 +290,30 @@ Reden je Fraktion:
 {{speeches}}
 """
 
+# The rules every translation pass shares: items, glossary entries and the
+# politicians' display texts are translated to the same standard.
+_FIDELITY_RULE = (
+    "Übersetze treu: nichts hinzufügen, nichts weglassen, nichts abschwächen "
+    "oder zuspitzen."
+)
+_NUMBERS_RULE = (
+    "Zahlen, Namen, Partei-Kennungen, Drucksachen- und Protokollnummern "
+    "unverändert übernehmen."
+)
+_INSTITUTIONS_RULE = (
+    "Ämter, Ausschüsse und Verfahren mit der üblichen englischen Bezeichnung "
+    "übersetzen, wie die englischen Seiten des Bundestages sie verwenden "
+    "(„Bundesministerin der Finanzen“ → „Federal Minister of Finance“, "
+    "„Haushaltsausschuss“ → „Budget Committee“). Eigennamen deutscher "
+    "Institutionen und Gesetze (z. B. Bundestag, Bundesrat) dürfen deutsch "
+    "bleiben, wenn es keine übliche englische Bezeichnung gibt."
+)
+_SEGMENT_RULE = (
+    "Jeder Abschnitt wird für sich übersetzt: genau ein Eintrag je Abschnitt, "
+    "mit seiner Kennung, und nur der übersetzte Abschnitt, ohne Anmerkungen. "
+    + _refs_only_rule("S1, S2, …", "ref", "den übersetzten Texten")
+)
+
 # Segment by segment, not field by field inside one JSON object: asked to
 # translate a whole entry, the model runs past the end of a paragraph into
 # the footers of web translation tools and never closes the JSON string.
@@ -289,26 +322,63 @@ Du übersetzt Einträge aus dem {{parliament}} für {_AUDIENCE} \
 für Bürgerinnen und Bürger ins Englische. Grundlage sind ausschließlich die \
 folgenden deutschen Auszüge; sie sind bereits geprüft und veröffentlicht. \
 Jeder Auszug ist in nummerierte Abschnitte geteilt: Überschrift, \
-Zusammenfassung, Stichpunkte, Positionssätze der Fraktionen, Fragen und \
-wörtliche Zitate.
+Zusammenfassung, Stichpunkte, Positionssätze der Fraktionen, Fragen, \
+wörtliche Zitate und die Ämter von Mitgliedern der Regierung, die geredet \
+haben.
 
 Regeln:
-- Übersetze treu: nichts hinzufügen, nichts weglassen, nichts abschwächen \
-oder zuspitzen. {_GROUNDING_RULE}
+- {_FIDELITY_RULE} {_GROUNDING_RULE}
 - {_NEUTRALITY_RULE}
 - {_ATTRIBUTION_RULE}
 - {_POSITION_SENTENCE_RULE} Im Englischen ebenso: "Oppose …", "Call for …", \
 "Welcome …", nicht "The parliamentary group criticised …".
-- Zahlen, Namen, Partei-Kennungen, Drucksachen- und Protokollnummern \
-unverändert übernehmen.
-- Eigennamen deutscher Institutionen und Gesetze (z. B. Bundestag, \
-Bundesrat) dürfen deutsch bleiben, wenn es keine übliche englische \
-Bezeichnung gibt.
+- {_NUMBERS_RULE}
+- {_INSTITUTIONS_RULE}
 - Wörtliche Zitate (in „…“) sinngetreu übersetzen, nicht umschreiben oder \
 kürzen.
-- Jeder Abschnitt wird für sich übersetzt: genau ein Eintrag je Abschnitt, \
-mit seiner Kennung, und nur der übersetzte Abschnitt, ohne Anmerkungen.
-- {_refs_only_rule("S1, S2, …", "ref", "den übersetzten Texten")}
+- {_SEGMENT_RULE}
+
+Abschnitte:
+{{segments}}
+"""
+
+GLOSSARY_TRANSLATION_PROMPT = f"""\
+Du übersetzt Erklärungen von Fachbegriffen aus dem {{parliament}} für \
+{_AUDIENCE} ins Englische, für Leser:innen ohne politisches Vorwissen. Die \
+Erklärungen sind bereits gegen offizielle Quellen geprüft. Jeder Begriff \
+steht in einem eigenen Abschnitt, seine Erklärung im Abschnitt direkt danach.
+
+Regeln:
+- {_FIDELITY_RULE} Die Erklärung sagt auf Englisch genau, was sie auf \
+Deutsch sagt, in ebenso einfacher Sprache.
+- Den Begriff in der Grundform übersetzen, nur den Begriff, ohne den \
+deutschen in Klammern.
+- {_INSTITUTIONS_RULE}
+- {_NUMBERS_RULE}
+- {_NEUTRALITY_RULE}
+- {_SEGMENT_RULE}
+
+Abschnitte:
+{{segments}}
+"""
+
+POLITICIAN_TRANSLATION_PROMPT = f"""\
+Du übersetzt Angaben aus den Profilen von Abgeordneten und Mitgliedern der \
+Regierung im {{parliament}} ins Englische, wie der {{parliament}} sie \
+veröffentlicht: Ämter und Funktionen, Ministerien und Fraktionen, Gremien \
+und die Rollen darin, Berufe, Titel namentlicher Abstimmungen und die \
+Überschriften der Veröffentlichungspflichtigen Angaben. Jede Angabe steht \
+für sich in einem eigenen Abschnitt.
+
+Regeln:
+- {_FIDELITY_RULE}
+- {_INSTITUTIONS_RULE}
+- Namen von Personen, Parteien, Wahlkreisen, Orten, Unternehmen, Vereinen \
+und Stiftungen unverändert übernehmen; nur die Wörter um sie herum \
+übersetzen („Fraktion der SPD“ → „SPD parliamentary group“).
+- {_NUMBERS_RULE}
+- {_NEUTRALITY_RULE}
+- {_SEGMENT_RULE}
 
 Abschnitte:
 {{segments}}
@@ -352,6 +422,18 @@ def format_verify_prompt(
 
 def format_translation_prompt(parliament: str, segments_block: str) -> str:
     return TRANSLATION_PROMPT.format(parliament=parliament, segments=segments_block)
+
+
+def format_glossary_translation_prompt(parliament: str, segments_block: str) -> str:
+    return GLOSSARY_TRANSLATION_PROMPT.format(
+        parliament=parliament, segments=segments_block
+    )
+
+
+def format_politician_translation_prompt(parliament: str, segments_block: str) -> str:
+    return POLITICIAN_TRANSLATION_PROMPT.format(
+        parliament=parliament, segments=segments_block
+    )
 
 
 # --- glossary ---------------------------------------------------------------
@@ -403,6 +485,21 @@ class FormCheck(BaseModel):
 
 class FormCheckBatch(BaseModel):
     checks: list[FormCheck]
+
+
+class TermSurface(BaseModel):
+    ref: str = Field(description="Die Kennung des Begriffs, z. B. 'M2'.")
+    surface: str = Field(
+        description=(
+            "Die Wörter, die den Begriff im englischen Text wiedergeben, Zeichen "
+            "für Zeichen aus diesem Text kopiert. Leer, wenn der englische Text "
+            "ihn nicht als eigene Wortfolge wiedergibt."
+        )
+    )
+
+
+class TermSurfaceBatch(BaseModel):
+    surfaces: list[TermSurface]
 
 
 class TermDefinition(BaseModel):
@@ -489,6 +586,27 @@ politische Bildung (bpb.de). Fasse in wenigen Sätzen zusammen, was diese \
 Seiten über den Begriff sagen, ohne eigenes Wissen hinzuzufügen.
 {context}"""
 
+TERM_MAPPING_PROMPT = f"""\
+Unten stehen englische Übersetzungen kurzer Texte aus {_AUDIENCE} über den \
+{{parliament}}, jeder mit einer Kennung wie [T1]. Darunter stehen die \
+Fachbegriffe, die im deutschen Original markiert sind, jeder mit einer \
+Kennung wie [M1], so wie das Original sie schreibt und mit seiner Grundform. \
+Die Markierung soll im englischen Text auf den Wörtern stehen, die genau \
+diesen Begriff wiedergeben.
+
+Regeln:
+- Gib für jeden Begriff die Wörter an, die ihn im englischen Text seines \
+Abschnitts wiedergeben, Zeichen für Zeichen aus diesem Text kopiert.
+- Nur die Wörter für den Begriff selbst, keine längere Passage, keine \
+Wörter, die nicht zu ihm gehören.
+- Gibt der englische Text den Begriff nicht wieder, oder nur umschrieben \
+über mehrere getrennte Stellen, gib eine leere Zeichenfolge zurück.
+- Gib jeden Begriff mit seiner Kennung zurück.
+
+Texte:
+{{texts}}
+"""
+
 DEFINITION_PROMPT = f"""\
 Erkläre die folgenden Fachbegriffe für {_AUDIENCE} über den {{parliament}}, \
 für Leser:innen ohne politisches Vorwissen. Jeder Begriff hat eine Kennung \
@@ -523,6 +641,10 @@ Erklärungen:
 
 def format_terms_prompt(parliament: str, texts_block: str) -> str:
     return TERMS_PROMPT.format(parliament=parliament, texts=texts_block)
+
+
+def format_term_mapping_prompt(parliament: str, texts_block: str) -> str:
+    return TERM_MAPPING_PROMPT.format(parliament=parliament, texts=texts_block)
 
 
 def format_definition_prompt(parliament: str, terms_block: str) -> str:

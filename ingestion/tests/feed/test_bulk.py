@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+import re
 import time
 from datetime import date
 from typing import Any, Optional
@@ -11,15 +12,28 @@ import pytest
 from ingestion.feed import bulk
 from ingestion.feed.builder import FeedBuilder, plan_days
 from ingestion.feed.items import MAX_POSITION_ATTEMPTS
-from ingestion.feed.glossary import terms_hash
-from ingestion.feed.models import FEED_FORMAT_VERSION, CardVideo, FeedItem
+from ingestion.feed.glossary import (
+    GlossaryEntry,
+    needs_translated_terms,
+    terms_hash,
+    translated_terms_hash,
+)
+from ingestion.feed.models import (
+    FEED_FORMAT_VERSION,
+    CardVideo,
+    FeedItem,
+    TranslatedText,
+)
 from ingestion.feed.parliaments import FEED_PARLIAMENTS
 from ingestion.feed.politicians import RefreshReport
 from ingestion.feed.posters import MAX_FAILURES_IN_A_ROW, PosterReport, add_posters
 from ingestion.feed.prompts import (
+    GLOSSARY_PROMPT_VERSION,
     DebateDraft,
     PositionCheckBatch,
     PositionsDraft,
+    TranslatedSegment,
+    TranslationBatch,
     VoteEnrichmentBatch,
 )
 from ingestion.feed.translate import needs_translation
@@ -76,6 +90,7 @@ def _translated(items: list[FeedItem]) -> dict[str, FeedItem]:
     stored = {i.id: _with_english(i) for i in items}
     for item in stored.values():
         item.content["de"].terms_hash = terms_hash(item)
+        item.content["en"].terms_hash = translated_terms_hash(item, "en")
     return stored
 
 
@@ -787,3 +802,89 @@ def test_revalidation_sends_no_bypass_header_without_a_token(
 ) -> None:
     monkeypatch.delenv("VERCEL_AUTOMATION_BYPASS_SECRET", raising=False)
     assert "x-vercel-protection-bypass" not in _revalidate_headers(monkeypatch)
+
+
+def test_a_translation_whose_terms_are_stale_republishes_its_day() -> None:
+    stored, edition_ids = _stored_day()
+    stored[TOP1].content["en"].terms_hash = None
+    llm = FakeLLM()
+    day, _ = _day(llm, _plan(), stored, edition_ids)
+    assert day is not None
+    assert llm.calls == []
+
+
+class _TranslatingLLM(FakeLLM):
+    """The builder's fake, translating every segment as ``EN <German>``."""
+
+    def _answer(self, prompt: str, schema: type) -> Any:
+        if schema is TranslationBatch:
+            return TranslationBatch(
+                segments=[
+                    TranslatedSegment(ref=ref, text=f"EN {german}")
+                    for ref, german in re.findall(
+                        r"^\[(S\d+)\] (.*)$", prompt, re.MULTILINE
+                    )
+                ]
+            )
+        return super()._answer(prompt, schema)
+
+
+def test_the_backfill_brings_every_language_up_to_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    day, _ = _day(FakeLLM(), _plan(), {})
+    assert day is not None
+    items = day.items
+    debate = next(i for i in items if i.debate is not None)
+    assert debate.debate is not None
+    speaker = debate.debate.parties[0].speakers[0]
+    debate.debate.parties[0].speakers[0] = speaker.model_copy(
+        update={"role": "Bundesministerin der Finanzen", "mdb_id": "11005000"}
+    )
+    hand = GlossaryEntry(
+        term_id="aktuelle-stunde",
+        term="Aktuelle Stunde",
+        definition="Eine kurze Debatte.",
+        forms=["Aktuelle Stunde"],
+        status="verified",
+        generated_by="hand",
+        prompt_version=GLOSSARY_PROMPT_VERSION,
+        updated_at=NOW,
+    )
+    written: dict[str, Any] = {}
+    monkeypatch.setattr(bulk, "parliament_window", lambda *_: WINDOW)
+    monkeypatch.setattr(bulk, "read_items_since", lambda *_: items)
+    monkeypatch.setattr(bulk, "read_glossary", lambda _: {hand.term_id: hand})
+    monkeypatch.setattr(
+        bulk, "write_feed", lambda _db, _e, found: written.update(items=found)
+    )
+    monkeypatch.setattr(
+        bulk, "write_glossary", lambda _db, found: written.update(glossary=found)
+    )
+
+    def translate_stored_politicians(_db: Any, ids: list[str], *_: Any, **__: Any):
+        written["politicians"] = ids
+        return ids
+
+    monkeypatch.setattr(
+        bulk, "translate_stored_politicians", translate_stored_politicians
+    )
+    builder = FeedBuilder(_TranslatingLLM())
+    try:
+        report = bulk.backfill_translations(object(), None, builder, [BUNDESTAG], 14)  # type: ignore[arg-type]
+    finally:
+        builder.close()
+    assert report.translation.translated == len(items)
+    for item in written["items"]:
+        assert not needs_translation(item, "en")
+        assert not needs_translated_terms(item, "en")
+    assert debate.content["en"].speaker_roles == [
+        TranslatedText(
+            source="Bundesministerin der Finanzen",
+            text="EN Bundesministerin der Finanzen",
+        )
+    ]
+    [entry] = written["glossary"]
+    assert entry.translations["en"].term == "EN Aktuelle Stunde"
+    assert written["politicians"] == ["11005000"]
+    assert report.politicians == ["11005000"]

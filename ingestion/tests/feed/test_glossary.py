@@ -10,14 +10,19 @@ from ingestion.feed.builder import FeedBuilder
 from ingestion.feed.glossary import (
     MAX_DEFINITION_ATTEMPTS,
     GlossaryEntry,
+    GlossaryTranslation,
     annotate_terms,
+    entry_source_hash,
+    needs_entry_translation,
     needs_terms,
+    needs_translated_terms,
     term_id,
 )
 from ingestion.feed.glossary_sources import GlossarySource, Research
-from ingestion.feed.models import FeedItem
+from ingestion.feed.models import FeedItem, LocalizedContent, LocalizedPosition
 from ingestion.feed.prompts import (
     GLOSSARY_PROMPT_VERSION,
+    GLOSSARY_TRANSLATION_PROMPT_VERSION,
     DefinitionCheck,
     DefinitionCheckBatch,
     FormCheck,
@@ -27,11 +32,17 @@ from ingestion.feed.prompts import (
     TermDefinitionBatch,
     TermDraft,
     TermExtractionBatch,
+    TermSurface,
+    TermSurfaceBatch,
+    TranslatedSegment,
+    TranslationBatch,
 )
 from tests.feed.samples import sample_items
 
 NOW = datetime(2026, 11, 12, 8, tzinfo=timezone.utc)
 _REF_RE = re.compile(r"^\[([TB]\d+)\]", re.MULTILINE)
+_SEGMENT_RE = re.compile(r"^\[(S\d+)\] (.*)$", re.MULTILINE)
+_MAPPING_RE = re.compile(r"^\[(M\d+)\] „(.+?)“", re.MULTILINE)
 _PAGE = "https://www.bundestag.de/services/glossar/{slug}"
 
 
@@ -43,7 +54,9 @@ class GlossaryLLM:
     """Names the terms it is given for every text, accepts every form but
     those it is told to reject, defines each term citing its first source,
     and passes every definition but those it is told to reject. ``omit``
-    leaves a term out of an answer, as a model sometimes does."""
+    leaves a term out of an answer, as a model sometimes does. Translates
+    each segment as ``EN <German>`` unless ``translations`` says otherwise,
+    and renders each German term in a translation as ``surfaces`` says."""
 
     def __init__(
         self,
@@ -54,8 +67,12 @@ class GlossaryLLM:
         cite_nothing: tuple[str, ...] = (),
         omit: tuple[tuple[type, str], ...] = (),
         fail: tuple[type, ...] = (),
+        translations: Optional[dict[str, str]] = None,
+        surfaces: Optional[dict[str, str]] = None,
     ) -> None:
         self.terms = terms
+        self.translations = translations or {}
+        self.surfaces = surfaces or {}
         self.reject = reject
         self.reject_forms = reject_forms
         self.cite_nothing = cite_nothing
@@ -112,6 +129,23 @@ class GlossaryLLM:
                     DefinitionCheck(ref=ref, reason="-", ok=term not in self.reject)
                     for ref, term in lines
                     if not self._omitted(schema, term)
+                ]
+            ), "fake-model"
+        if schema is TranslationBatch:
+            return TranslationBatch(
+                segments=[
+                    TranslatedSegment(
+                        ref=ref, text=self.translations.get(german, f"EN {german}")
+                    )
+                    for ref, german in _SEGMENT_RE.findall(prompt)
+                ]
+            ), "fake-translator"
+        if schema is TermSurfaceBatch:
+            return TermSurfaceBatch(
+                surfaces=[
+                    TermSurface(ref=ref, surface=self.surfaces.get(german, ""))
+                    for ref, german in _MAPPING_RE.findall(prompt)
+                    if not self._omitted(schema, german)
                 ]
             ), "fake-model"
         raise AssertionError(f"unexpected schema {schema}")
@@ -195,7 +229,23 @@ def _entry(term: str, **fields: Any) -> GlossaryEntry:
         "updated_at": NOW,
     }
     values.update(fields)
-    return GlossaryEntry(**values)
+    entry = GlossaryEntry(**values)
+    if "translations" not in fields and entry.definition:
+        entry.translations = {"en": _translation(entry)}
+    return entry
+
+
+def _translation(entry: GlossaryEntry, **fields: Any) -> GlossaryTranslation:
+    values: dict[str, Any] = {
+        "term": f"EN {entry.term}",
+        "definition": f"EN {entry.definition}",
+        "source_hash": entry_source_hash(entry),
+        "prompt_version": GLOSSARY_TRANSLATION_PROMPT_VERSION,
+        "generated_by": "fake-translator",
+        "generated_at": NOW,
+    }
+    values.update(fields)
+    return GlossaryTranslation(**values)
 
 
 # --- find -------------------------------------------------------------------
@@ -512,3 +562,184 @@ def test_the_hand_written_seed_matches_what_the_job_reads() -> None:
         # Shown only with a source the job can check it against.
         sources = [GlossarySource.model_validate(s) for s in row["sources"]]
         assert sources and all(is_allowed(s.url) for s in sources), row["term"]
+
+
+# --- translate --------------------------------------------------------------
+
+
+def test_a_verified_entry_is_translated_in_the_pass_that_verifies_it() -> None:
+    item = _debate("In einer Aktuellen Stunde ging es um die Bahn.")
+    llm = GlossaryLLM([("Aktuellen Stunde", "Aktuelle Stunde")])
+    _, entries, _ = _run(llm, [item])
+    [entry] = entries
+    assert entry.status == "verified"
+    en = entry.translations["en"]
+    assert (en.term, en.definition) == (
+        "EN Aktuelle Stunde",
+        "EN Aktuelle Stunde erklärt.",
+    )
+    assert en.source_hash == entry_source_hash(entry)
+    assert en.prompt_version == GLOSSARY_TRANSLATION_PROMPT_VERSION
+    assert en.generated_by == "fake-translator"
+    assert not needs_entry_translation(entry, "en")
+
+
+def test_an_entry_that_is_not_verified_is_not_translated() -> None:
+    item = _debate("Die Beschlussempfehlung des Ausschusses.")
+    llm = GlossaryLLM(
+        [("Beschlussempfehlung", "Beschlussempfehlung")],
+        reject=("Beschlussempfehlung",),
+    )
+    _, _, glossary = _run(llm, [item])
+    assert glossary["beschlussempfehlung"].translations == {}
+    assert TranslationBatch not in llm.calls
+
+
+def test_a_current_translation_costs_no_call() -> None:
+    known = _entry("Aktuelle Stunde")
+    llm = GlossaryLLM([])
+    _, entries, _ = _run(llm, [], {"aktuelle-stunde": known})
+    assert TranslationBatch not in llm.calls
+    assert entries == []
+
+
+def test_a_stored_entry_without_a_translation_gets_one_on_a_later_run() -> None:
+    known = _entry("Aktuelle Stunde", translations={})
+    _, entries, _ = _run(GlossaryLLM([]), [], {"aktuelle-stunde": known})
+    assert [e.translations["en"].term for e in entries] == ["EN Aktuelle Stunde"]
+
+
+def test_a_changed_definition_is_translated_again() -> None:
+    known = _entry("Aktuelle Stunde")
+    known.definition = "Neu geprüft."
+    assert needs_entry_translation(known, "en")
+    _, entries, _ = _run(GlossaryLLM([]), [], {"aktuelle-stunde": known})
+    [entry] = entries
+    assert entry.translations["en"].definition == "EN Neu geprüft."
+    assert not needs_entry_translation(entry, "en")
+
+
+def test_a_translation_that_loses_a_number_is_not_stored() -> None:
+    definition = "Abgeordnete reden höchstens 5 Minuten."
+    known = _entry("Aktuelle Stunde", definition=definition, translations={})
+    llm = GlossaryLLM([], translations={definition: "Members speak briefly."})
+    _, entries, glossary = _run(llm, [], {"aktuelle-stunde": known})
+    assert glossary["aktuelle-stunde"].translations == {}
+    assert entries == []
+
+
+def test_a_failed_translation_drops_one_of_an_older_definition() -> None:
+    known = _entry("Aktuelle Stunde")
+    known.definition = "Abgeordnete reden höchstens 5 Minuten."
+    llm = GlossaryLLM([], translations={known.definition: "EN no number"})
+    _, entries, _ = _run(llm, [], {"aktuelle-stunde": known})
+    # The English of the old definition is not shown next to the new one.
+    assert [e.translations for e in entries] == [{}]
+
+
+def test_a_failed_translation_call_keeps_a_current_translation() -> None:
+    known = _entry("Aktuelle Stunde")
+    known.translations["en"] = _translation(known, prompt_version="0")
+    llm = GlossaryLLM([], fail=(TranslationBatch,))
+    _, entries, glossary = _run(llm, [], {"aktuelle-stunde": known})
+    assert entries == []
+    assert glossary["aktuelle-stunde"].translations["en"].prompt_version == "0"
+
+
+# --- map --------------------------------------------------------------------
+
+
+_EN_TEASER = "A topical hour was held on the railway."
+
+
+def _translated_debate(teaser: str = _EN_TEASER) -> FeedItem:
+    item = _debate("In einer Aktuellen Stunde ging es um die Bahn.")
+    de = item.content["de"]
+    item.content["en"] = LocalizedContent(
+        headline="EN",
+        teaser=teaser,
+        key_points=[f"EN {p}" for p in de.key_points],
+        positions=[
+            LocalizedPosition(party_id=p.party_id, text=f"EN {p.text}")
+            for p in de.positions
+        ],
+        origin="translated",
+        source_hash=de.source_hash,
+        prompt_version="1",
+        generated_at=NOW,
+    )
+    return item
+
+
+def test_terms_are_found_in_the_translation_and_checked_against_it() -> None:
+    item = _translated_debate()
+    llm = GlossaryLLM(
+        [("Aktuellen Stunde", "Aktuelle Stunde")],
+        surfaces={"Aktuellen Stunde": "topical hour"},
+    )
+    changed, _, _ = _run(llm, [item])
+    assert changed == [item]
+    [ref] = item.content["en"].terms
+    assert (ref.term_id, ref.surface) == ("aktuelle-stunde", "topical hour")
+    assert not needs_translated_terms(item, "en")
+    # The model saw the German form and its base form next to the English.
+    [prompt] = llm.prompts[TermSurfaceBatch]
+    assert "„Aktuellen Stunde“ (Grundform: Aktuelle Stunde)" in prompt
+    assert _EN_TEASER in prompt
+
+
+def test_words_the_translation_does_not_contain_are_dropped() -> None:
+    for surface in ("current hour", "topical", ""):
+        item = _translated_debate("A topicality debate was held.")
+        llm = GlossaryLLM(
+            [("Aktuellen Stunde", "Aktuelle Stunde")],
+            surfaces={"Aktuellen Stunde": surface},
+        )
+        _run(llm, [item])
+        assert item.content["en"].terms == []
+        # Looked at, so not asked about again until the text changes.
+        assert not needs_translated_terms(item, "en")
+
+
+def test_a_translation_without_german_terms_costs_no_call() -> None:
+    item = _translated_debate()
+    llm = GlossaryLLM([])
+    changed, _, _ = _run(llm, [item])
+    assert changed == [item]
+    assert TermSurfaceBatch not in llm.calls
+    assert item.content["en"].terms == []
+    assert not needs_translated_terms(item, "en")
+
+
+def test_a_term_the_answer_leaves_out_keeps_the_item_for_the_next_run() -> None:
+    item = _translated_debate()
+    llm = GlossaryLLM(
+        [("Aktuellen Stunde", "Aktuelle Stunde")],
+        surfaces={"Aktuellen Stunde": "topical hour"},
+        omit=((TermSurfaceBatch, "Aktuellen Stunde"),),
+    )
+    _run(llm, [item])
+    assert item.content["en"].terms_hash is None
+    assert needs_translated_terms(item, "en")
+
+
+def test_a_failed_mapping_call_keeps_the_item_for_the_next_run() -> None:
+    item = _translated_debate()
+    llm = GlossaryLLM(
+        [("Aktuellen Stunde", "Aktuelle Stunde")], fail=(TermSurfaceBatch,)
+    )
+    _run(llm, [item])
+    assert needs_translated_terms(item, "en")
+
+
+def test_a_new_translation_is_mapped_again() -> None:
+    item = _translated_debate()
+    llm = GlossaryLLM(
+        [("Aktuellen Stunde", "Aktuelle Stunde")],
+        surfaces={"Aktuellen Stunde": "topical hour"},
+    )
+    _run(llm, [item])
+    item.content["en"].teaser = "The topical hour dealt with the railway."
+    assert needs_translated_terms(item, "en")
+    _run(llm, [item], {})
+    assert [r.surface for r in item.content["en"].terms] == ["topical hour"]

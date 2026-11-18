@@ -3,10 +3,12 @@
 import {
   type GlossaryIndex,
   type TextPart,
+  glossaryIndex,
   splitByRefs,
   splitLabel,
 } from '@/lib/daily/glossary';
 import type { GlossaryEntry, TermRef } from '@/lib/firebase/firebase.types';
+import { useLocale, useTranslations } from 'next-intl';
 import { createContext, useContext, useMemo } from 'react';
 import { InfoTooltip } from './info-tooltip';
 
@@ -21,9 +23,10 @@ export function GlossaryProvider({
   entries: GlossaryEntry[];
   children: React.ReactNode;
 }) {
+  const locale = useLocale();
   const index = useMemo(
-    () => Object.fromEntries(entries.map((e) => [e.term_id, e])),
-    [entries],
+    () => glossaryIndex(entries, locale),
+    [entries, locale],
   );
   return (
     <GlossaryContext.Provider value={index}>
@@ -43,10 +46,11 @@ function sourceHost(url: string): string {
 
 /** A term with its explanation and the official page it rests on. */
 function Term({ text, entry }: { text: string; entry: GlossaryEntry }) {
+  const t = useTranslations('feed.glossary');
   const [source] = entry.sources;
   return (
     <InfoTooltip
-      label={`${text}: Erklärung anzeigen`}
+      label={t('explain', { term: text })}
       className="inline cursor-help rounded-sm text-left underline decoration-dotted decoration-from-font underline-offset-[3px]"
       contentClassName="max-w-72"
       content={
@@ -55,7 +59,7 @@ function Term({ text, entry }: { text: string; entry: GlossaryEntry }) {
           <p className="mt-1">{entry.definition}</p>
           {source && (
             <p className="mt-1.5">
-              Quelle:{' '}
+              {t('source')}{' '}
               <a
                 href={source.url}
                 target="_blank"

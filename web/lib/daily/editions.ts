@@ -25,6 +25,10 @@ function toSection(
 ): DigestSessionSection {
   const content = localized(item, locale);
   const text = new Map(content.positions.map((p) => [p.party_id, p.text]));
+  // Offices stay German in the facts; a translation replaces them per text.
+  const roles = new Map(
+    (content.speaker_roles ?? []).map((r) => [r.source, r.text]),
+  );
   return {
     topic: item.topics[0],
     topics: item.topics,
@@ -32,6 +36,10 @@ function toSection(
     summary: content.teaser ?? '',
     positions: facts.parties.map(({ position_sources, ...party }) => ({
       ...party,
+      speakers: party.speakers.map((speaker) => ({
+        ...speaker,
+        role: (speaker.role && roles.get(speaker.role)) || speaker.role,
+      })),
       logo_id: feedLogoId(item.parliament, party.party_id),
       position: text.get(party.party_id) ?? null,
       sources: position_sources ?? [],

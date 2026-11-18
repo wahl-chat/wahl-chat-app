@@ -4,8 +4,10 @@ import type {
   Politician,
 } from '@/lib/firebase/firebase.types';
 import {
+  type PoliticianWords,
   displayName,
   gremienOf,
+  localizedPolitician,
   mandateLabel,
   officeLines,
   speakerIds,
@@ -42,6 +44,14 @@ const politician = (over: Partial<Politician>): Politician => ({
   fetched_at: '2026-11-11T00:00:00Z',
   ...over,
 });
+
+const WORDS: PoliticianWords = {
+  tenure: (since, terms) =>
+    `${since} · ${terms} ${terms === 1 ? 'Wahlperiode' : 'Wahlperioden'}`,
+  direct: (number, name) => `Direkt gewählt · Wahlkreis ${number} – ${name}`,
+  list: (land) => `Landesliste ${land}`,
+  fraktion: (name) => `Fraktion ${name}`,
+};
 
 const AWZ = 'Ausschuss für wirtschaftliche Zusammenarbeit und Entwicklung';
 
@@ -91,23 +101,24 @@ describe('gremienOf', () => {
 
 describe('labels', () => {
   it('counts the Wahlperioden from the first one', () => {
-    expect(tenureLabel(politician({}))).toBe('2021 · 2 Wahlperioden');
+    expect(tenureLabel(politician({}), WORDS)).toBe('2021 · 2 Wahlperioden');
     expect(
       tenureLabel(
         politician({ terms: [{ wp: 21, start: '2025-03-25', end: null }] }),
+        WORDS,
       ),
     ).toBe('2025 · 1 Wahlperiode');
-    expect(tenureLabel(politician({ terms: [] }))).toBeNull();
+    expect(tenureLabel(politician({ terms: [] }), WORDS)).toBeNull();
   });
 
   it('names the Wahlkreis for a direct mandate, else the list', () => {
-    expect(mandateLabel(politician({}))).toBe(
+    expect(mandateLabel(politician({}), WORDS)).toBe(
       'Direkt gewählt · Wahlkreis 092 – Köln I',
     );
-    expect(mandateLabel(politician({ elected: 'Landesliste' }))).toBe(
+    expect(mandateLabel(politician({ elected: 'Landesliste' }), WORDS)).toBe(
       'Landesliste Nordrhein-Westfalen',
     );
-    expect(mandateLabel(politician({ elected: null }))).toBeNull();
+    expect(mandateLabel(politician({ elected: null }), WORDS)).toBeNull();
   });
 
   it('shows offices as published', () => {
@@ -127,6 +138,7 @@ describe('labels', () => {
             },
           ],
         }),
+        WORDS,
       ),
     ).toEqual([
       'Bundesministerin · Bundesministerium der Finanzen',
@@ -162,5 +174,52 @@ describe('speakerPhotos', () => {
       }),
     ).toEqual({ '1': 'https://x/1.jpg' });
     expect(speakerPhotos(null)).toEqual({});
+  });
+});
+
+describe('localizedPolitician', () => {
+  const record = politician({
+    beruf: 'Juristin',
+    offices: [
+      {
+        function: 'Bundesministerin',
+        institution: 'Bundesministerium der Finanzen',
+        kind: 'government',
+      },
+    ],
+    memberships: [
+      {
+        gremium: AWZ,
+        role: 'Obfrau',
+        level: 'spokesperson',
+        kind: 'ausschuss',
+        url: null,
+      },
+    ],
+    translations: {
+      en: {
+        texts: [
+          { source: 'Bundesministerin', text: 'Federal Minister' },
+          { source: 'Juristin', text: 'Lawyer' },
+          { source: 'Obfrau', text: 'Spokesperson' },
+        ],
+      },
+    },
+  });
+
+  it('shows each translated text in English and the rest as published', () => {
+    const en = localizedPolitician(record, 'en');
+    expect(en.offices[0].function).toBe('Federal Minister');
+    expect(en.offices[0].institution).toBe('Bundesministerium der Finanzen');
+    expect(en.beruf).toBe('Lawyer');
+    expect(en.memberships[0]).toMatchObject({
+      gremium: AWZ,
+      role: 'Spokesperson',
+    });
+    expect(en.name).toBe('Sanae Abdi');
+  });
+
+  it('leaves the German record alone', () => {
+    expect(localizedPolitician(record, 'de')).toBe(record);
   });
 });

@@ -20,8 +20,8 @@ from typing import Any, Iterable
 from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import ValidationError
 
+from ingestion.feed.items import translation_source_hash
 from ingestion.feed.models import (
-    CANONICAL_LOCALE,
     TRANSLATED_LOCALES,
     CardVideo,
     FeedEdition,
@@ -83,7 +83,8 @@ def read_items_since(db: Any, parliament_id: str, since: date) -> list[FeedItem]
 def carry_over_translations(
     items: list[FeedItem], previous: dict[str, FeedItem]
 ) -> int:
-    """Keep stored translations whose German source is unchanged.
+    """Keep stored translations whose German source (and speakers' offices)
+    is unchanged.
 
     A rebuilt item regenerates its text, but one that comes out identical (a
     vote whose enrichment fell back to its title again) need not be
@@ -94,7 +95,7 @@ def carry_over_translations(
         old = previous.get(item.id)
         if old is None:
             continue
-        source_hash = item.content[CANONICAL_LOCALE].source_hash
+        source_hash = translation_source_hash(item)
         for locale in TRANSLATED_LOCALES:
             translation = old.content.get(locale)
             if translation and translation.source_hash == source_hash:

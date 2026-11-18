@@ -134,6 +134,32 @@ def content_hash(content: LocalizedContent) -> str:
     ).hexdigest()
 
 
+def item_roles(item: FeedItem) -> list[str]:
+    """The offices the item's speakers spoke in, once each, in speech order."""
+    roles = (
+        s.role
+        for p in (item.debate.parties if item.debate else [])
+        for s in p.speakers
+        if s.role
+    )
+    return list(dict.fromkeys(roles))
+
+
+def translation_source_hash(item: FeedItem) -> str:
+    """What a translation of ``item`` is made from: its German text, and the
+    offices its speakers spoke in, which sit in ``facts`` and so outside the
+    German hash. An item without offices keeps the German hash itself, so its
+    stored translation stays current."""
+    canonical = item.content[CANONICAL_LOCALE].source_hash
+    roles = item_roles(item)
+    if not roles:
+        return canonical
+    payload = {"content": canonical, "roles": roles}
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+
+
 def canonical_content(
     *,
     headline: str,

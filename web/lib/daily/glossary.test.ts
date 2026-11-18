@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { GlossaryEntry } from '@/lib/firebase/firebase.types';
-import { splitByRefs, splitLabel } from './glossary';
+import { glossaryIndex, splitByRefs, splitLabel } from './glossary';
 
 const entry = (
   term_id: string,
@@ -106,5 +106,31 @@ describe('splitLabel', () => {
 
   it('works without a glossary', () => {
     expect(splitLabel('Obfrau', {})).toEqual([{ text: 'Obfrau' }]);
+  });
+});
+
+describe('glossaryIndex', () => {
+  const translated: GlossaryEntry = {
+    ...glossary['aktuelle-stunde'],
+    translations: {
+      en: { term: 'topical hour', definition: 'A short debate.' },
+    },
+  };
+  const entries = [translated, glossary.obmann];
+
+  it('keeps every German entry as it is', () => {
+    expect(Object.keys(glossaryIndex(entries, 'de'))).toEqual([
+      'aktuelle-stunde',
+      'obmann',
+    ]);
+  });
+
+  it('explains only translated terms in English, in English', () => {
+    const index = glossaryIndex(entries, 'en');
+    expect(Object.keys(index)).toEqual(['aktuelle-stunde']);
+    expect(index['aktuelle-stunde'].definition).toBe('A short debate.');
+    expect(
+      splitLabel('Chair of the topical hour', index).map((p) => p.text),
+    ).toEqual(['Chair of the ', 'topical hour']);
   });
 });
