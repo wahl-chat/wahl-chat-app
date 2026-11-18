@@ -91,7 +91,53 @@ def test_a_citation_never_moves_to_another_voice() -> None:
 
 
 async def test_the_model_names_supporting_sources(monkeypatch: Any) -> None:
-    model = TestModel(custom_output_args={"sentences": [{"index": 0, "supporting": [0]}, {"index": 1, "supporting": [99]}]})
+    model = TestModel(custom_output_args={"sentences": [
+        {"index": 0, "supporting": [0]}, {"index": 1, "supporting": [99]}, {"index": 2, "supporting": []},
+    ]})
     result = await cc.check(ANSWER, SOURCES, model=model)
     assert result.verdicts[0].supporting == {0}
     assert result.verdicts[1].supporting == set()  # an unknown id is ignored
+    assert result.verdicts[2].supporting == {5}  # the found quote still counts
+
+
+async def test_sentences_are_sent_numbered_without_gaps() -> None:
+    prompt = cc._prompt(cc.cited_sentences(ANSWER), SOURCES)
+    assert [line.split(".")[0] for line in prompt.split("Sentences:\n")[1].splitlines()] == ["0", "1", "2"]
+
+
+async def test_a_reply_that_skips_or_shifts_sentences_leaves_them_unchecked() -> None:
+    shifted = TestModel(custom_output_args={"sentences": [
+        {"index": 1, "supporting": []}, {"index": 2, "supporting": []}, {"index": 3, "supporting": []},
+    ]})
+    result = await cc.check(ANSWER, SOURCES, model=shifted)
+    assert [v.by for v in result.verdicts] == ["unchecked", "unchecked", "quote"]
+    assert cc.repair(ANSWER, result.verdicts) == ANSWER.replace("[5, 9]", "[5]")
+
+
+def test_a_quoted_law_title_settles_nothing() -> None:
+    sources = [cc.Source(7, "Gesetz zur Reform des Nachrichtendienstrechts", "Gesetz zur Reform des Nachrichtendienstrechts, erste Beratung")]
+    assert cc._quote_sources("Der Bundestag beschloss das „Gesetz zur Reform des Nachrichtendienstrechts“", sources) is None
+
+
+def test_a_number_without_checkable_text_is_kept_and_counted() -> None:
+    answer = "Am 8. September beriet der Bundestag den Entwurf [3]. Danach [4]."
+    sentences = cc.cited_sentences(answer)
+    stats = cc.RepairStats()
+    fixed = cc.repair(answer, [cc.Verdict(sentences[0], set()), cc.Verdict(sentences[1], set())], keep=frozenset({3}), stats=stats)
+    assert fixed == "Am 8. September beriet der Bundestag den Entwurf [3]. Danach."
+    assert (stats.kept, stats.repointed, stats.dropped) == (1, 0, 1)
+    assert cc.classify(cc.Verdict(sentences[0], set()), set(), keep=frozenset({3})) == {3: "supported"}
+
+
+def test_a_named_speaker_keeps_the_citation_with_that_speaker() -> None:
+    sources = [
+        cc.Source(2, "Günter Krings, 2026-11-13", "…", voice="cdu", speaker="Günter Krings"),
+        cc.Source(4, "Alexander Dobrindt, 2026-11-13", "gleichziehen mit Europa", voice="cdu", speaker="Alexander Dobrindt"),
+    ]
+    answer = "Günter Krings führte an, Deutschland müsse mit Europa gleichziehen [2]."
+    verdict = cc.Verdict(cc.cited_sentences(answer)[0], {4})
+    assert cc.repair(answer, [verdict], sources) == "Günter Krings führte an, Deutschland müsse mit Europa gleichziehen."
+
+
+def test_a_markdown_link_is_no_citation() -> None:
+    assert cc.cited_sentences("Siehe [2](https://example.org) dazu.") == []
