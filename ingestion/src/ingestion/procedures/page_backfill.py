@@ -239,7 +239,7 @@ def backfill_stages(
     """Fill in the stages' PDF pages where they are missing; writes only
     records whose stages changed."""
     report = report or PageReport()
-    records = store.all()
+    records = store.all(ignore_unknown=True)
     missing = [r for r in records.values() if any(s.pdf_page is None for s in r.stages)]
     placed = stage_pdf_pages(missing, pdfs)
     changed = [new for new in placed if new.stages != records[new.vorgang_id].stages]

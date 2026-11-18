@@ -52,10 +52,18 @@ class ProcedureStore:
                     )
         return out
 
-    def all(self) -> dict[str, ProcedureRecord]:
+    def all(self, *, ignore_unknown: bool = False) -> dict[str, ProcedureRecord]:
+        """Every record; ``ignore_unknown`` drops fields this model does not
+        know (a newer writer's), for callers that write back only known ones."""
+        known = ProcedureRecord.model_fields
         return {
-            snapshot.id: ProcedureRecord.model_validate(snapshot.to_dict())
+            snapshot.id: ProcedureRecord.model_validate(
+                {k: v for k, v in data.items() if k in known}
+                if ignore_unknown
+                else data
+            )
             for snapshot in self._db.collection(PROCEDURES_COLLECTION).stream()
+            if (data := snapshot.to_dict()) is not None
         }
 
     def put(self, records: Iterable[ProcedureRecord]) -> None:

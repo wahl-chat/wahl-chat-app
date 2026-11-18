@@ -339,6 +339,19 @@ def test_stage_backfill_writes_stages_only_and_once(tmp_path: Path) -> None:
     assert again.records_written == 0
 
 
+def test_stage_backfill_keeps_fields_it_does_not_know(tmp_path: Path) -> None:
+    db = FakeFirestore()
+    store = ProcedureStore(db)
+    store.put([_record(_stages())])
+    db.collection("procedures").document("1").update({"step_summaries": {"a": 1}})
+    pdfs, _ = _source(tmp_path, {PROTOCOL_URL: _protocol_pdf()})
+
+    backfill_stages(store, pdfs, PageReport())
+    raw = db.collection("procedures").document("1").get().to_dict()
+    assert raw["step_summaries"] == {"a": 1}
+    assert [s["pdf_page"] for s in raw["stages"]] == [1, 4, None]
+
+
 @pytest.mark.parametrize("kind", ["Drucksache", "Plenarprotokoll"])
 def test_mapped_drucksache_stages_start_on_page_one(
     kind: str, positions: dict[str, Any], vorgaenge: dict[str, Any]
