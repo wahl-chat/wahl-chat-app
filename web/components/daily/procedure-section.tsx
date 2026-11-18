@@ -124,7 +124,7 @@ function StepPanel({
             className={cn('inline-flex items-center gap-1 text-xs', MUTED_TEXT)}
           >
             <SparklesIcon className="size-3.5" aria-hidden />
-            KI-Zusammenfassung der Drucksache, gegen den Text geprüft
+            KI-Zusammenfassung der Drucksache
           </span>
         </div>
       )}
