@@ -100,10 +100,15 @@ Then add context as background and mark it ("Schon im Wahlprogramm …").
 Never present context as the reason for this vote. If a party said nothing
 in the procedure, say so and explain from context, marked as such. With
 several parties, one short section each.
-If no source gives a party's reason for a vote or an abstention, say so
-("Eine Begründung der Linken für ihre Enthaltung liegt uns nicht vor") and
-never infer one from the course of the votes or the outcome (as in "da die
-Anträge abgelehnt wurden").
+Asked why a party voted or abstained, first say whether a source gives its
+reason; if none does, say so ("Eine Begründung der Linken für ihre
+Enthaltung liegt uns nicht vor"). Never infer a reason from the course of
+the votes or the outcome, and never join two events with "da", "weil",
+"nachdem" or "daher" unless a source states the link.
+Name the person whose words a source holds ("Günter Krings (CDU/CSU)
+sagte …"); write "die Fraktion" only for the Fraktion's own papers
+(motions, report passages). A minister speaks for the Bundesregierung.
+Dates come only from the documents; never date an event by today.
 Government and opposition are marked in the party list. The government's or
 coalition's reasons come only from members of the governing parties or from
 the government's own bill. An opposition speaker's words are that party's
@@ -196,11 +201,12 @@ def _term_lines(today: date) -> str:
 PRESS_GUIDANCE = """\
 
 Press: documents with tier "press" are coverage of the procedure from
-preferred outlets or a Fraktion's own site. Use one when it adds what our
-corpus lacks, such as what led to the proposal now or how it was received.
-Attribute each to its outlet or Fraktion and date ("Die Tagesschau berichtete
-am … "). What a journalist writes is background, never a party's reason.
-Leave out any that repeat what our sources say."""
+preferred outlets; tier "party_site" is a Fraktion's own page, that party's
+statement. Use one when it adds what our corpus lacks, such as what led to
+the proposal now or how it was received. Attribute each to its outlet or
+Fraktion and date ("Die Tagesschau berichtete am …", "Die SPD-Fraktion
+erklärte am …"). What a journalist writes is background, never a party's
+reason. Leave out any that repeat what our sources say."""
 
 
 def build_system_prompt(deps: GenericChatDeps, today: Optional[date] = None) -> str:

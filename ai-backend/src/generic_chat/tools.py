@@ -413,6 +413,7 @@ async def search(deps: GenericChatDeps, args: SearchInput) -> ToolResult:
     earlier: list[dict] = []
     for (source_type, _, _), bucket in zip(jobs, buckets):
         if isinstance(bucket, BaseException):
+            deps.degraded = True
             logger.warning("search: %s retrieval failed: %s", source_type, bucket)
             continue
         recent += bucket[0]
@@ -489,6 +490,7 @@ async def _scoped_hits(
     hits: list[dict] = []
     for result in results:
         if isinstance(result, BaseException):
+            deps.degraded = True
             logger.warning("search: scoped retrieval failed: %s", result)
             continue
         for payload in result:
@@ -619,6 +621,7 @@ async def get_debate(
                 skip={str(d.title) for d in documents},
             )
         except Exception as exc:  # noqa: BLE001 (the debate stands without them)
+            deps.degraded = True
             logger.warning("get_debate: party positions failed: %s", exc)
     return DebateResult(
         documents=documents, note=note, item=item.summary(deps.language)
@@ -721,6 +724,7 @@ async def _party_documents(
         ]
         out += await party_positions(deps, vorgang_ids, party_ids, query, skip=shown)
     except Exception as exc:  # noqa: BLE001 (the vote stands without them)
+        deps.degraded = True
         logger.warning("get_vote: party positions failed: %s", exc)
     return out
 
@@ -735,6 +739,7 @@ async def _law_speeches(
     try:
         return await reading_speeches(deps, vote_item.procedure_ids, query)
     except Exception as exc:  # noqa: BLE001 (the vote stands without them)
+        deps.degraded = True
         logger.warning("get_vote: law speeches failed: %s", exc)
         return []
 
@@ -776,7 +781,7 @@ async def web_search(deps: GenericChatDeps, args: WebSearchInput) -> ToolResult:
     for result in results:
         number = deps.sources.register(
             {
-                "source": result.title,
+                "source": web.safe_title(result.title),
                 "page": 1,
                 "document_publish_date": result.date,
                 "url": result.url,
@@ -789,7 +794,7 @@ async def web_search(deps: GenericChatDeps, args: WebSearchInput) -> ToolResult:
             NumberedDocument(
                 id=number,
                 source_type="web",
-                title=result.title,
+                title=web.safe_title(result.title),
                 date=result.date,
                 outlet=result.domain,
                 preferred_outlet=result.preferred,

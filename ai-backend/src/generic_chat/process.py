@@ -441,18 +441,23 @@ async def _evidence(
     return [doc.model_copy(update={"tier": "this_procedure"}) for doc in out]
 
 
-def _anchored_choice(deps: GenericChatDeps, choices: list[ProcessChoice]) -> str:
-    """The choice the anchor's documents point to, else the best ranked."""
+def _anchored_choice(deps: GenericChatDeps, choices: list[ProcessChoice]) -> Optional[str]:
+    """The choice the chat is already about: a procedure in its scope, or one
+    the anchor's documents link to. None when none is."""
     documents = (getattr(deps.anchor.result, "documents", None) or []) if deps.anchor else []
-    linked = {ref.vorgang_id for doc in documents for ref in getattr(doc, "procedures", None) or []}
-    return next((c.vorgang_id for c in choices if c.vorgang_id in linked), choices[0].vorgang_id)
+    linked = set(deps.scope) | {
+        ref.vorgang_id for doc in documents for ref in getattr(doc, "procedures", None) or []
+    }
+    return next((c.vorgang_id for c in choices if c.vorgang_id in linked), None)
 
 
 async def get_process(deps: GenericChatDeps, args: GetProcessInput) -> ProcessResult:
     record, choices, note = await resolve(args)
-    if record is None and choices and deps.anchor is not None:
-        # An attached item already says which one is meant: never ask then.
-        record = await procedure_service.aget_procedure(_anchored_choice(deps, choices))
+    if record is None and choices:
+        # What the chat is about already says which one is meant: never ask then.
+        chosen = _anchored_choice(deps, choices)
+        if chosen is not None:
+            record = await procedure_service.aget_procedure(chosen)
     if record is None:
         return ProcessResult(choices=choices, note=note)
     steps = _steps(deps, record)

@@ -54,7 +54,7 @@ from src.generic_chat.citations import drop_unknown_citations
 from src.generic_chat import agent as agent_module
 from src.generic_chat import presets, prompt
 from src.generic_chat import tools
-from src.generic_chat.schemas import Anchor, GenericChatDeps, NumberedDocument
+from src.generic_chat.schemas import Anchor, GenericChatDeps, NumberedDocument, ProcessStep
 from src.models.chat import Message, Role
 from src.models.context import Context
 from src.models.dtos import (
@@ -233,13 +233,54 @@ async def _quick_replies(
 
 
 _CHECK_TIMEOUT_S = 5.0
+_ANCHOR_TIMEOUT_S = 20.0
+_QUICK_REPLIES_TIMEOUT_S = 10.0
+# Cache writes outlive the response; held here so they are not collected.
+_background: set[asyncio.Task[Any]] = set()
+
+
+def _entry(deps: GenericChatDeps, number: int) -> dict:
+    return deps.sources.entries[number] if number < len(deps.sources.entries) else {}
 
 
 def _voice(deps: GenericChatDeps, number: int) -> Optional[str]:
-    entry = deps.sources.entries[number] if number < len(deps.sources.entries) else {}
+    """A party's own words, press, or the record."""
+    entry = _entry(deps, number)
     party = entry.get("party_id")
-    # The CSU speaks within the Union's Fraktion.
-    return "cdu" if party == "csu" else party
+    if party:
+        # The CSU speaks within the Union's Fraktion.
+        return "cdu" if party == "csu" else str(party)
+    return "press" if entry.get("source_type") == "web" else "record"
+
+
+def _speaker(deps: GenericChatDeps, number: int) -> Optional[str]:
+    entry = _entry(deps, number)
+    if entry.get("source_type") != "parliamentary_speech":
+        return None
+    name = str(entry.get("source") or "").split(",")[0].strip()
+    return name or None
+
+
+def _step_documents(result: Any) -> list[NumberedDocument]:
+    """A procedure's citable steps, as text the citation check can read."""
+    steps: list[ProcessStep] = list(getattr(result, "steps", None) or [])
+    return [
+        NumberedDocument(
+            id=step.id,
+            source_type="procedure_step",
+            title=f"{step.name} ({step.chamber})",
+            date=step.date,
+            text=" ".join(
+                filter(None, [step.date, step.chamber, step.name, step.document, *step.decisions, step.summary])
+            ),
+        )
+        for step in steps
+        if step.id is not None
+    ]
+
+
+def _documents_of(result: Any) -> list[NumberedDocument]:
+    return [*(getattr(result, "documents", None) or []), *_step_documents(result)]
 
 
 async def _checked(
@@ -250,27 +291,28 @@ async def _checked(
     if not answer or not documents or not citation_check.enabled():
         return answer
     sources = [
-        citation_check.Source(id=d.id, title=d.title or "", text=d.text, voice=_voice(deps, d.id))
+        citation_check.Source(
+            id=d.id, title=d.title or "", text=d.text,
+            voice=_voice(deps, d.id), speaker=_speaker(deps, d.id),
+        )
         for d in documents
     ]
+    # Registered, but no text was shown to check against: kept as cited.
+    keep = frozenset(range(len(deps.sources.entries))) - {s.id for s in sources}
+    stats = citation_check.RepairStats()
     try:
         result = await asyncio.wait_for(citation_check.check(answer, sources), _CHECK_TIMEOUT_S)
-        repaired = citation_check.repair(answer, result.verdicts, sources)
+        repaired = citation_check.repair(answer, result.verdicts, sources, keep=keep, stats=stats)
     except Exception as exc:  # noqa: BLE001 (the unchecked answer still stands)
+        deps.degraded = True
         logger.warning("citation check failed, answer kept: %r", exc)
         return answer
-    known = {s.id for s in sources}
-    voices = {s.id: s.voice for s in sources}
-    kinds = [
-        kind
-        for verdict in result.verdicts
-        for kind in citation_check.classify(verdict, known, voices).values()
-    ]
     logger.info(
-        "citation check: %d citations, %d re-pointed, %d dropped, %.1fs, %d/%d tokens",
-        len(kinds),
-        kinds.count("repointable"),
-        sum(kinds.count(k) for k in ("other_voice", "unsupported", "nonexistent")),
+        "citation check: %d citations, %d kept, %d re-pointed, %d dropped, %.1fs, %d/%d tokens",
+        stats.kept + stats.repointed + stats.dropped,
+        stats.kept,
+        stats.repointed,
+        stats.dropped,
         result.seconds,
         result.input_tokens,
         result.output_tokens,
@@ -325,6 +367,7 @@ async def stream_generic_chat(
     answer = ""
     guidelines: Optional[str] = None
     cache_key: Optional[str] = None
+    replies_task: Optional[asyncio.Task[Optional[QuickRepliesAndTitleDto]]] = None
     try:
         deps = GenericChatDeps(
             context=context,
@@ -347,9 +390,16 @@ async def stream_generic_chat(
                 else "get_debate" if anchor.feed_item_id else "get_vote"
             )
             yield _tool_status(session_id, "anchor", anchor_tool, "running", language)
-            deps.anchor = await tools.resolve_anchor(
-                deps, anchor, deps.fraktionen() if deps.preset == "why" else None
-            )
+            try:
+                deps.anchor = await asyncio.wait_for(
+                    tools.resolve_anchor(
+                        deps, anchor, deps.fraktionen() if deps.preset == "why" else None
+                    ),
+                    _ANCHOR_TIMEOUT_S,
+                )
+            except Exception as exc:  # noqa: BLE001 (the turn goes on without its Bezug)
+                deps.degraded = True
+                logger.warning("generic chat: anchor %s failed: %r", anchor.model_dump(exclude_none=True), exc)
             yield _tool_status(session_id, "anchor", anchor_tool, "done", language)
 
         if deps.preset is not None and deps.anchor is not None:
@@ -362,7 +412,7 @@ async def stream_generic_chat(
                 return
 
         # Every document the model saw this turn, for the citation check.
-        anchored = getattr(deps.anchor.result, "documents", []) if deps.anchor else []
+        anchored = _documents_of(deps.anchor.result) if deps.anchor else []
         seen: dict[int, NumberedDocument] = {d.id: d for d in anchored}
         sources_sent = 0
         output: Optional[str] = None
@@ -380,8 +430,8 @@ async def stream_generic_chat(
                         session_id, event.tool_call_id, event.part.tool_name, "running", language
                     )
                 elif isinstance(event, FunctionToolResultEvent):
-                    returned = getattr(getattr(event.part, "content", None), "documents", None)
-                    seen.update({d.id: d for d in returned or []})
+                    returned = _documents_of(getattr(event.part, "content", None))
+                    seen.update({d.id: d for d in returned})
                     yield _tool_status(
                         session_id, event.tool_call_id, event.part.tool_name, "done", language
                     )
@@ -418,7 +468,19 @@ async def stream_generic_chat(
             # A tool ran after the text began; the client replaces the sources.
             yield _sources_ready(session_id, deps)
 
+        # The final response alone: text a model wrote before a tool call is
+        # not part of the answer.
+        answer = output or answer
         answer = drop_unknown_citations(sanitize_references(answer), len(deps.sources.entries))
+        # A name left several procedures open: the choices replace the
+        # generated replies; tapping one sends its exact title.
+        choices = [choice.label for choice in deps.choices]
+        replies_task = asyncio.create_task(
+            asyncio.wait_for(
+                _quick_replies(body, answer, replies=choices or None, guidelines=guidelines),
+                _QUICK_REPLIES_TIMEOUT_S,
+            )
+        )
         answer = await _checked(answer, deps, list(seen.values()))
         complete = PartyResponseCompleteDto(
             session_id=session_id,
@@ -436,6 +498,8 @@ async def stream_generic_chat(
             )
     except Exception as exc:  # noqa: BLE001 (terminal error contract, as the election path)
         logger.error("generic chat turn failed: %s", exc, exc_info=True)
+        if replies_task is not None:
+            replies_task.cancel()
         if text_id is not None:
             yield text_end(text_id)
         yield data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
@@ -447,26 +511,32 @@ async def stream_generic_chat(
 
     if request is not None and await request.is_disconnected():
         logger.info("generic chat: client disconnected, skipping quick replies")
+        if replies_task is not None:
+            replies_task.cancel()
         return
-    # A name left several procedures open: the choices replace the
-    # generated replies; tapping one sends its exact title.
-    choices = [choice.label for choice in deps.choices]
-    quick_replies = await _quick_replies(
-        body, answer, replies=choices or None, guidelines=guidelines
-    )
+    try:
+        quick_replies = await replies_task if replies_task is not None else None
+    except Exception as exc:  # noqa: BLE001 (quick replies are optional)
+        logger.warning("generic chat: quick replies failed: %r", exc)
+        quick_replies = None
     if quick_replies is not None:
         yield data_event({"type": "quick_replies_title", **quick_replies.model_dump()})
-    if cache_key is not None and answer:
-        await presets.astore(
-            cache_key,
-            presets.CachedTurn(
-                answer=answer,
-                sources=deps.sources.snapshot(),
-                quick_replies=quick_replies.quick_replies if quick_replies else [],
-                title=quick_replies.title if quick_replies else "",
-                created_at=datetime.now(timezone.utc),
-            ),
-        )
     yield finish_step()
     yield finish()
     yield DONE
+    # An answer that stands on a failed lookup is not served to everyone.
+    if cache_key is not None and answer and not deps.degraded:
+        task = asyncio.create_task(
+            presets.astore(
+                cache_key,
+                presets.CachedTurn(
+                    answer=answer,
+                    sources=deps.sources.snapshot(),
+                    quick_replies=quick_replies.quick_replies if quick_replies else [],
+                    title=quick_replies.title if quick_replies else "",
+                    created_at=datetime.now(timezone.utc),
+                ),
+            )
+        )
+        _background.add(task)
+        task.add_done_callback(_background.discard)

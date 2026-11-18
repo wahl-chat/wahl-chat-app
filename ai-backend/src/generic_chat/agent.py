@@ -168,12 +168,25 @@ def _unknown(key: str, value: object, where: str) -> str:
     )
 
 
+_FAILED = "This lookup failed. Answer without it and say briefly what is missing."
+
+
 async def _logged(
-    name: str, call: Callable[[], Awaitable[_R]], deps: Optional[GenericChatDeps] = None
+    name: str,
+    call: Callable[[], Awaitable[_R]],
+    deps: GenericChatDeps,
+    empty: type[_R],
+    learn: bool = True,
 ) -> _R:
+    """Run a tool; a failing lookup becomes a note, never the end of the turn."""
     started = time.monotonic()
-    result = await call()
-    if deps is not None:
+    try:
+        result = await call()
+    except Exception as exc:  # noqa: BLE001 (the model answers from what it has)
+        deps.degraded = True
+        logger.warning("generic chat tool %s failed: %r", name, exc)
+        return empty(note=_FAILED)  # type: ignore[call-arg]
+    if learn:
         deps.learn(result)
     hits = len(getattr(result, "documents", None) or getattr(result, "items", None) or [])
     logger.info(
@@ -186,7 +199,7 @@ async def search(ctx: RunContext[GenericChatDeps], args: SearchInput) -> ToolRes
     """Search our corpus of Bundestag votes, plenary speeches and party
     manifestos (query in German). Example: query 'Bürgergeld Sanktionen',
     source_types ['vote_record', 'parliamentary_speech']."""
-    return await _logged("search", lambda: tools.search(ctx.deps, args), ctx.deps)
+    return await _logged("search", lambda: tools.search(ctx.deps, args), ctx.deps, ToolResult)
 
 
 async def get_vote(ctx: RunContext[GenericChatDeps], args: GetVoteInput) -> DebateResult:
@@ -200,7 +213,7 @@ async def get_vote(ctx: RunContext[GenericChatDeps], args: GetVoteInput) -> Deba
     if not ctx.deps.knows("poll_id", poll_id):
         return DebateResult(note=_unknown("poll_id", poll_id, "a vote document"))
     return await _logged(
-        "get_vote", lambda: tools.get_vote(ctx.deps, poll_id, args.party_ids), ctx.deps
+        "get_vote", lambda: tools.get_vote(ctx.deps, poll_id, args.party_ids), ctx.deps, DebateResult
     )
 
 
@@ -211,7 +224,7 @@ async def get_debate(
     if not ctx.deps.knows("feed_item_id", args.feed_item_id):
         return DebateResult(note=_unknown("feed_item_id", args.feed_item_id, "list_feed_items"))
     return await _logged(
-        "get_debate", lambda: tools.get_debate(ctx.deps, args.feed_item_id), ctx.deps
+        "get_debate", lambda: tools.get_debate(ctx.deps, args.feed_item_id), ctx.deps, DebateResult
     )
 
 
@@ -224,7 +237,9 @@ async def get_process(
     returns choices instead; then ask the user."""
     if args.vorgang_id is not None and not ctx.deps.knows("vorgang_id", args.vorgang_id):
         return ProcessResult(note=_unknown("vorgang_id", args.vorgang_id, "a search result's procedures, or pass the name"))
-    result = await _logged("get_process", lambda: process.get_process(ctx.deps, args), ctx.deps)
+    result = await _logged(
+        "get_process", lambda: process.get_process(ctx.deps, args), ctx.deps, ProcessResult
+    )
     if result.procedure is not None:
         ctx.deps.choices = []
         await web_context.add_press(ctx.deps, result)
@@ -239,7 +254,7 @@ async def list_feed_items(
     """Published feed items (debates and votes) in a date window, for recaps.
     Not citable: fetch the items with get_debate / get_vote and cite those."""
     return await _logged(
-        "list_feed_items", lambda: tools.list_feed_items(ctx.deps, args), ctx.deps
+        "list_feed_items", lambda: tools.list_feed_items(ctx.deps, args), ctx.deps, FeedItemsResult
     )
 
 
@@ -248,7 +263,9 @@ async def web_search(
 ) -> ToolResult:
     """Search the web: scope 'news' for current events, 'civic' for how German
     politics and its institutions work (official sites only)."""
-    return await _logged("web_search", lambda: tools.web_search(ctx.deps, args))
+    return await _logged(
+        "web_search", lambda: tools.web_search(ctx.deps, args), ctx.deps, ToolResult, learn=False
+    )
 
 
 TOOL_FUNCTIONS: tuple[Callable[..., Awaitable[Any]], ...] = (

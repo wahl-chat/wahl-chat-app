@@ -294,3 +294,15 @@ def test_a_protocol_step_opens_at_its_pdf_page() -> None:
     number = process._register_step(deps, SimpleNamespace(titel="Gesetz"), stage)  # type: ignore[arg-type]
     entry = deps.sources.entries[number]
     assert (entry["url"], entry["page"]) == ("https://dserver.bundestag.de/btp/21/21089.pdf", 42)
+
+
+async def test_an_anchored_chat_still_asks_when_no_choice_is_its_own(service) -> None:
+    service([(HBG, 0.70), (HG, 0.69)])
+    deps = make_deps()
+    deps.anchor = AnchorContext(label="vote", result=ToolResult(documents=[]))
+    result = await process.get_process(deps, GetProcessInput(name="Haushalt 2027"))
+    assert result.procedure is None and len(result.choices) == 2
+
+    deps.add_scope(["338366"])
+    chosen = await process.get_process(deps, GetProcessInput(name="Haushalt 2027"))
+    assert chosen.procedure is not None and chosen.procedure.vorgang_id == "338366"

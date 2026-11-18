@@ -18,7 +18,7 @@ from typing import Literal, Optional
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
-from pydantic_ai.framing import register_tag
+from pydantic_ai.framing import neutralize_tags, register_tag
 
 from src.generic_chat.schemas import WebResult
 from wahlchat_common.answer_rules import CIVIC_DOMAINS, PREFERRED_OUTLETS
@@ -34,7 +34,14 @@ _SNIPPET_MAX_CHARS = 500
 
 WEB_SNIPPET_TAG = register_tag("web_snippet")
 
+_TITLE_CHARS = 200
+
 Scope = Literal["news", "civic"]
+
+
+def safe_title(title: str) -> str:
+    """A page title is the site's text too: no framing tags, bounded."""
+    return neutralize_tags(" ".join(title.split()))[:_TITLE_CHARS]
 Recency = Literal["day", "week", "month", "year"]
 
 
@@ -57,7 +64,7 @@ def _dedup_key(url: str) -> str:
 def _payload(
     query: str, domains: Optional[tuple[str, ...]], recency: Optional[Recency]
 ) -> dict:
-    # Only the model's query and fixed filters leave the service, never user text.
+    # The model's query (written from the user's question) and fixed filters.
     payload: dict = {
         "query": query,
         "max_results": _MAX_RESULTS_PER_CALL,

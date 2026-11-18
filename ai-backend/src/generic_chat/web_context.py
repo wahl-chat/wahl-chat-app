@@ -6,9 +6,8 @@
 
 A procedure get_process returns also brings up to three web results about
 it: from our preferred news outlets or a Fraktion's own site, dated near its
-steps, and naming its subject. The model sees them as tier "press", for
-what led to a law and how it was received. Votes and party positions get
-none: in the blind eval it helped only with "why now" questions.
+steps, and naming its subject. The model sees outlet coverage as tier "press" and a Fraktion's own page as tier
+"party_site", that party's statement. Votes and party positions get none.
 ``GENERIC_CHAT_WEB_CONTEXT=off`` turns it off.
 """
 
@@ -17,6 +16,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from datetime import date, timedelta
 from typing import Iterable, Optional
 
@@ -34,16 +34,21 @@ from wahlchat_common.answer_rules import PREFERRED_OUTLETS
 logger = logging.getLogger(__name__)
 
 ENV = "GENERIC_CHAT_WEB_CONTEXT"
-FRAKTION_SITES: tuple[str, ...] = (
-    "cducsu.de",
-    "csu-landesgruppe.de",
-    "spdfraktion.de",
-    "gruene-bundestag.de",
-    "linksfraktion.de",
-    "afdbundestag.de",
-)
+# A Fraktion's own site speaks for that party.
+FRAKTION_SITES: dict[str, str] = {
+    "cducsu.de": "cdu",
+    "csu-landesgruppe.de": "cdu",
+    "spdfraktion.de": "spd",
+    "gruene-bundestag.de": "gruene",
+    "linksfraktion.de": "linke",
+    "afdbundestag.de": "afd",
+}
 # bundestag.de is the record our corpus already holds, not coverage of it.
-PRESS_SITES = tuple(d for d in PREFERRED_OUTLETS if d != "bundestag.de") + FRAKTION_SITES
+PRESS_SITES = tuple(d for d in PREFERRED_OUTLETS if d != "bundestag.de") + tuple(FRAKTION_SITES)
+# Coverage of a law changes slowly; follow-up turns reuse it.
+_CACHE_S = 3600.0
+_CACHE_SIZE = 256
+_cache: dict[str, tuple[float, list[WebResult]]] = {}
 MAX_PRESS = 3
 # Coverage that leads up to a law starts before its first step.
 _BEFORE = timedelta(days=30)
@@ -96,33 +101,58 @@ def matching(
     return out[:MAX_PRESS]
 
 
+def _party_of(domain: str) -> Optional[str]:
+    return next(
+        (party for site, party in FRAKTION_SITES.items() if domain == site or domain.endswith("." + site)),
+        None,
+    )
+
+
 def _register(deps: GenericChatDeps, results: list[WebResult]) -> list[NumberedDocument]:
     documents = []
     for result in results:
-        number = deps.sources.register(
-            {
-                "source": result.title,
-                "page": 1,
-                "document_publish_date": result.date,
-                "url": result.url,
-                "source_document": result.domain,
-                "source_type": "web",
-                "preferred_outlet": True,
-            }
-        )
+        title = web.safe_title(result.title)
+        party = _party_of(result.domain)
+        entry: dict = {
+            "source": title,
+            "page": 1,
+            "document_publish_date": result.date,
+            "url": result.url,
+            "source_document": result.domain,
+            "source_type": "web",
+        }
+        if party:
+            entry["party_id"] = party
+        else:
+            entry["preferred_outlet"] = True
+        number = deps.sources.register(entry)
         documents.append(
             NumberedDocument(
                 id=number,
                 source_type="web",
-                title=result.title,
+                title=title,
                 date=result.date,
+                party=deps.party_name(party) if party else None,
                 outlet=result.domain,
-                preferred_outlet=True,
-                tier="press",
+                preferred_outlet=None if party else True,
+                tier="party_site" if party else "press",
                 text=wrap(web.WEB_SNIPPET_TAG, result.snippet),
             )
         )
     return documents
+
+
+async def _search(query: str) -> list[WebResult]:
+    now = time.monotonic()
+    hit = _cache.get(query)
+    if hit is not None and now - hit[0] < _CACHE_S:
+        return hit[1]
+    results, note = await web.search_sites(query, PRESS_SITES)
+    if note is None:
+        if len(_cache) >= _CACHE_SIZE:
+            _cache.pop(next(iter(_cache)))
+        _cache[query] = (now, results)
+    return results
 
 
 async def add_press(deps: GenericChatDeps, result: ProcessResult) -> None:
@@ -137,7 +167,7 @@ async def add_press(deps: GenericChatDeps, result: ProcessResult) -> None:
     days = [d for d in (_day(s.date) for s in result.steps) if d is not None]
     if not days:
         return
-    results, _ = await web.search_sites(f"{_short_title(procedure.title)} Bundestag", PRESS_SITES)
+    results = await _search(f"{_short_title(procedure.title)} Bundestag")
     found = matching(
         results, subject_words(procedure.title), min(days) - _BEFORE, max(days) + _AFTER
     )

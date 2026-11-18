@@ -152,7 +152,11 @@ class ListFeedItemsInput(BaseModel):
 
 
 class WebSearchInput(BaseModel):
-    query: str = Field(min_length=2, max_length=300, description="Search query.")
+    query: str = Field(
+        min_length=2,
+        max_length=300,
+        description="Search query: the topic only, never the user's own views or personal details.",
+    )
     scope: Literal["news", "civic"] = Field(
         description=(
             "'news' for current events (preferred outlets first, then the open "
@@ -174,7 +178,7 @@ class ProcedureRef(BaseModel):
     latest_stage: Optional[str] = None
 
 
-Tier = Literal["this_item", "this_procedure", "context", "press"]
+Tier = Literal["this_item", "this_procedure", "context", "press", "party_site"]
 
 
 class NumberedDocument(BaseModel):

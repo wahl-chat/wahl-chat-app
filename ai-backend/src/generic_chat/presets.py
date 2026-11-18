@@ -33,7 +33,7 @@ _MAX_AGE = timedelta(days=7)
 # The key ignores the day, so an answer lives across days.
 _KEY_DAY = date(2000, 1, 1)
 # Bump when the cached shape or the way answers are made changes.
-_VERSION = "5"
+_VERSION = "6"
 
 
 class CachedTurn(BaseModel):
