@@ -1,5 +1,5 @@
 import ChatView from '@/components/chat/chat-view';
-import { chatAnchorFromParams } from '@/lib/chat-anchor';
+import { chatAnchorFromParams, chatPresetFromParam } from '@/lib/chat-anchor';
 import {
   getContext,
   getPartiesForContext,
@@ -26,6 +26,8 @@ type Props = {
     feed_item?: string;
     procedure?: string;
     poll_id?: string;
+    /** The question came from a feed button. */
+    preset?: string;
   }>;
 };
 
@@ -81,8 +83,16 @@ export async function generateMetadata({
 
 async function SessionPage({ params, searchParams }: Props) {
   const { contextId } = await params;
-  const { party_id, q, prefill, session_id, feed_item, poll_id, procedure } =
-    await searchParams;
+  const {
+    party_id,
+    q,
+    prefill,
+    session_id,
+    feed_item,
+    poll_id,
+    procedure,
+    preset,
+  } = await searchParams;
   const [parties, context] = await Promise.all([
     getPartiesForContext(contextId),
     getContext(contextId),
@@ -102,17 +112,19 @@ async function SessionPage({ params, searchParams }: Props) {
     parties.some((p) => p.party_id === id),
   );
 
+  const anchor =
+    context?.type === 'general'
+      ? chatAnchorFromParams({ feed_item, poll_id, procedure })
+      : undefined;
+
   return (
     <ChatView
       partyIds={normalizedPartyIds}
       initialQuestion={q}
       prefilledQuestion={prefill}
       contextId={contextId}
-      anchor={
-        context?.type === 'general'
-          ? chatAnchorFromParams({ feed_item, poll_id, procedure })
-          : undefined
-      }
+      anchor={anchor}
+      preset={anchor && q ? chatPresetFromParam(preset) : undefined}
     />
   );
 }

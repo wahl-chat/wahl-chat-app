@@ -1,5 +1,6 @@
 import type {
   ChatAnchor,
+  ChatPreset,
   ChatSession,
   StudyParticipant,
   Tenant,
@@ -167,6 +168,8 @@ export type ChatStoreState = {
   };
   error?: string;
   pendingInitialQuestion?: string;
+  /** Sent with the initial question when a feed button asked it. */
+  pendingPreset?: ChatPreset;
   initialQuestionError?: string;
   currentQuickReplies: string[];
   currentChatTitle?: string;
@@ -257,6 +260,7 @@ export type ChatStoreActions = {
     userId,
     tenant,
     anchor,
+    preset,
   }: {
     chatSession?: ChatSession;
     messages?: GroupedMessage[];
@@ -273,6 +277,7 @@ export type ChatStoreActions = {
     tenant?: Tenant;
     /** From the URL of a new general chat; a stored session brings its own. */
     anchor?: ChatAnchor;
+    preset?: ChatPreset;
   }) => void;
   generateProConPerspective: (
     partyId: string,

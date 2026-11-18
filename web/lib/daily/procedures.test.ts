@@ -216,9 +216,9 @@ describe('procedureSection', () => {
 });
 
 describe('procedureChatHref', () => {
-  it('opens the general chat with the procedure attached and the question', () => {
+  it('opens the general chat with the procedure attached and the button question', () => {
     expect(procedureChatHref('338366', 'Wie ging es weiter?')).toBe(
-      '/chat?procedure=338366&q=Wie+ging+es+weiter%3F',
+      '/chat?procedure=338366&q=Wie+ging+es+weiter%3F&preset=ask',
     );
   });
 });
@@ -579,6 +579,8 @@ describe('step feed links', () => {
   it('carries the item to go back to', () => {
     expect(
       procedureChatHref('338341', 'Was?', 'bundestag_2026-11-13_v6771'),
-    ).toBe('/chat?procedure=338341&q=Was%3F&from=bundestag_2026-11-13_v6771');
+    ).toBe(
+      '/chat?procedure=338341&q=Was%3F&preset=ask&from=bundestag_2026-11-13_v6771',
+    );
   });
 });

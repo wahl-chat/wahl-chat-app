@@ -2,6 +2,7 @@ import { plainStageName } from '@/lib/daily/procedures';
 import { feedItemHref } from '@/lib/daily/share';
 import type {
   ChatAnchor,
+  ChatPreset,
   FeedItem,
   StoredProcedure,
 } from '@/lib/firebase/firebase.types';
@@ -44,6 +45,11 @@ export function chatAnchorFromParams(params: {
   }
   const poll = pollId(first(params.poll_id));
   return poll === undefined ? undefined : { poll_id: poll };
+}
+
+export function chatPresetFromParam(value: Param): ChatPreset | undefined {
+  const preset = first(value);
+  return preset === 'ask' || preset === 'why' ? preset : undefined;
 }
 
 /** An anchor from untrusted input (request body, stored session), reduced to

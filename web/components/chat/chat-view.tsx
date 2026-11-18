@@ -7,7 +7,7 @@ import {
   getCurrentUser,
   getSystemStatus,
 } from '@/lib/firebase/firebase-server';
-import type { ChatAnchor } from '@/lib/firebase/firebase.types';
+import type { ChatAnchor, ChatPreset } from '@/lib/firebase/firebase.types';
 import { Suspense } from 'react';
 import ChatAnchorCard from './chat-anchor-card';
 import ChatDynamicChatInput from './chat-dynamic-chat-input';
@@ -22,6 +22,7 @@ type Props = {
   prefilledQuestion?: string;
   contextId?: string;
   anchor?: ChatAnchor;
+  preset?: ChatPreset;
 };
 
 async function ChatView({
@@ -31,6 +32,7 @@ async function ChatView({
   prefilledQuestion,
   contextId = DEFAULT_CONTEXT_ID,
   anchor,
+  preset,
 }: Props) {
   const systemStatus = await getSystemStatus();
   const user = await getCurrentUser();
@@ -55,6 +57,7 @@ async function ChatView({
           prefilledQuestion={prefilledQuestion}
           contextId={contextId}
           anchor={anchor}
+          preset={preset}
         />
       </Suspense>
 

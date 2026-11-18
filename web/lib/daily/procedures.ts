@@ -639,7 +639,11 @@ export function procedureChatHref(
   question: string,
   from?: string,
 ): string {
-  const params = new URLSearchParams({ procedure: vorgangId, q: question });
+  const params = new URLSearchParams({
+    procedure: vorgangId,
+    q: question,
+    preset: 'ask',
+  });
   if (from) params.set('from', from);
   return `/chat?${params}`;
 }

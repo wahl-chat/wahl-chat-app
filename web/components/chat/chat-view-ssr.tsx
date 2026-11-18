@@ -9,7 +9,7 @@ import {
   getPartiesForContextById,
   getProposedQuestionsForContext,
 } from '@/lib/firebase/firebase-server';
-import type { ChatAnchor } from '@/lib/firebase/firebase.types';
+import type { ChatAnchor, ChatPreset } from '@/lib/firebase/firebase.types';
 import { getChatFeedPicks } from '@/lib/server-actions/chat-feed-picks';
 import { redirect } from 'next/navigation';
 import ChatMessagesView from './chat-messages-view';
@@ -21,6 +21,7 @@ type Props = {
   prefilledQuestion?: string;
   contextId?: string;
   anchor?: ChatAnchor;
+  preset?: ChatPreset;
 };
 
 async function getChatSessionServer(
@@ -59,6 +60,7 @@ async function ChatViewSsr({
   prefilledQuestion,
   contextId = DEFAULT_CONTEXT_ID,
   anchor,
+  preset,
 }: Props) {
   const chatSession = chatSessionId
     ? await getChatSessionServer(chatSessionId, contextId, partyIds)
@@ -99,6 +101,7 @@ async function ChatViewSsr({
       initialQuestion={initialQuestion}
       prefilledQuestion={prefilledQuestion}
       anchor={anchor}
+      preset={preset}
     />
   );
 }

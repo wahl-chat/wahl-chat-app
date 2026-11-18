@@ -92,7 +92,22 @@ describe('feedChatHref', () => {
       ...DIGEST,
       votes: [{ ...DIGEST.votes[0], item_id: undefined }],
     });
-    const url = new URL(feedChatHref(vote, 'Warum?'), 'https://wahl.chat');
+    const url = new URL(
+      feedChatHref(vote, 'Warum?', 'why'),
+      'https://wahl.chat',
+    );
     expect(url.searchParams.has('feed_item')).toBe(false);
+    expect(url.searchParams.has('preset')).toBe(false);
+  });
+
+  it('marks a button question; a typed one stays unmarked', () => {
+    const [vote] = voteItems(DIGEST);
+    const why = new URL(
+      feedChatHref(vote, 'Warum?', 'why'),
+      'https://wahl.chat',
+    );
+    expect(why.searchParams.get('preset')).toBe('why');
+    const typed = new URL(feedChatHref(vote, 'Warum?'), 'https://wahl.chat');
+    expect(typed.searchParams.has('preset')).toBe(false);
   });
 });

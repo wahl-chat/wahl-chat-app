@@ -2,7 +2,7 @@
 
 import { sanitizeChatAnchor } from '@/lib/chat-anchor';
 import { getAuthHeader } from '@/lib/firebase/firebase';
-import type { ChatAnchor } from '@/lib/firebase/firebase.types';
+import type { ChatAnchor, ChatPreset } from '@/lib/firebase/firebase.types';
 import type {
   PledgeTrackerSuggestions,
   ToolStatus,
@@ -23,6 +23,7 @@ type AppendBody = {
   party_ids: string[];
   chat_history?: unknown[];
   anchor?: ChatAnchor;
+  preset?: ChatPreset;
   language?: 'de' | 'en';
 };
 

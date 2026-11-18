@@ -17,6 +17,7 @@ import {
 import { speakerIds } from '@/lib/daily/politicians';
 import { shareItem } from '@/lib/daily/share';
 import { numberedSources } from '@/lib/daily/sources';
+import type { ChatPreset } from '@/lib/firebase/firebase.types';
 import type {
   DigestPartyPosition,
   DigestSpeaker,
@@ -63,11 +64,11 @@ function placeholderFor(item: DetailItem): string {
     : 'Frag zu dieser Debatte …';
 }
 
-function useAskChat(item: DetailItem) {
+function useAskChat(item: DetailItem, preset?: ChatPreset) {
   const router = useRouter();
   return (question: string) => {
     if (question.trim()) {
-      router.push(feedChatHref(item, question));
+      router.push(feedChatHref(item, question, preset));
     }
   };
 }
@@ -134,7 +135,7 @@ export function AskPanel({
 }
 
 function ItemAnswers({ item }: { item: DetailItem }) {
-  const ask = useAskChat(item);
+  const ask = useAskChat(item, 'ask');
   return (
     <InlineAnswers
       answers={itemQuestions(item).answers}
@@ -153,7 +154,7 @@ function WhyLink({ item, question }: { item: DetailItem; question: string }) {
   }
   return (
     <Link
-      href={feedChatHref(item, question)}
+      href={feedChatHref(item, question, 'why')}
       className={cn(
         FOCUS_RING,
         'mt-2 inline-flex min-h-11 items-center gap-2 self-start rounded-2xl bg-[var(--daily-accent-soft)] px-4 py-2 text-left text-[15px] leading-snug font-semibold text-[var(--daily-accent)] transition-opacity hover:opacity-80',

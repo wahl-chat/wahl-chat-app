@@ -6,6 +6,7 @@ import { useTenant } from '@/components/providers/tenant-provider';
 import type { FeedPick } from '@/lib/chat-feed';
 import type {
   ChatAnchor,
+  ChatPreset,
   ChatSession,
   ProposedQuestion,
 } from '@/lib/firebase/firebase.types';
@@ -31,6 +32,7 @@ type Props = {
   initialQuestion?: string;
   prefilledQuestion?: string;
   anchor?: ChatAnchor;
+  preset?: ChatPreset;
 };
 
 function ChatMessagesView({
@@ -44,6 +46,7 @@ function ChatMessagesView({
   initialQuestion,
   prefilledQuestion,
   anchor,
+  preset,
 }: Props) {
   const hasFetched = useRef(false);
   // Server props arrive as new objects on every RSC render; keyed by value so a
@@ -94,6 +97,7 @@ function ChatMessagesView({
       userId: user.uid,
       tenant,
       anchor: anchorRef.current,
+      preset: hasFetched.current ? undefined : preset,
     });
 
     hasFetched.current = true;

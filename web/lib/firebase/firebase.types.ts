@@ -19,6 +19,10 @@ export type ChatAnchor =
   | { poll_id: number }
   | { vorgang_id: string };
 
+/** A question from a feed button rather than typed: "why" asks each
+ * Fraktion's reasons. The backend caches these answers. */
+export type ChatPreset = 'ask' | 'why';
+
 export type ChatSession = {
   id: string;
   user_id: string;

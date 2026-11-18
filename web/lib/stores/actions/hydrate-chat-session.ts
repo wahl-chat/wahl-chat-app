@@ -18,6 +18,7 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
     userId,
     tenant,
     anchor,
+    preset,
   }) => {
     const {
       chatSessionId: currentChatSessionId,
@@ -44,6 +45,7 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
       state.partyIds = partyIds;
       state.initialQuestionError = undefined;
       state.pendingInitialQuestion = initialQuestion;
+      state.pendingPreset = initialQuestion ? preset : undefined;
       state.userId = userId;
       state.tenant = tenant;
       // A stored session's anchor arrives with it, or with loadChatSession.
@@ -63,6 +65,7 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
       const url = new URL(window.location.href);
       url.searchParams.delete('q');
       url.searchParams.delete('prefill');
+      url.searchParams.delete('preset');
       window.history.replaceState({}, '', url.toString());
     }
 

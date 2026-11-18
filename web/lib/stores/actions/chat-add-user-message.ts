@@ -24,6 +24,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
       localPreliminaryChatSessionId,
       partyIds,
       anchor,
+      pendingPreset,
       messages: currentMessages,
       prolificMetadata,
       incrementProlificMessageCount,
@@ -185,6 +186,9 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
           party_ids: Array.from(partyIds),
           chat_history: chatHistory,
           ...(anchor ? { anchor } : {}),
+          ...(fromInitialQuestion && pendingPreset
+            ? { preset: pendingPreset }
+            : {}),
           // The web UI is German only.
           language: 'de',
         },
@@ -200,6 +204,7 @@ export const chatAddUserMessage: ChatStoreActionHandlerFor<'addUserMessage'> =
 
         state.initialQuestionError = undefined;
         state.pendingInitialQuestion = undefined;
+        state.pendingPreset = undefined;
       });
 
       startTimeoutForStreamingMessages(currentStreamingMessageId);

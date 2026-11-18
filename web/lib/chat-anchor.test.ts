@@ -3,6 +3,7 @@ import type { FeedItem } from '@/lib/firebase/firebase.types';
 import {
   anchorCard,
   chatAnchorFromParams,
+  chatPresetFromParam,
   sanitizeChatAnchor,
 } from './chat-anchor';
 
@@ -170,5 +171,14 @@ describe('procedure anchors', () => {
     );
     expect(card?.date).toBe('Stand: 2./3. Lesung, 13. November 2026');
     expect(card?.feedHref).toContain('item=bundestag_2026-11-13_v6771');
+  });
+});
+
+describe('chatPresetFromParam', () => {
+  it('keeps the two presets and drops anything else', () => {
+    expect(chatPresetFromParam('why')).toBe('why');
+    expect(chatPresetFromParam(['ask', 'why'])).toBe('ask');
+    expect(chatPresetFromParam('cache')).toBeUndefined();
+    expect(chatPresetFromParam(undefined)).toBeUndefined();
   });
 });
