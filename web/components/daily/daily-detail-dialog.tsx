@@ -128,7 +128,7 @@ export function AskPanel({
         onSubmit={ask}
         quickReplies={suggestions}
         placeholder={placeholderFor(target)}
-        className="static mx-2 pb-3 md:pb-3"
+        className="relative mx-2 pb-3 md:pb-3"
       />
     </div>
   );
@@ -325,6 +325,8 @@ type Props = {
   /** Day-relative heat of the item, see `dayHeat`. */
   heat: number | undefined;
   onClose: () => void;
+  /** Back leads to the item this one was opened from. */
+  backToItem?: boolean;
 };
 
 /** On phones the media viewer and the speaker sheet are vaul Drawers, which
@@ -341,7 +343,12 @@ function isViewerLayer(target: EventTarget | null): boolean {
  * The opened item: a little more than its card. Full screen on phones, a
  * centred column from md up.
  */
-export function DailyDetailDialog({ item, heat, onClose }: Props) {
+export function DailyDetailDialog({
+  item,
+  heat,
+  onClose,
+  backToItem = false,
+}: Props) {
   // The speaker sheet belongs to the item it was opened from, so another
   // item never opens with it.
   const [opened, setOpened] = useState<{
@@ -404,7 +411,7 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
             <>
               <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--daily-border)] px-2 py-1.5">
                 <DialogPrimitive.Close
-                  aria-label="Zurück zum Feed"
+                  aria-label={backToItem ? 'Zurück' : 'Zurück zum Feed'}
                   className={ICON_BUTTON}
                 >
                   <ChevronLeftIcon className="size-6" />
@@ -423,7 +430,10 @@ export function DailyDetailDialog({ item, heat, onClose }: Props) {
                   <ShareIcon className="size-5" />
                 </button>
               </header>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
+              <div
+                key={item.key}
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6"
+              >
                 {item.kind === 'vote' ? (
                   <VoteDetail item={item} />
                 ) : (

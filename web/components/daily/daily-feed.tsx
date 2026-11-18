@@ -53,6 +53,7 @@ import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { FeedFilters, FilterBar, ParliamentSelector } from './daily-filters';
 import DaySkeleton from './day-skeleton';
+import { OpenFeedItemContext } from './feed-nav';
 import { GlossaryProvider } from './glossary-text';
 
 const ITEM_PARAM = 'item';
@@ -197,6 +198,7 @@ function DailyFeed({
   );
   const [filter, setFilter] = useState(initialFilter);
   const [openKey, setOpenKey] = useState<string | null>(initialItem ?? null);
+  const [trail, setTrail] = useState<string[]>([]);
   const [pages, setPages] = useState<Pages>(() => ({
     bundestag: [feeds.bundestag],
     landtag_st: [feeds.landtag_st],
@@ -352,6 +354,15 @@ function DailyFeed({
     days.find((d) => d.hot)?.hot ||
     null;
 
+  useEffect(() => {
+    const onPop = () => {
+      setTrail((keys) => keys.slice(0, -1));
+      setOpenKey(new URL(window.location.href).searchParams.get(ITEM_PARAM));
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   const view: View = { states, filter, item: openKey };
   const changeStates = (next: StateSelection) => {
     setStates(next);
@@ -397,92 +408,108 @@ function DailyFeed({
     setOpenKey(key);
     syncUrl({ ...view, item: key });
   };
+  // Items opened from within another item, each one a history entry.
+  const openFromItem = (key: string) => {
+    if (!findItem(allDigests, key) && !findItem(linkedDigests, key)) {
+      return false;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set(ITEM_PARAM, key);
+    window.history.pushState(null, '', url);
+    setTrail((keys) => [...keys, key]);
+    setOpenKey(key);
+    return true;
+  };
+  const close = () => (trail.length > 0 ? window.history.back() : open(null));
 
   return (
     <GlossaryProvider entries={glossary}>
-      <div className="flex flex-col gap-4 pt-4">
-        <FilterBar>
-          {(onOpenChange) => (
-            <>
-              <div className="min-w-0 flex-1">
-                <ParliamentSelector
-                  states={states}
-                  onChange={changeStates}
-                  calendar={calendar}
-                  editionDates={editionDates}
-                  waitingEditions={waitingEditions}
-                  onJumpToDay={jumpToDay}
+      <OpenFeedItemContext.Provider value={openFromItem}>
+        <div className="flex flex-col gap-4 pt-4">
+          <FilterBar>
+            {(onOpenChange) => (
+              <>
+                <div className="min-w-0 flex-1">
+                  <ParliamentSelector
+                    states={states}
+                    onChange={changeStates}
+                    calendar={calendar}
+                    editionDates={editionDates}
+                    waitingEditions={waitingEditions}
+                    onJumpToDay={jumpToDay}
+                    onOpenChange={onOpenChange}
+                  />
+                </div>
+                <FeedFilters
+                  filter={filter}
+                  onChange={changeFilter}
                   onOpenChange={onOpenChange}
                 />
-              </div>
-              <FeedFilters
-                filter={filter}
-                onChange={changeFilter}
-                onOpenChange={onOpenChange}
-              />
-            </>
-          )}
-        </FilterBar>
+              </>
+            )}
+          </FilterBar>
 
-        <AiDisclaimer
-          variant="feed"
-          className={cn('-mt-2 mb-0 text-left text-[13px]', MUTED_TEXT)}
-        />
-
-        <div className="flex flex-col gap-12 pt-2">
-          {visibleDays.length === 0 ? (
-            <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
-              Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
-            </p>
-          ) : (
-            visibleDays.map((day) => (
-              <DailyDaySection
-                key={day.date}
-                day={day}
-                onOpen={(item) => open(item.key)}
-              />
-            ))
-          )}
-          {older.length > 0 && (
-            <div
-              ref={olderRef}
-              aria-live="polite"
-              className="flex min-h-10 items-center justify-center"
-            >
-              {olderFailed ? (
-                <button
-                  type="button"
-                  onClick={loadOlder}
-                  className={cn(
-                    'h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)]',
-                    MUTED_TEXT,
-                    FOCUS_RING,
-                  )}
-                >
-                  Erneut versuchen
-                </button>
-              ) : (
-                loadingOlder && <DaySkeleton />
-              )}
-            </div>
-          )}
-        </div>
-
-        {FEED_CHAT_ENABLED && askItem && (
-          <AskPanel
-            item={askItem}
-            withSuggestions={false}
-            showTarget
-            className="sticky bottom-0 z-30 -mx-2 mt-4"
+          <AiDisclaimer
+            variant="feed"
+            className={cn('-mt-2 mb-0 text-left text-[13px]', MUTED_TEXT)}
           />
-        )}
 
-        <DailyDetailDialog
-          item={openItem}
-          heat={openHeat}
-          onClose={() => open(null)}
-        />
-      </div>
+          <div className="flex flex-col gap-12 pt-2">
+            {visibleDays.length === 0 ? (
+              <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
+                Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
+              </p>
+            ) : (
+              visibleDays.map((day) => (
+                <DailyDaySection
+                  key={day.date}
+                  day={day}
+                  onOpen={(item) => open(item.key)}
+                />
+              ))
+            )}
+            {older.length > 0 && (
+              <div
+                ref={olderRef}
+                aria-live="polite"
+                className="flex min-h-10 items-center justify-center"
+              >
+                {olderFailed ? (
+                  <button
+                    type="button"
+                    onClick={loadOlder}
+                    className={cn(
+                      'h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)]',
+                      MUTED_TEXT,
+                      FOCUS_RING,
+                    )}
+                  >
+                    Erneut versuchen
+                  </button>
+                ) : (
+                  loadingOlder && <DaySkeleton />
+                )}
+              </div>
+            )}
+          </div>
+
+          {FEED_CHAT_ENABLED && askItem && (
+            <AskPanel
+              item={askItem}
+              withSuggestions={false}
+              showTarget
+              className="sticky bottom-0 z-30 -mx-2 mt-4"
+            />
+          )}
+
+          <DailyDetailDialog
+            item={openItem}
+            heat={openHeat}
+            onClose={close}
+            backToItem={trail.length > 0}
+          />
+        </div>
+      </OpenFeedItemContext.Provider>
     </GlossaryProvider>
   );
 }

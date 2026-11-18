@@ -26,6 +26,7 @@ import {
 import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, PILL, SECTION_LABEL } from './card-styles';
+import { feedItemKeyOf, useOpenFeedItem } from './feed-nav';
 import { SourceLink } from './vote-panels';
 
 const shortDay = new Intl.DateTimeFormat('de-DE', {
@@ -63,10 +64,19 @@ function Dot({ state }: { state: TimelineStep['state'] }) {
 }
 
 function FeedLink({ link }: { link: StepFeedLink }) {
-  // A full load: the feed opens an item from the URL.
+  const openItem = useOpenFeedItem();
+  // In the feed the item opens over this one; elsewhere a full load, and the
+  // feed opens it from the URL.
+  const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    const key = feedItemKeyOf(link.href);
+    if (openItem && key && !event.metaKey && !event.ctrlKey && openItem(key)) {
+      event.preventDefault();
+    }
+  };
   return (
     <a
       href={link.href}
+      onClick={onClick}
       className={cn(
         FOCUS_RING,
         'grid grid-cols-[minmax(0,1fr)_16px] items-center gap-x-2 rounded-lg border border-[var(--daily-border)] bg-[var(--daily-canvas)] px-3 py-2',
