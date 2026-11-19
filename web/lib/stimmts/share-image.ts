@@ -59,9 +59,9 @@ export type ShareImageData = {
 };
 
 /**
- * The title's sizes, largest first, in the units of the design boards. Each
- * format draws them multiplied by its own scale, so a title breaks into the
- * same lines on every format.
+ * The title's sizes, largest first, in base units shared by all formats.
+ * Each format draws them multiplied by its own scale, so a title breaks into
+ * the same lines on every format.
  */
 const TITLE_SIZES = [30, 24, 20] as const;
 
@@ -70,7 +70,7 @@ export type ShareTitleSize = (typeof TITLE_SIZES)[number];
 const TITLE_MAX_LINES = 3;
 
 /**
- * The width of the title's text box in board units: on the 1080 px square
+ * The width of the title's text box in base units: on the 1080 px square
  * (scale 2.5) that is the card's 800 px inner width. Wide enough for the
  * longest word of any puzzle title so far ("Gebäudemodernisierungsgesetz",
  * about 318 units at size 20) to stay whole.

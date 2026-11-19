@@ -17,6 +17,8 @@ export function presenceOf(raw: string | null, today: string): Presence {
     if (
       !saved ||
       typeof saved !== 'object' ||
+      // PROGRESS_VERSION, written out because the script cannot import it;
+      // a test keeps the two in step.
       saved.version !== 1 ||
       !saved.games ||
       typeof saved.games !== 'object'
@@ -88,10 +90,12 @@ export function clearJustPlayed(
 // The feed page is cached and shared, so the device-specific state is set on
 // <html> before first paint instead of rendered; CSS then shows the right
 // variant without a flash. Storage can throw (blocked), hence the try.
+// Joined from its parts like berlinDate, since en-CA's pattern differs
+// between engines and the result must equal the date the game saves.
 const BERLIN_TODAY =
-  "new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())";
+  "var f=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());var g=function(k){for(var i=0;i<f.length;i++){if(f[i].type===k){return f[i].value}}return ''};var t=g('year')+'-'+g('month')+'-'+g('day');";
 
-export const PRESENCE_SCRIPT = `try{var t=${BERLIN_TODAY};var p=(${presenceOf.toString()})(localStorage.getItem(${JSON.stringify(
+export const PRESENCE_SCRIPT = `try{${BERLIN_TODAY}var p=(${presenceOf.toString()})(localStorage.getItem(${JSON.stringify(
   STORAGE_KEY,
 )}),t);var d=document.documentElement;if(p){d.dataset.stimmts=p}if(sessionStorage.getItem(${JSON.stringify(
   JUST_PLAYED_KEY,

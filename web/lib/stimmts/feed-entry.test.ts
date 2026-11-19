@@ -104,19 +104,27 @@ describe('feedEntry', () => {
 });
 
 describe('readStimmtsStatus', () => {
-  it('is off when the read throws', async () => {
-    const status = await readStimmtsStatus(async () => {
-      throw new Error('unavailable');
-    });
+  it('is off and reports the error when the read throws', async () => {
+    const reported: unknown[] = [];
+    const failure = new Error('unavailable');
+    const status = await readStimmtsStatus(
+      async () => {
+        throw failure;
+      },
+      (error) => reported.push(error),
+    );
     expect(status).toEqual({ enabled: false });
+    expect(reported).toEqual([failure]);
   });
 
-  it('parses the doc otherwise', async () => {
-    const status = await readStimmtsStatus(async () => ({
-      enabled: true,
-      launch_date: '2026-11-15',
-    }));
+  it('passes the read through otherwise', async () => {
+    const reported: unknown[] = [];
+    const status = await readStimmtsStatus(
+      async () => on,
+      (error) => reported.push(error),
+    );
     expect(status).toEqual(on);
+    expect(reported).toEqual([]);
   });
 });
 

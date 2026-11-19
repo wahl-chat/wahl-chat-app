@@ -11,6 +11,8 @@ export enum CacheTags {
   WAHL_SWIPER_THESES = 'wahl_swiper_theses',
   // Busted by the backend feed builder (src/feed/bulk.py).
   FEED = 'feed',
+  // The Stimmt's? switch; busted by hand after a console edit to show it at once.
+  STIMMTS_STATUS = 'stimmts-status',
 }
 
 /** Per-election tags so a seed can bust one context without dropping the others. */

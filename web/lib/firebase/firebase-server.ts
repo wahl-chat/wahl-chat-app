@@ -12,7 +12,11 @@ import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import { speakerPhotos } from '@/lib/daily/politicians';
 import { editionIdOf, pageStart } from '@/lib/daily/window';
 import type { PartyDetails } from '@/lib/party-details';
-import { type StimmtsStatus, readStimmtsStatus } from '@/lib/stimmts/status';
+import {
+  type StimmtsStatus,
+  parseStimmtsStatus,
+  readStimmtsStatus,
+} from '@/lib/stimmts/status';
 import type {
   GroupedMessage,
   MessageItem,
@@ -1099,23 +1103,29 @@ export async function getSystemStatus() {
 const STIMMTS_STATUS_REVALIDATE_SECONDS = 60 * 5;
 
 // Cached for minutes only: the switch must follow a console edit quickly, and
-// the feed page that shows the entry is itself cached.
+// the feed page that shows the entry is itself cached. A failed read throws
+// inside the cache, so one Firestore blip is not served to every reader as
+// "off" until the entry expires.
+const getStimmtsStatusCached = cache(
+  async (): Promise<StimmtsStatus> => {
+    const serverDb = await getServerFirestore({ useHeaders: false });
+    const snapshot = await getDoc(doc(serverDb, 'system_status', 'stimmts'));
+    return parseStimmtsStatus(snapshot.data());
+  },
+  ['getStimmtsStatus', 'v1'],
+  {
+    revalidate: STIMMTS_STATUS_REVALIDATE_SECONDS,
+    tags: [CacheTags.STIMMTS_STATUS],
+  },
+);
+
 export async function getStimmtsStatus(): Promise<StimmtsStatus> {
-  return cache(
-    () =>
-      readStimmtsStatus(async () => {
-        const serverDb = await getServerFirestore({ useHeaders: false });
-        const snapshot = await getDoc(
-          doc(serverDb, 'system_status', 'stimmts'),
-        );
-        return snapshot.data();
-      }),
-    ['getStimmtsStatus', 'v1'],
-    {
-      revalidate: STIMMTS_STATUS_REVALIDATE_SECONDS,
-      tags: ['stimmts-status'],
-    },
-  )();
+  return readStimmtsStatus(getStimmtsStatusCached, (error) =>
+    console.error(
+      '[Firestore] FAILED to fetch the Stimmt\'s? status "/system_status/stimmts":',
+      error,
+    ),
+  );
 }
 
 export async function getWahlSwiperHistory(resultId: string) {

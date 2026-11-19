@@ -68,7 +68,7 @@ export const SHARE_IMAGE_TEXT = [
 
 type Sizes = {
   padding: string;
-  /** Multiplies the title's board sizes (see shareTitleSize). */
+  /** Multiplies the title's sizes in base units (see shareTitleSize). */
   titleScale: number;
   logo: number;
   mark: number;

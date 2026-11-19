@@ -68,12 +68,23 @@ async function fly(card: HTMLElement, slot: HTMLElement, icon: HTMLElement) {
   return appear;
 }
 
-async function fade(card: HTMLElement, icon: HTMLElement | null) {
+/**
+ * The reduced-motion exit: the card only fades, and the slot closes with it,
+ * so the feed below does not snap up when the slot unmounts. The slot clips
+ * the card while it closes, so the card itself never moves.
+ */
+export async function fade(
+  card: HTMLElement,
+  slot: HTMLElement,
+  icon: HTMLElement | null,
+) {
   const options: KeyframeAnimationOptions = {
     duration: FADE_MS,
     fill: 'forwards',
   };
+  slot.style.overflow = 'hidden';
   const out = card.animate([{ opacity: 1 }, { opacity: 0 }], options);
+  collapse(slot, FADE_MS);
   const appear = icon?.animate([{ opacity: 0 }, { opacity: 1 }], options);
   await out.finished;
   return appear;
@@ -113,7 +124,7 @@ function StimmtsFlyIn({
       try {
         appear =
           settings.current.reduceMotion || !icon
-            ? await fade(card, icon)
+            ? await fade(card, box, icon)
             : await fly(card, box, icon);
       } catch {
         // An animation cancelled by leaving the page: nothing left to show.
