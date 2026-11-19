@@ -54,7 +54,7 @@ function Stimmkarte({
     <>
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-1.5 rounded-md border border-muted-foreground"
+        className="pointer-events-none absolute inset-1.5 rounded-md border border-[var(--daily-muted)]"
       />
       <span className="relative flex items-center justify-between">
         <StimmtsLogo className="text-[17px]" />
@@ -82,7 +82,7 @@ function Stimmkarte({
           ) : (
             <span className="flex items-baseline gap-2 self-stretch">
               <span className={FORM_LABEL}>Thema</span>
-              <span className="min-w-0 flex-1 truncate border-b border-dotted border-muted-foreground pb-0.5 font-document text-[15px] italic leading-5">
+              <span className="min-w-0 flex-1 truncate border-b border-dotted border-[var(--daily-muted)] pb-0.5 font-document text-[15px] italic leading-5">
                 {topic}
               </span>
             </span>
@@ -90,7 +90,7 @@ function Stimmkarte({
         </span>
         <span
           aria-hidden
-          className="flex flex-col items-center justify-center border-l border-muted-foreground pl-4"
+          className="flex flex-col items-center justify-center border-l border-[var(--daily-muted)] pl-4"
         >
           <span className="whitespace-nowrap text-xs font-medium opacity-75">
             Nr.
@@ -107,7 +107,7 @@ function Stimmkarte({
   );
 
   const card =
-    'relative flex w-full flex-col gap-3 rounded-[10px] bg-foreground p-4 pl-[18px] text-left text-background';
+    'relative flex w-full flex-col gap-3 rounded-[10px] bg-[var(--daily-ink)] p-4 pl-[18px] text-left text-[var(--daily-canvas)]';
 
   if (onCast) {
     return (
@@ -118,7 +118,7 @@ function Stimmkarte({
         aria-label={`${label}. In die Urne werfen`}
         className={cn(
           card,
-          'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--daily-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--daily-canvas)]',
           className,
         )}
       >

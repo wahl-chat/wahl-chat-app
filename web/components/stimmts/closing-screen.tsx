@@ -48,12 +48,12 @@ function ClosingScreen({ days, onOpenDay }: Props) {
               onOpen={onOpenDay}
               className="mx-auto max-w-[300px]"
             />
-            <p className="text-sm text-muted-foreground">
-              <span className="font-display text-2xl font-extrabold tabular-nums text-foreground">
+            <p className="text-sm text-[var(--daily-muted)]">
+              <span className="font-display text-2xl font-extrabold tabular-nums text-[var(--daily-ink)]">
                 {summary.played}/{last}
               </span>{' '}
               Tage gespielt ·{' '}
-              <span className="font-display text-2xl font-extrabold tabular-nums text-foreground">
+              <span className="font-display text-2xl font-extrabold tabular-nums text-[var(--daily-ink)]">
                 {summary.correct}/{summary.possible}
               </span>{' '}
               richtig

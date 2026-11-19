@@ -21,7 +21,9 @@ function Countdown({ label = 'Nächstes Quiz in' }: { label?: string }) {
 
   return (
     <p className="flex animate-stimmts-screen flex-col items-center motion-reduce:animate-none">
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-[var(--daily-muted)]">
+        {label}
+      </span>
       {/* translate="no": a browser that auto-translates the page rewrites the
           text in place, which leaves the old time next to the new one. The
           size follows the screen, so the clock spans the column on a phone. */}

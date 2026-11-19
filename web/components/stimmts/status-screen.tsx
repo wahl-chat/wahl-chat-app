@@ -16,7 +16,7 @@ function StatusScreen({ title, text, children }: Props) {
         <h1 className="font-display text-[28px] font-extrabold leading-tight tracking-[-0.02em]">
           {title}
         </h1>
-        <p className="text-muted-foreground">{text}</p>
+        <p className="text-[var(--daily-muted)]">{text}</p>
       </div>
       {children}
     </section>

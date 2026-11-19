@@ -12,6 +12,7 @@ import { useProgress } from '@/lib/stimmts/use-progress';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import PartyTile from './party-tile';
+import { OUTLINE_BUTTON } from './pill-button';
 import VoteDot from './vote-dot';
 
 // The answer buttons stay in the same place from one party to the next, so a
@@ -76,7 +77,7 @@ function GuessStep({ puzzle, guesses, today }: Props) {
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+    <section className="flex flex-col gap-4 rounded-lg border border-[var(--daily-border)] bg-[var(--daily-canvas)] p-4">
       <div aria-hidden className="flex gap-1">
         {puzzle.parties.map((party, i) => (
           <span
@@ -84,10 +85,10 @@ function GuessStep({ puzzle, guesses, today }: Props) {
             className={cn(
               'h-1 flex-1 rounded-full',
               i < index
-                ? 'bg-foreground'
+                ? 'bg-[var(--daily-ink)]'
                 : i === index
-                  ? 'bg-muted-foreground'
-                  : 'bg-border',
+                  ? 'bg-[var(--daily-muted)]'
+                  : 'bg-[var(--daily-border)]',
             )}
           />
         ))}
@@ -99,7 +100,7 @@ function GuessStep({ puzzle, guesses, today }: Props) {
       <div className="flex items-center gap-3">
         <PartyTile partyId={next.partyId} />
         <div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[var(--daily-muted)]">
             Partei {index + 1} von {puzzle.parties.length} · {seatCount(next)}{' '}
             Sitze
           </p>
@@ -119,14 +120,17 @@ function GuessStep({ puzzle, guesses, today }: Props) {
                 answer(puzzle, next.partyId, option, today);
               }
             }}
-            className="justify-start px-4 text-base aria-disabled:cursor-default aria-disabled:opacity-50"
+            className={cn(
+              OUTLINE_BUTTON,
+              'justify-start px-4 text-base aria-disabled:cursor-default aria-disabled:opacity-50',
+            )}
           >
             <VoteDot kind={option} />
             {ANSWER_LABELS[option]}
           </Button>
         ))}
       </div>
-      <p className="flex items-baseline gap-2 text-[13px] leading-[18px] text-muted-foreground">
+      <p className="flex items-baseline gap-2 text-[13px] leading-[18px] text-[var(--daily-muted)]">
         <VoteDot kind="yes" className="size-2 -translate-y-px" />
         <span>Ja bedeutet: {yesMeaning(puzzle.yesMeans)}</span>
       </p>

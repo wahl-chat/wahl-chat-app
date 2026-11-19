@@ -2,10 +2,12 @@ import { Button } from '@/components/ui/button';
 import { chamberCenter, chamberStates } from '@/lib/stimmts/game-view';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import type { Guesses, Puzzle } from '@/lib/stimmts/types';
+import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
 import { BriefingSheet } from './briefing';
 import ChamberLegend from './chamber-legend';
 import Hemicycle from './hemicycle';
+import { GHOST_BUTTON, OUTLINE_BUTTON } from './pill-button';
 import Reveal from './reveal';
 import Stimmkarte from './stimmkarte';
 
@@ -40,7 +42,7 @@ function PastPuzzle({ number, playDate, puzzle, guesses, onBack }: Props) {
         variant="ghost"
         size="sm"
         onClick={onBack}
-        className="-ml-3 self-start"
+        className={cn(GHOST_BUTTON, '-ml-3 self-start')}
       >
         ← Zurück zu heute
       </Button>
@@ -52,7 +54,7 @@ function PastPuzzle({ number, playDate, puzzle, guesses, onBack }: Props) {
         score={guesses ? scorePuzzle(puzzle, guesses).correct : undefined}
       />
       {!guesses && (
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-[var(--daily-muted)]">
           Dieses Quiz hast du verpasst.
         </p>
       )}
@@ -72,7 +74,12 @@ function PastPuzzle({ number, playDate, puzzle, guesses, onBack }: Props) {
         open={open}
         onSelect={select}
       />
-      <Button variant="outline" size="lg" className="w-full" onClick={onBack}>
+      <Button
+        variant="outline"
+        size="lg"
+        className={cn(OUTLINE_BUTTON, 'w-full')}
+        onClick={onBack}
+      >
         Zurück zu heute
       </Button>
     </div>

@@ -35,7 +35,7 @@ function RevealList({ puzzle, guesses, revealed, open, onSelect }: Props) {
   const played = Object.keys(guesses).length > 0;
 
   return (
-    <ul className="border-t">
+    <ul className="border-t border-[var(--daily-border)]">
       {score.parties.map((entry, index) => {
         const party = puzzle.parties[index];
         const shown = revealed.has(entry.partyId);
@@ -57,7 +57,10 @@ function RevealList({ puzzle, guesses, revealed, open, onSelect }: Props) {
           .join(', ');
 
         return (
-          <li key={entry.partyId} className="border-b">
+          <li
+            key={entry.partyId}
+            className="border-b border-[var(--daily-border)]"
+          >
             <button
               type="button"
               onClick={() => onSelect(entry.partyId)}
@@ -65,7 +68,7 @@ function RevealList({ puzzle, guesses, revealed, open, onSelect }: Props) {
               {...(shown && { 'aria-expanded': isOpen })}
               {...(isOpen && { 'aria-controls': panelId })}
               className={cn(
-                'grid min-h-14 w-full items-center gap-3 px-1 py-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                'grid min-h-14 w-full items-center gap-3 px-1 py-2 text-left transition-colors hover:bg-[var(--daily-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--daily-ink)]',
                 played
                   ? 'grid-cols-[auto_minmax(0,1fr)_16px_minmax(0,1fr)_24px_16px]'
                   : 'grid-cols-[auto_minmax(0,1fr)_16px]',
@@ -77,7 +80,7 @@ function RevealList({ puzzle, guesses, revealed, open, onSelect }: Props) {
                   <VoteMark vote={entry.guess} tip />
                   <span
                     aria-hidden
-                    className="text-center text-[13px] text-muted-foreground"
+                    className="text-center text-[13px] text-[var(--daily-muted)]"
                   >
                     →
                   </span>
@@ -91,7 +94,7 @@ function RevealList({ puzzle, guesses, revealed, open, onSelect }: Props) {
                 ) : (
                   <span
                     aria-hidden
-                    className="inline-flex h-[22px] min-w-11 items-center justify-center rounded-full border border-dashed border-muted-foreground text-[13px] font-semibold text-muted-foreground"
+                    className="inline-flex h-[22px] min-w-11 items-center justify-center rounded-full border border-dashed border-[var(--daily-muted)] text-[13px] font-semibold text-[var(--daily-muted)]"
                   >
                     ?
                   </span>
@@ -103,7 +106,7 @@ function RevealList({ puzzle, guesses, revealed, open, onSelect }: Props) {
                     <span
                       aria-hidden
                       className={cn(
-                        'inline-flex size-6 items-center justify-center rounded-full text-[13px] font-bold text-background',
+                        'inline-flex size-6 items-center justify-center rounded-full text-[13px] font-bold text-[var(--daily-canvas)]',
                         entry.correct ? 'bg-result-correct' : 'bg-result-wrong',
                         FLIP,
                       )}
@@ -117,7 +120,7 @@ function RevealList({ puzzle, guesses, revealed, open, onSelect }: Props) {
                 <ChevronDown
                   aria-hidden
                   className={cn(
-                    'size-4 justify-self-center text-muted-foreground transition-transform duration-200 motion-reduce:transition-none',
+                    'size-4 justify-self-center text-[var(--daily-muted)] transition-transform duration-200 motion-reduce:transition-none',
                     isOpen && 'rotate-180',
                   )}
                 />
@@ -146,7 +149,7 @@ function VoteMark({
   tip = false,
 }: { vote: VoteAnswer | null; tip?: boolean }) {
   if (!vote) {
-    return <span className="text-sm text-muted-foreground">–</span>;
+    return <span className="text-sm text-[var(--daily-muted)]">–</span>;
   }
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium">
@@ -221,7 +224,7 @@ function Counts({ party }: { party: PartyResult }) {
               <span className="font-display text-xl font-extrabold tabular-nums leading-6">
                 {count}
               </span>
-              <span className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium leading-[14px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium leading-[14px] text-[var(--daily-muted)]">
                 <VoteDot kind={part.kind} className="size-[7px]" />
                 {part.label}
               </span>

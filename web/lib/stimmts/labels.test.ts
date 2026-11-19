@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import {
   dottedDate,
+  feedDate,
   monthShort,
   shortDay,
   submitterLine,
   timeAgo,
+  voteDateShort,
   weekdayName,
   yesMeaning,
 } from './labels';
@@ -24,6 +26,11 @@ describe('dates', () => {
     expect(dottedDate('2026-06-08')).toBe('08.06.2026');
     expect(weekdayName('2026-07-10')).toBe('Freitag');
     expect(monthShort('2026-07-10')).toBe('Jul');
+  });
+
+  it('writes the feed header and short vote forms', () => {
+    expect(feedDate('2026-11-15')).toBe('Sonntag, 15. November');
+    expect(voteDateShort('2026-09-25')).toBe('25. September');
   });
 
   it('says how long ago a vote was, from the puzzle day', () => {

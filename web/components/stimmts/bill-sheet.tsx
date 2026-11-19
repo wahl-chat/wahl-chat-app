@@ -11,7 +11,7 @@ import CalendarLeaf from './calendar-leaf';
 import { YesKey } from './yes-means';
 
 const LINK =
-  'underline underline-offset-2 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
+  'underline underline-offset-2 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--daily-ink)] focus-visible:ring-offset-2';
 
 // The printed sheet's body text: Times metrics, justified and hyphenated.
 const SHEET_TEXT =

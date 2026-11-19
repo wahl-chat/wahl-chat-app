@@ -67,6 +67,16 @@ export function weekdayName(isoDate: string): string {
   return WEEKDAYS[calendarDay(isoDate).getUTCDay()];
 }
 
+/** 2026-09-25 becomes "25. September": the year is implied by the game's day. */
+export function voteDateShort(isoDate: string): string {
+  return formatDate(isoDate).replace(/\s\d{4}$/, '');
+}
+
+/** 2026-11-15 becomes "Sonntag, 15. November", as the feed heads its days. */
+export function feedDate(isoDate: string): string {
+  return `${weekdayName(isoDate)}, ${voteDateShort(isoDate)}`;
+}
+
 /** The first three letters of the month, for a calendar leaf ("Jul"). */
 export function monthShort(isoDate: string): string {
   return MONTHS[calendarDay(isoDate).getUTCMonth()].slice(0, 3);

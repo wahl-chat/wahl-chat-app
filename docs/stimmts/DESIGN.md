@@ -238,7 +238,7 @@ flowchart LR
 | Look | `fonts.ts`, `parties.ts`, `hemicycle.ts`, `chamber-state.ts`, `game-view.ts`, `logo.ts`; logos in `web/public/images/stimmts/logos/` |
 | Wording | `labels.ts` |
 | Screens | `web/components/stimmts/`: `stimmts-game` (switch, clock, store, which state), `puzzle-game` (which screen), `briefing`, `guess-step`, `reveal`, `result`, `closing-screen`, `status-screen`, and their parts |
-| Routes | `web/app/(with-header)/stimmts/page.tsx` (not indexed until launch) and the share image at `web/app/stimmts/share/route.tsx`; `/stimmts` is a static page in `web/middleware.ts` and a reserved segment for page visits |
+| Routes | `web/app/(wide)/stimmts/page.tsx`, in the feed's header and theme (not indexed until launch) and the share image at `web/app/stimmts/share/route.tsx`; `/stimmts` is a static page in `web/middleware.ts` and a reserved segment for page visits |
 
 ### Preview mode
 

@@ -40,7 +40,7 @@ function NewDayNotice({ puzzleId }: { puzzleId: string }) {
   return (
     <div
       role="status"
-      className="mt-6 flex items-start gap-3 rounded-lg border bg-card p-4 text-sm"
+      className="mt-6 flex items-start gap-3 rounded-lg border border-[var(--daily-border)] bg-[var(--daily-canvas)] p-4 text-sm"
     >
       <p className="flex-1">
         <span className="font-semibold">Neuer Tag, neues Quiz.</span>{' '}
@@ -52,7 +52,7 @@ function NewDayNotice({ puzzleId }: { puzzleId: string }) {
         type="button"
         onClick={() => setNotice(null)}
         aria-label="Hinweis schließen"
-        className="text-muted-foreground hover:text-foreground"
+        className="text-[var(--daily-muted)] hover:text-[var(--daily-ink)]"
       >
         <X aria-hidden className="size-4" />
       </button>

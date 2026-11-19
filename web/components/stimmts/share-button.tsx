@@ -88,14 +88,14 @@ function ShareButton({ text, image: shareImage, onShared }: Props) {
         <a
           href={imagePath}
           download={imageName}
-          className="text-center text-sm text-muted-foreground underline underline-offset-[3px]"
+          className="text-center text-sm text-[var(--daily-muted)] underline underline-offset-[3px]"
         >
           Bild zum Teilen speichern
         </a>
       )}
       {outcome === 'failed' && (
         <>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[var(--daily-muted)]">
             Das Kopieren hat nicht geklappt. Markiere den Text und kopiere ihn
             selbst:
           </p>
@@ -103,7 +103,7 @@ function ShareButton({ text, image: shareImage, onShared }: Props) {
             readOnly
             value={text}
             rows={4}
-            className="w-full rounded-md border bg-background p-2 text-sm"
+            className="w-full rounded-md border border-[var(--daily-border)] bg-[var(--daily-canvas)] p-2 text-sm"
             onFocus={(event) => event.currentTarget.select()}
           />
         </>

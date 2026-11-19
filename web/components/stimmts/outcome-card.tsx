@@ -30,21 +30,21 @@ function OutcomeCard({
   return (
     // A link cannot sit inside a button, so the card holds the two side by
     // side: the vote above, the source below.
-    <div className="overflow-hidden rounded-xl border bg-card">
+    <div className="overflow-hidden rounded-xl border border-[var(--daily-border)] bg-[var(--daily-canvas)]">
       <button
         type="button"
         onClick={onOpen}
         aria-label={`Der Bundestag hat ${OUTCOME_LABELS[puzzle.outcome]}, ${counts}. Abstimmung ansehen`}
-        className="group flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        className="group flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-[var(--daily-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--daily-ink)]"
       >
         <span aria-hidden className="flex min-w-0 flex-1 flex-col gap-2">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-[var(--daily-muted)]">
             Der Bundestag hat
           </span>
           <span className="font-display text-2xl font-extrabold leading-none tracking-[-0.01em]">
             {OUTCOME_LABELS[puzzle.outcome]}
           </span>
-          <span className="mt-1 flex h-2 w-full overflow-hidden rounded-full bg-muted">
+          <span className="mt-1 flex h-2 w-full overflow-hidden rounded-full bg-[var(--daily-surface)]">
             <span className="bg-seat-yes" style={{ width: share(yes) }} />
             <span
               className="bg-seat-abstain"
@@ -52,27 +52,27 @@ function OutcomeCard({
             />
             <span className="bg-seat-no" style={{ width: share(no) }} />
           </span>
-          <span className="text-xs tabular-nums text-muted-foreground">
+          <span className="text-xs tabular-nums text-[var(--daily-muted)]">
             {counts}
           </span>
         </span>
         <ChevronRight
           aria-hidden
-          className="size-5 flex-none text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+          className="size-5 flex-none text-[var(--daily-muted)] transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
         />
       </button>
       <a
         href={puzzle.source.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-between gap-3 border-t px-4 py-3 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        className="flex items-center justify-between gap-3 border-t border-[var(--daily-border)] px-4 py-3 text-xs text-[var(--daily-muted)] transition-colors hover:bg-[var(--daily-surface)] hover:text-[var(--daily-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--daily-ink)]"
       >
         <span className="flex items-center gap-2">
           Quelle
           {isAbgeordnetenwatch(puzzle.source.url) ? (
             <AbgeordnetenwatchLogo />
           ) : (
-            <span className="font-medium text-foreground">
+            <span className="font-medium text-[var(--daily-ink)]">
               {puzzle.source.label}
             </span>
           )}

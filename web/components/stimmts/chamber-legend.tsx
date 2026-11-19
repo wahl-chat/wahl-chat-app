@@ -28,7 +28,7 @@ function ChamberLegend({ kind, unaffiliated }: Props) {
         ? [...VOTES, { kind: 'unaffiliated', label: 'fraktionslos' } as const]
         : VOTES;
   return (
-    <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+    <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-[var(--daily-muted)]">
       {items.map((item) => (
         <li key={item.label} className="inline-flex items-center gap-1.5">
           <VoteDot kind={item.kind} ring={kind === 'guess'} />

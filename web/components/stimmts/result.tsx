@@ -180,7 +180,7 @@ function Result({
             {!castStep && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-0 animate-stimmts-pulse rounded-[10px] border-2 border-foreground motion-reduce:hidden"
+                className="pointer-events-none absolute inset-0 animate-stimmts-pulse rounded-[10px] border-2 border-[var(--daily-ink)] motion-reduce:hidden"
               />
             )}
             <Stimmkarte
@@ -235,12 +235,12 @@ function Result({
         {game.cast && (
           <p
             className={cn(
-              'text-center text-sm text-muted-foreground',
+              'text-center text-sm text-[var(--daily-muted)]',
               justCast &&
                 'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
             )}
           >
-            <span className="font-display text-2xl font-extrabold tabular-nums text-foreground">
+            <span className="font-display text-2xl font-extrabold tabular-nums text-[var(--daily-ink)]">
               {cards}/{PERIOD_LENGTH}
             </span>{' '}
             Stimmkarten abgegeben
@@ -250,10 +250,12 @@ function Result({
 
       <section aria-live="polite" className="flex flex-col gap-5">
         <div className="flex flex-col items-center gap-1">
-          <span className="text-sm text-muted-foreground">Dein Ergebnis</span>
+          <span className="text-sm text-[var(--daily-muted)]">
+            Dein Ergebnis
+          </span>
           <p className="font-display text-5xl font-extrabold tabular-nums leading-[52px] tracking-[-0.02em]">
             {score.correct} von {score.total}
-            <small className="ml-2 font-sans text-lg font-semibold leading-none tracking-normal text-muted-foreground">
+            <small className="ml-2 font-sans text-lg font-semibold leading-none tracking-normal text-[var(--daily-muted)]">
               richtig
             </small>
           </p>
@@ -289,7 +291,7 @@ function Result({
           <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
             Tag {period.day}
           </span>
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-[var(--daily-muted)]">
             von {PERIOD_LENGTH}
           </span>
         </div>
@@ -329,9 +331,9 @@ function CastHint() {
       aria-hidden
       className="pointer-events-none absolute inset-x-0 top-[-54px] z-10 flex animate-stimmts-hint justify-center"
     >
-      <span className="relative flex items-center gap-2.5 rounded-full bg-foreground py-2.5 pl-3 pr-5 font-display text-[17px] font-bold text-background shadow-lg">
+      <span className="relative flex items-center gap-2.5 rounded-full bg-[var(--daily-ink)] py-2.5 pl-3 pr-5 font-display text-[17px] font-bold text-[var(--daily-canvas)] shadow-lg">
         {/* The bubble's tail, pointing up at the card. */}
-        <span className="absolute -top-1.5 left-1/2 size-3 -translate-x-1/2 rotate-45 rounded-[2px] bg-foreground" />
+        <span className="absolute -top-1.5 left-1/2 size-3 -translate-x-1/2 rotate-45 rounded-[2px] bg-[var(--daily-ink)]" />
         <span className="flex size-8 items-center justify-center rounded-full bg-background/15">
           <Pointer
             strokeWidth={2.25}
