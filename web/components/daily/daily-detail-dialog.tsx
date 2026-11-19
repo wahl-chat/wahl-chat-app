@@ -4,7 +4,7 @@ import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import StickyInput from '@/components/sticky-input';
 import { FEED_CHAT_ENABLED, feedChatHref } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
-import { itemQuestions, whyQuestion } from '@/lib/daily/inline-answers';
+import { itemQuestions } from '@/lib/daily/inline-answers';
 import {
   type DetailItem,
   type SectionItem,
@@ -24,7 +24,8 @@ import type {
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
+import { ChevronLeftIcon, MessageCircleIcon, ShareIcon } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
@@ -67,8 +68,7 @@ function useAskChat(item: DetailItem, preset?: ChatPreset) {
   const router = useRouter();
   return (question: string) => {
     if (question.trim()) {
-      const fixed = question === whyQuestion(item) ? 'why' : preset;
-      router.push(feedChatHref(item, question, fixed));
+      router.push(feedChatHref(item, question, preset));
     }
   };
 }
@@ -141,6 +141,28 @@ function ItemAnswers({ item }: { item: DetailItem }) {
       answers={itemQuestions(item).answers}
       onAsk={FEED_CHAT_ENABLED ? ask : undefined}
     />
+  );
+}
+
+// The question a vote or debate raises most, one tap from the answer.
+const WHY_VOTED = 'Warum haben die Fraktionen so abgestimmt?';
+const WHY_ARGUED = 'Wie haben die Fraktionen argumentiert?';
+
+function WhyLink({ item, question }: { item: DetailItem; question: string }) {
+  if (!FEED_CHAT_ENABLED) {
+    return null;
+  }
+  return (
+    <Link
+      href={feedChatHref(item, question, 'why')}
+      className={cn(
+        FOCUS_RING,
+        'mt-2 inline-flex min-h-11 items-center gap-2 self-start rounded-2xl bg-[var(--daily-accent-soft)] px-4 py-2 text-left text-[15px] leading-snug font-semibold text-[var(--daily-accent)] transition-opacity hover:opacity-80',
+      )}
+    >
+      <MessageCircleIcon className="size-4 shrink-0" aria-hidden />
+      {question}
+    </Link>
   );
 }
 
@@ -217,6 +239,7 @@ function SectionDetail({
               onSpeaker={onSpeaker}
               speakerPhotos={photos}
             />
+            <WhyLink item={item} question={WHY_ARGUED} />
           </section>
         )}
         {protocol &&
@@ -283,6 +306,7 @@ function VoteDetail({ item }: { item: VoteItem }) {
           onSelect={select}
           breakdownId={breakdownId}
         />
+        <WhyLink item={item} question={WHY_VOTED} />
       </section>
       <p className={cn('text-[13px]', MUTED_TEXT)}>
         Originaltitel: {vote.title}
