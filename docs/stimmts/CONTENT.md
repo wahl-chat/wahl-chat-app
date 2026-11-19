@@ -78,8 +78,10 @@ The dropped puzzle can stay in `puzzles.json` as a spare.
      630 seats.
    - `parties`: exactly `linke`, `spd`, `gruene`, `cdu`, `afd`, in that order.
    - `title`, `topic`, `briefing`, `yesMeans`: written by us (see the checklist).
+   - `shortName`: the feed card's name for the puzzle (see "Short name").
    - `keyPoints` (optional): three short bullets for the front of the
-     briefing card (see below). The `briefing` moves to the card's back.
+     briefing card, each with its source page (see below). The `briefing`
+     moves to the card's back.
    - `document` (optional): the Drucksache as printed on its cover. Leave it
      out if it cannot be verified; the briefing then uses the plain layout.
    - `source`: the vote's Abgeordnetenwatch page.
@@ -105,16 +107,38 @@ read them first, often on a phone, so they must be quick to take in:
 - Exactly three bullets, each at most 12 words.
 - Plain language, one fact per bullet.
 - Cover what changes, who it affects, and what it costs or demands.
-- Mark numbers and dates bold with `**…**`, for example
-  `Tanken kann bis zu **rund 17 Cent** pro Liter billiger werden.`
+- Plain text only: no `**` or other markup, since nothing renders it.
 - No hint at the result: no outcome, no tally, no party positions.
+- Every number or claim must be backed by the cited page.
 
-The validator checks the count, the length, paired markers, and no spaces at
-the start or end. Bold text must not be empty or start or end with a space,
-and three or more asterisks in a row are refused.
+Each key point is an object with `text` and `source`:
 
-Words are counted at the spaces. The `**` markers do not count, but a dash
-between spaces does: `Oktober – Dezember` is three words.
+```json
+{
+  "text": "Tanken kann bis zu rund 17 Cent pro Liter billiger werden.",
+  "source": { "document": "21/8157", "page": 428 }
+}
+```
+
+`source.page` is the PDF page, the one `#page=N` opens, not the number
+printed on the paper. The link is built from the Drucksache number
+(`drucksache.ts`), so no URL is stored. When the puzzle has a `document`, a
+source may only cite its `number` or its `votedIn.number`.
+
+The validator checks the count, the length, no `*`, no spaces at the start
+or end, a Drucksache number like `21/8157` and a whole page of 1 or more.
+
+Words are counted at the spaces, so a dash between spaces counts:
+`Oktober – Dezember` is three words.
+
+## Short name
+
+`shortName` completes "Heute: …" on the feed card:
+
+- An article (Der, Die or Das) plus a noun or short noun phrase.
+- At most 22 characters, spaces and article included.
+- Everyday words, no verb.
+- Neutral: no hint at how the vote went or where the parties stand.
 
 ## Review checklist
 
@@ -122,11 +146,11 @@ Before a puzzle is committed, a person checks:
 
 - [ ] The counts and answers match the vote's page, and every Fraktion's answer
       holds at least 80 percent of its votes cast (the validator enforces this).
-- [ ] The title is neutral and does not hint at the result.
+- [ ] The title and the short name are neutral and do not hint at the result.
 - [ ] The briefing explains what was voted on, in plain German, without the
       outcome, the tally, or who argued for or against it.
 - [ ] The key points, if any, follow the rules above and say nothing the
-      briefing does not.
+      briefing does not. Each cited page really shows its number or claim.
 - [ ] `yesMeans` says in one sentence what a Ja vote meant. Take extra care
       with committee recommendations, where Ja can mean rejecting a motion.
 - [ ] The Drucksache fields are copied exactly from the PDF, or left out.

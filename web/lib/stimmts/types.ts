@@ -64,6 +64,19 @@ export type BillDocument = DocumentSubmitter & {
   votedIn?: VotedInDocument;
 };
 
+/** The Drucksache page that backs a key point. */
+export type KeyPointSource = {
+  /** "21/8157" */
+  document: string;
+  /** The PDF page, which is what `#page=` opens (not the printed number). */
+  page: number;
+};
+
+export type KeyPoint = {
+  text: string;
+  source: KeyPointSource;
+};
+
 export type Puzzle = {
   /** Stable slug; the schedule refers to puzzles by it. */
   id: string;
@@ -71,15 +84,19 @@ export type Puzzle = {
   voteDate: string;
   topic: string;
   title: string;
+  /**
+   * What the feed card calls the puzzle after "Heute: ", so it starts with
+   * its article ("Der Tankrabatt").
+   */
+  shortName: string;
   /** Shown before the guess, so it must not reveal the result. */
   briefing: string;
   /**
    * The short summary on the front of the briefing card, which leaves the
    * full `briefing` for the back. Shown before the guess like the briefing,
-   * so it must not reveal the result either. `**…**` marks emphasis, used for
-   * numbers and dates (see `emphasis.ts`).
+   * so it must not reveal the result either.
    */
-  keyPoints?: [string, string, string];
+  keyPoints?: [KeyPoint, KeyPoint, KeyPoint];
   /** Spells out what "Ja" means, which is not obvious for every vote. */
   yesMeans: string;
   outcome: PuzzleOutcome;

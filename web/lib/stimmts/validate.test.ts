@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { PUZZLES, PUZZLE_COUNT, createSchedule } from './content';
 import puzzlesJson from './content/puzzles.json';
 import fixturesJson from './fixtures/puzzles.json';
+import type { KeyPoint } from './types';
 import { validatePuzzle, validatePuzzleOrder } from './validate';
 
 // The parts of a puzzle the tests below tamper with, loosely typed on purpose:
@@ -15,6 +16,7 @@ type RawPuzzle = {
   unaffiliated?: unknown;
   document?: Record<string, unknown>;
   keyPoints?: unknown;
+  shortName?: unknown;
   topic?: unknown;
 };
 
@@ -214,10 +216,19 @@ describe('validatePuzzle: the bill document', () => {
 });
 
 describe('validatePuzzle: key points', () => {
-  const KEY_POINTS: [string, string, string] = [
-    'Steuer auf Benzin und Diesel sinkt **von Oktober bis Dezember 2026**.',
-    'Tanken kann bis zu **rund 17 Cent** pro Liter billiger werden.',
-    'Der Bund nimmt **rund 2,5 Milliarden Euro** weniger Steuern ein.',
+  const KEY_POINTS: [KeyPoint, KeyPoint, KeyPoint] = [
+    {
+      text: 'Steuer auf Benzin und Diesel sinkt von Oktober bis Dezember 2026.',
+      source: { document: '21/6278', page: 418 },
+    },
+    {
+      text: 'Tanken kann bis zu rund 17 Cent pro Liter billiger werden.',
+      source: { document: '21/6278', page: 428 },
+    },
+    {
+      text: 'Der Bund nimmt rund 2,5 Milliarden Euro weniger Steuern ein.',
+      source: { document: '21/7009', page: 4 },
+    },
   ];
 
   function withKeyPoints(keyPoints: unknown): RawPuzzle {
@@ -226,7 +237,19 @@ describe('validatePuzzle: key points', () => {
     return puzzle;
   }
 
-  it('reads three key points', () => {
+  function withFirstPoint(point: unknown): RawPuzzle {
+    return withKeyPoints([point, KEY_POINTS[1], KEY_POINTS[2]]);
+  }
+
+  function withFirstText(text: string): RawPuzzle {
+    return withFirstPoint({ ...KEY_POINTS[0], text });
+  }
+
+  function withFirstSource(source: unknown): RawPuzzle {
+    return withFirstPoint({ ...KEY_POINTS[0], source });
+  }
+
+  it('reads three sourced key points', () => {
     expect(validatePuzzle(withKeyPoints(KEY_POINTS)).keyPoints).toEqual(
       KEY_POINTS,
     );
@@ -241,82 +264,139 @@ describe('validatePuzzle: key points', () => {
       'exactly 3',
     );
     expect(() =>
-      validatePuzzle(withKeyPoints([...KEY_POINTS, 'Noch einer.'])),
+      validatePuzzle(withKeyPoints([...KEY_POINTS, KEY_POINTS[0]])),
     ).toThrow('exactly 3');
     expect(() => validatePuzzle(withKeyPoints('Ein Satz.'))).toThrow(
       'exactly 3',
     );
+    expect(() => validatePuzzle(withKeyPoints(null))).toThrow('exactly 3');
   });
 
-  it('rejects an empty or non-text key point', () => {
+  it('names the puzzle when a key point is a plain string', () => {
+    expect(() => validatePuzzle(withFirstPoint('Ein Satz.'))).toThrow(
+      `Puzzle "${firstPuzzle().id}": key point 1 must be an object`,
+    );
+  });
+
+  it('rejects empty or non-text key point text', () => {
+    expect(() => validatePuzzle(withFirstText(''))).toThrow('non-empty');
+    expect(() => validatePuzzle(withFirstText('   '))).toThrow('non-empty');
     expect(() =>
-      validatePuzzle(withKeyPoints([KEY_POINTS[0], '', KEY_POINTS[2]])),
-    ).toThrow('non-empty');
-    expect(() =>
-      validatePuzzle(withKeyPoints([KEY_POINTS[0], 17, KEY_POINTS[2]])),
+      validatePuzzle(withFirstPoint({ ...KEY_POINTS[0], text: 17 })),
     ).toThrow('non-empty');
   });
 
-  it('allows at most 12 words, not counting the markers', () => {
+  it('allows at most 12 words', () => {
     const twelve =
-      '**Eins** zwei drei vier fünf sechs sieben acht neun zehn elf zwölf.';
-    expect(
-      validatePuzzle(withKeyPoints([twelve, KEY_POINTS[1], KEY_POINTS[2]]))
-        .keyPoints?.[0],
-    ).toBe(twelve);
-
-    const thirteen = `${twelve} dreizehn`;
-    expect(() =>
-      validatePuzzle(withKeyPoints([thirteen, KEY_POINTS[1], KEY_POINTS[2]])),
-    ).toThrow('12 words');
+      'Eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf.';
+    expect(validatePuzzle(withFirstText(twelve)).keyPoints?.[0].text).toBe(
+      twelve,
+    );
+    expect(() => validatePuzzle(withFirstText(`${twelve} dreizehn`))).toThrow(
+      '12 words',
+    );
   });
 
-  it('rejects unbalanced bold markers', () => {
+  it('rejects asterisks, since nothing renders emphasis any more', () => {
     expect(() =>
-      validatePuzzle(
-        withKeyPoints(['Es kostet **17 Cent.', KEY_POINTS[1], KEY_POINTS[2]]),
-      ),
-    ).toThrow('"**"');
+      validatePuzzle(withFirstText('Es kostet **17 Cent** weniger.')),
+    ).toThrow('"*"');
+    expect(() => validatePuzzle(withFirstText('Es kostet 17* Cent.'))).toThrow(
+      '"*"',
+    );
   });
 
   it('rejects leading or trailing whitespace', () => {
     expect(() =>
-      validatePuzzle(
-        withKeyPoints([` ${KEY_POINTS[0]}`, KEY_POINTS[1], KEY_POINTS[2]]),
-      ),
+      validatePuzzle(withFirstText(` ${KEY_POINTS[0].text}`)),
     ).toThrow('whitespace');
     expect(() =>
-      validatePuzzle(
-        withKeyPoints([KEY_POINTS[0], KEY_POINTS[1], `${KEY_POINTS[2]}\n`]),
-      ),
+      validatePuzzle(withFirstText(`${KEY_POINTS[0].text}\n`)),
     ).toThrow('whitespace');
   });
 
-  function withFirstPoint(point: string): RawPuzzle {
-    return withKeyPoints([point, KEY_POINTS[1], KEY_POINTS[2]]);
+  it('needs a source object', () => {
+    expect(() => validatePuzzle(withFirstSource(undefined))).toThrow('source');
+    expect(() => validatePuzzle(withFirstSource('21/6278 S. 4'))).toThrow(
+      'source',
+    );
+  });
+
+  it('needs a positive whole page number', () => {
+    for (const page of [0, -3, 1.5, '4', undefined]) {
+      expect(() =>
+        validatePuzzle(withFirstSource({ document: '21/6278', page })),
+      ).toThrow('page');
+    }
+  });
+
+  it('needs a Drucksache number like 21/6278', () => {
+    for (const document of [
+      '6278',
+      '21-6278',
+      '21/',
+      '21/123456',
+      ' 21/6278',
+    ]) {
+      expect(() =>
+        validatePuzzle(withFirstSource({ document, page: 4 })),
+      ).toThrow('Drucksache');
+    }
+  });
+
+  it('only cites the puzzle’s own document or the one voted on', () => {
+    expect(() =>
+      validatePuzzle(withFirstSource({ document: '21/1', page: 4 })),
+    ).toThrow('21/6278');
+    const votedIn = withKeyPoints([
+      KEY_POINTS[0],
+      KEY_POINTS[1],
+      { ...KEY_POINTS[2], source: { document: '21/7009', page: 4 } },
+    ]);
+    expect(() => validatePuzzle(votedIn)).not.toThrow();
+  });
+});
+
+describe('validatePuzzle: short name', () => {
+  function withShortName(shortName: unknown): RawPuzzle {
+    const puzzle = firstPuzzle();
+    puzzle.shortName = shortName;
+    return puzzle;
   }
 
-  it('rejects a point that is blank or only markers', () => {
-    expect(() => validatePuzzle(withFirstPoint('   '))).toThrow('non-empty');
-    expect(() => validatePuzzle(withFirstPoint('****'))).toThrow('no text');
+  it('reads it', () => {
+    expect(validatePuzzle(withShortName('Das Gebäudegesetz')).shortName).toBe(
+      'Das Gebäudegesetz',
+    );
   });
 
-  it('rejects three or more asterisks in a row', () => {
-    expect(() => validatePuzzle(withFirstPoint('a ****b'))).toThrow('"***"');
-    expect(() => validatePuzzle(withFirstPoint('***a***'))).toThrow('"***"');
+  it('is required, and names the puzzle when missing', () => {
+    expect(() => validatePuzzle(withShortName(undefined))).toThrow(
+      `Puzzle "${firstPuzzle().id}": "shortName"`,
+    );
+    expect(() => validatePuzzle(withShortName(''))).toThrow('"shortName"');
   });
 
-  it('rejects a bold run padded with spaces', () => {
-    expect(() =>
-      validatePuzzle(withFirstPoint('Bis zu ** 17 Cent** billiger.')),
-    ).toThrow('bold run');
-    expect(() =>
-      validatePuzzle(withFirstPoint('Bis zu **17 Cent ** billiger.')),
-    ).toThrow('bold run');
+  it('allows at most 22 characters', () => {
+    const twentyTwo = 'Der Politikerparagraf!';
+    expect(twentyTwo).toHaveLength(22);
+    expect(validatePuzzle(withShortName(twentyTwo)).shortName).toBe(twentyTwo);
+    expect(() => validatePuzzle(withShortName(`${twentyTwo}!`))).toThrow(
+      '22 characters',
+    );
   });
 
-  it('rejects null instead of a list', () => {
-    expect(() => validatePuzzle(withKeyPoints(null))).toThrow('exactly 3');
+  it('starts with Der, Die or Das so it reads after "Heute: "', () => {
+    for (const name of [
+      'Der Tankrabatt',
+      'Die Stromsteuer',
+      'Das Tempolimit',
+    ]) {
+      expect(() => validatePuzzle(withShortName(name))).not.toThrow();
+    }
+    for (const name of ['Tankrabatt', 'Derby', 'Dies ist es']) {
+      expect(() => validatePuzzle(withShortName(name))).toThrow('Der, Die');
+    }
   });
 });
 
