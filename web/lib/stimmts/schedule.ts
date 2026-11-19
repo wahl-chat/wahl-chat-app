@@ -31,7 +31,8 @@ export function getTodaysPuzzle({
 }
 
 type DayOptions = {
-  schedule: Schedule;
+  // The running order alone decides a day's puzzle, not the start date.
+  schedule: Pick<Schedule, 'puzzleIds'>;
   puzzles: Puzzle[];
   /** The day of the schedule, which is also the puzzle number. */
   number: number;

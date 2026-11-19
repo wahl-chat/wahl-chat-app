@@ -1,21 +1,32 @@
 import type { PeriodSummary } from './period';
 import type { PuzzleScore } from './score';
 
+type Score = Pick<PuzzleScore, 'correct' | 'total'>;
+
 type ShareInput = {
   puzzleNumber: number;
-  score: PuzzleScore;
+  score: Score;
+  /** The vote's title, as the start screen shows it. */
+  title: string;
   url: string;
 };
 
+/** The challenge to the friend: beat the score, or match a perfect one. */
+export function shareInvitation({ correct, total }: Score): string {
+  return correct === total ? 'Schaffst du das auch?' : 'Schaffst du mehr?';
+}
+
 /**
- * The text a player shares: the score and an invitation, nothing else. It
+ * The text a player shares: the vote, the score and a challenge. The title
+ * is public on the start screen, so naming it gives nothing away; the text
  * deliberately says nothing about which parties were right or wrong, so it
- * gives the friend who opens it no hint about today's answers (and reveals
+ * gives the friend who opens it no hint about the answers (and reveals
  * nothing about the player's own views: they were predictions, not opinions).
  */
 export function buildShareText({
   puzzleNumber,
   score,
+  title,
   url,
 }: ShareInput): string {
   const squares =
@@ -23,7 +34,7 @@ export function buildShareText({
   return [
     `Stimmt's? #${puzzleNumber} · ${score.correct}/${score.total} ${squares}`,
     '',
-    'Schlag meinen Score im neuen Spiel von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
+    `${title}: Wie haben die Fraktionen abgestimmt? Ich hatte ${score.correct} von ${score.total}. ${shareInvitation(score)}`,
     url,
   ].join('\n');
 }

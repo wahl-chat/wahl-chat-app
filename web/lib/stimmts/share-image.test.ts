@@ -1,11 +1,43 @@
 import { describe, expect, it } from 'bun:test';
+import { PUZZLES } from './content';
 import { encodePeriod } from './period';
 import {
   canonicalSharePath,
   parseShareParams,
   shareImagePath,
+  shareTitleLines,
+  shareTitleSize,
   sharedResultPath,
 } from './share-image';
+
+describe('shareTitleSize', () => {
+  it.each([
+    ['Haushaltsgesetz 2026', 20, 30],
+    ['Die Ukraine auch 2027 militärisch und humanitär unterstützen', 60, 24],
+    [
+      'Aussetzung des Familiennachzugs für subsidiär Schutzberechtigte und Umsetzung der EU-Asylreform in Deutschland',
+      110,
+      20,
+    ],
+  ] as const)('sizes %p (%i characters) at %i', (title, length, size) => {
+    expect(title).toHaveLength(length);
+    expect(shareTitleSize(title)).toBe(size);
+  });
+
+  it('steps down when one long word does not fit the line', () => {
+    // Short, but "Emissionsobergrenzen" alone is too wide at 30.
+    expect(shareTitleSize('Neue Emissionsobergrenzen')).toBe(24);
+  });
+
+  it.each(PUZZLES.map((puzzle) => [puzzle.title]))(
+    'fits %p in three lines without breaking a word',
+    (title) => {
+      const lines = shareTitleLines(title, shareTitleSize(title));
+      expect(lines).not.toBeNull();
+      expect(lines).toBeLessThanOrEqual(3);
+    },
+  );
+});
 
 const PUZZLE_COUNT = 40;
 
