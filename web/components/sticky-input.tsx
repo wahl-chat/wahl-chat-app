@@ -5,45 +5,8 @@ import { ArrowUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Logo from './chat/logo';
 import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
-import AutoGrowTextarea from './ui/auto-grow-textarea';
+import AutoGrowTextarea, { useCoarsePointer } from './ui/auto-grow-textarea';
 import { Button } from './ui/button';
-
-// The visual viewport is this much shorter than the window: a keyboard.
-const KEYBOARD_PX = 120;
-
-/** While the box is focused with an on-screen keyboard open, the top edge of
- * the area between the box and the keyboard; null otherwise. */
-function useKeyboardGap(
-  ref: React.RefObject<HTMLDivElement | null>,
-  focused: boolean,
-): number | null {
-  const [top, setTop] = useState<number | null>(null);
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!focused || !viewport) {
-      setTop(null);
-      return;
-    }
-    const measure = () => {
-      // A pinch zoom shrinks the visual viewport too; only a keyboard does at scale 1.
-      const open =
-        window.innerHeight - viewport.height * viewport.scale > KEYBOARD_PX;
-      const node = ref.current;
-      setTop(open && node ? node.getBoundingClientRect().bottom : null);
-    };
-    measure();
-    viewport.addEventListener('resize', measure);
-    viewport.addEventListener('scroll', measure);
-    // The box moves with the page when it is not stuck to the bottom.
-    window.addEventListener('scroll', measure, { passive: true });
-    return () => {
-      viewport.removeEventListener('resize', measure);
-      viewport.removeEventListener('scroll', measure);
-      window.removeEventListener('scroll', measure);
-    };
-  }, [ref, focused]);
-  return top;
-}
 
 type Props = {
   isLoading: boolean;
@@ -64,7 +27,7 @@ function StickyInput({
   const [isSticky, setIsSticky] = useState(true);
   const [focused, setFocused] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const gapTop = useKeyboardGap(ref, focused);
+  const touch = useCoarsePointer();
 
   useEffect(() => {
     const node = ref.current;
@@ -119,15 +82,15 @@ function StickyInput({
         className,
       )}
     >
-      {/* With the keyboard open, what lies below the box shows above the
-          keyboard; cover it while typing. Fixed, so the page does not grow. */}
-      {gapTop !== null && (
+      {/* With the keyboard open, the page below the box shows above it.
+          A shadow covers it without changing the layout. */}
+      {focused && touch && (
         <div
           aria-hidden
-          className="pointer-events-none fixed inset-x-0 bottom-0"
+          className="pointer-events-none absolute inset-0 -z-10"
           style={{
-            top: gapTop,
-            background: 'var(--daily-canvas, hsl(var(--background)))',
+            boxShadow:
+              '0 100vh 0 100vh var(--daily-canvas, hsl(var(--background)))',
           }}
         />
       )}

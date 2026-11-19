@@ -171,7 +171,7 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
 export default AutoGrowTextarea;
 
 /** Phones and tablets: the primary pointer is a finger. */
-function useCoarsePointer(): boolean {
+export function useCoarsePointer(): boolean {
   const [coarse, setCoarse] = useState(false);
   useEffect(() => {
     const query = window.matchMedia?.('(pointer: coarse)');
