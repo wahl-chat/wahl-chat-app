@@ -23,9 +23,8 @@ Security notes:
     DIP_API_KEY fail-loud: _require_dip_key() raises RuntimeError
     at construction when DIP_API_KEY is unset.  NO hardcoded key.
 
-    DESC → ASC re-sort: DIP returns protocols newest-first.
-    discover() re-sorts ascending by (datum, id) so run_connector processes
-    oldest-first.
+    Ordering: discover() returns never-ingested protocols before update-sweep
+    re-checks (see discover()).
 
     fetch() never raises: missing xml_url / parse failures return a
     skip_reason dict; normalize() raises ValueError → runner skip-and-warn.
@@ -659,7 +658,7 @@ class BundestagSpeechesConnector(BaseConnector):
                    IGNORED — set-difference supersedes it.
 
         Returns:
-            List of protocol id strings sorted ascending by (datum, id).
+            Protocol id strings: unseen ones, then sweep re-checks.
         """
         params: dict = {"f.wahlperiode": self._wahlperiode}
 

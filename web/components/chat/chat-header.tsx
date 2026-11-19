@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/tooltip';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { IS_EMBEDDED } from '@/lib/utils';
-import { HelpCircleIcon } from 'lucide-react';
+import { HelpCircleIcon, NewspaperIcon } from 'lucide-react';
+import Link from 'next/link';
 import ChatEmbedHeader from './chat-embed-header';
 import ChatHeaderTitleDescription from './chat-header-title-description';
 import ChatShareButton from './chat-share-button';
@@ -43,6 +44,18 @@ async function ChatHeader({ contextId = DEFAULT_CONTEXT_ID }: Props) {
         </div>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
+          {/* The way back to the parliament feed the Chat link came from. */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 px-2"
+            asChild
+          >
+            <Link href="/">
+              <NewspaperIcon aria-hidden />
+              News
+            </Link>
+          </Button>
           <HowToDialog>
             <Button variant="ghost" size="icon" className="size-8">
               <HelpCircleIcon />

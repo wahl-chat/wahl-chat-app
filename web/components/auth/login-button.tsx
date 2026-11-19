@@ -8,7 +8,7 @@ import {
 } from '@/components/chat/responsive-drawer-dialog';
 import { type UserDetails, getUserDetailsFromUser } from '@/lib/utils';
 import { useState } from 'react';
-import LoginForm from './login-form';
+import LoginForm, { type LoginPurpose } from './login-form';
 import UserDialog from './user-dialog';
 
 type Props = {
@@ -16,6 +16,7 @@ type Props = {
   noUserChildren?: React.ReactNode;
   userChildren?: React.ReactNode;
   userDetails?: UserDetails;
+  purpose?: LoginPurpose;
 };
 
 function LoginButton({
@@ -23,6 +24,7 @@ function LoginButton({
   userChildren,
   userDetails,
   userDialogAsChild,
+  purpose,
 }: Props) {
   const { user } = useAnonymousAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -67,8 +69,13 @@ function LoginButton({
         <ResponsiveDialogTrigger asChild>
           {noUserChildren}
         </ResponsiveDialogTrigger>
-        <ResponsiveDialogContent>
-          <LoginForm onSuccess={handleSuccess} />
+        {/* Scrolls on short screens: the "Meine Woche" pitch with its sample
+            email is taller than a phone. The inner box scrolls, so the
+            drawer's handle stays put and a drag still closes it. */}
+        <ResponsiveDialogContent className="flex max-h-[95dvh] flex-col">
+          <div className="min-h-0 overflow-y-auto overscroll-contain">
+            <LoginForm onSuccess={handleSuccess} purpose={purpose} />
+          </div>
         </ResponsiveDialogContent>
       </ResponsiveDialog>
     </>

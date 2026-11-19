@@ -1,0 +1,210 @@
+[
+  {
+    "term": "Aktuelle Stunde",
+    "forms": [
+      "Aktuelle Stunde",
+      "Aktuellen Stunde"
+    ],
+    "definition": "Eine kurze Debatte über ein aktuelles Thema, die eine Fraktion kurzfristig verlangen kann. Abgeordnete dürfen dabei höchstens fünf Minuten reden; abgestimmt wird nicht.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/akt_stunde-245318",
+        "title": "Aktuelle Stunde - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/parlament/aufgaben/rechtsgrundlagen/erlaeuterungen_geschaeftsordnung/go-erlaeuterungen-inhalt-1118488",
+        "title": "Erläuterungen zur Geschäftsordnung - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/parlament/aufgaben/rechtsgrundlagen/go_btg",
+        "title": "Geschäftsordnung des Deutschen Bundestages - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Regierungsbefragung",
+    "forms": [
+      "Regierungsbefragung"
+    ],
+    "definition": "In Sitzungswochen stellen Abgeordnete mittwochs im Plenum Mitgliedern der Bundesregierung spontane Fragen zu aktuellen Themen, die diese in der Sitzung beantworten.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/regierungsbefragung-855392",
+        "title": "Regierungsbefragung - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/parlament/aufgaben/rechtsgrundlagen/erlaeuterungen_geschaeftsordnung/go-erlaeuterungen-inhalt-1118488",
+        "title": "Erläuterungen zur Geschäftsordnung - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Beschlussempfehlung",
+    "forms": [
+      "Beschlussempfehlung",
+      "Beschlussempfehlungen"
+    ],
+    "definition": "Der Vorschlag eines Ausschusses an den ganzen Bundestag, wie über einen Gesetzentwurf oder Antrag entschieden werden soll: annehmen, ändern oder ablehnen.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/beschlussempfehlung-245344",
+        "title": "Beschlussempfehlung - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/parlament/aufgaben/rechtsgrundlagen/erlaeuterungen_geschaeftsordnung/go-erlaeuterungen-inhalt-1118488",
+        "title": "Erläuterungen zur Geschäftsordnung - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Petitionsausschuss",
+    "forms": [
+      "Petitionsausschuss",
+      "Petitionsausschusses"
+    ],
+    "definition": "Der Ausschuss, der Bitten und Beschwerden an den Bundestag prüft, soweit der Bund zuständig ist. Er empfiehlt dem Plenum, wie über die einzelnen Petitionen entschieden wird.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/ausschuesse/a02_Petitionsausschuss",
+        "title": "Petitionsausschuss - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/ausschuesse/a02_Petitionsausschuss/hinweise-1075818",
+        "title": "Allgemeine Hinweise zum Petitionsverfahren - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/parlament/aufgaben/rechtsgrundlagen/erlaeuterungen_geschaeftsordnung/go-erlaeuterungen-inhalt-1118488",
+        "title": "Erläuterungen zur Geschäftsordnung - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Bundesminister",
+    "forms": [
+      "Bundesminister",
+      "Bundesministerin"
+    ],
+    "definition": "Leitet ein Ministerium der Bundesregierung, etwa für Finanzen oder Gesundheit, und verantwortet die Politik der Regierung in diesem Bereich.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/bundesminister-855414",
+        "title": "Bundesminister - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundesregierung.de/breg-de/leichte-sprache/bundes-ministerien",
+        "title": "Leichte Sprache: Die Bundes-Ministerien I Bundes-Regierung"
+      }
+    ]
+  },
+  {
+    "term": "Parlamentarischer Staatssekretär",
+    "forms": [
+      "Parlamentarischer Staatssekretär",
+      "Parlamentarische Staatssekretärin"
+    ],
+    "definition": "Meist eine Abgeordnete oder ein Abgeordneter, die oder der eine Bundesministerin oder einen Bundesminister unterstützt und vertreten kann, etwa bei Debatten und Fragestunden im Bundestag.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/parlamentarischer-staatssekretaer-855900",
+        "title": "Parlamentarische Staatssekretäre - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Staatsminister",
+    "forms": [
+      "Staatsminister",
+      "Staatsministerin"
+    ],
+    "definition": "Titel der Parlamentarischen Staatssekretärinnen und Staatssekretäre im Bundeskanzleramt und im Auswärtigen Amt, die dort die Leitung unterstützen. In Bayern und Sachsen heißen so auch die Landesministerinnen und -minister.",
+    "sources": [
+      {
+        "url": "https://www.bpb.de/kurz-knapp/lexika/politiklexikon/296501/staatsminister-staatsministerin/",
+        "title": "Staatsminister/Staatsministerin | bpb.de"
+      },
+      {
+        "url": "https://www.bundestag.de/services/glossar/parlamentarischer-staatssekretaer-855900",
+        "title": "Parlamentarische Staatssekretäre - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Ministerpräsident",
+    "forms": [
+      "Ministerpräsident",
+      "Ministerpräsidentin"
+    ],
+    "definition": "Leitet die Regierung eines Bundeslandes; in Berlin, Bremen und Hamburg heißt das Amt anders. Sie oder er gehört dem Bundesrat an.",
+    "sources": [
+      {
+        "url": "https://www.bpb.de/kurz-knapp/lexika/politiklexikon/17854/ministerpraesident-ministerpraesidentin/",
+        "title": "Ministerpräsident/Ministerpräsidentin | bpb.de"
+      },
+      {
+        "url": "https://www.bpb.de/themen/politisches-system/deutsche-demokratie/39348/bundesrat/",
+        "title": "Bundesrat | Deutsche Demokratie | bpb.de"
+      }
+    ]
+  },
+  {
+    "term": "Parlamentarischer Geschäftsführer",
+    "forms": [
+      "Parlamentarischer Geschäftsführer",
+      "Parlamentarische Geschäftsführerin"
+    ],
+    "definition": "Organisiert die Arbeit einer Fraktion im Bundestag: bereitet die Plenarsitzungen vor, plant mit den anderen Fraktionen die Tagesordnung und hält die Fraktion bei wichtigen Abstimmungen zusammen.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/parlamentarische-geschaeftsfuehrer-869100",
+        "title": "Parlamentarische Geschäftsführer - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Obmann",
+    "forms": [
+      "Obmann",
+      "Obfrau",
+      "Obleute"
+    ],
+    "definition": "Vertritt die eigene Fraktion in einem Ausschuss und ist dort die wichtigste Ansprechperson der Fraktionsführung. Stimmt die Tagesordnung ab und plant die Beratungen des Ausschusses.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/obleute-245506",
+        "title": "Obleute - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/dokumente/textarchiv/2025/kw33-ausschuesse-erklaertext-1104972",
+        "title": "24 ständige Ausschüsse bereiten die Beschlüsse des Bundestages vor - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Ordentliches Mitglied",
+    "forms": [
+      "Ordentliches Mitglied",
+      "Ordentliche Mitglieder"
+    ],
+    "definition": "Mitglied eines Ausschusses mit eigener Stimme. Fehlt es, kann ein stellvertretendes Mitglied derselben Fraktion an seiner Stelle abstimmen.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/dokumente/textarchiv/2025/kw33-ausschuesse-erklaertext-1104972",
+        "title": "24 ständige Ausschüsse bereiten die Beschlüsse des Bundestages vor - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Stellvertretendes Mitglied",
+    "forms": [
+      "Stellvertretendes Mitglied",
+      "Stellvertretende Mitglieder"
+    ],
+    "definition": "Vertritt im Ausschuss ein ordentliches Mitglied der eigenen Fraktion, wenn es fehlt, und stimmt dann an seiner Stelle ab.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/dokumente/textarchiv/2025/kw33-ausschuesse-erklaertext-1104972",
+        "title": "24 ständige Ausschüsse bereiten die Beschlüsse des Bundestages vor - Deutscher Bundestag"
+      }
+    ]
+  }
+]

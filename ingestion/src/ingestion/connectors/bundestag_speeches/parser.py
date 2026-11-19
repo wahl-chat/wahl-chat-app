@@ -67,6 +67,11 @@ def parse_speaker(redner) -> dict:  # type: ignore[return]
         " ".join(node.text or "" for node in name.findall("nachname"))
     )
     party = normalize_whitespace(name.findtext("fraktion"))
+    # Members of the government speak in their office, not for a Fraktion:
+    # their <name> carries a <rolle> instead of a <fraktion>.
+    role = normalize_whitespace(
+        name.findtext("rolle/rolle_lang") or name.findtext("rolle/rolle_kurz")
+    )
 
     speaker: dict = {
         "speaker_xml_id": redner.get("id"),
@@ -74,6 +79,7 @@ def parse_speaker(redner) -> dict:  # type: ignore[return]
             part for part in [title, first_name, last_name] if part
         ),
         "party": party,
+        "role": role,
     }
 
     # Some official XML records have merged structured metadata, while the visible label is correct.

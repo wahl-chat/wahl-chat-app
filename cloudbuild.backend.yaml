@@ -53,8 +53,10 @@ steps:
       - push
       - gcr.io/${PROJECT_ID}/github.com/wahl-chat/wahl-chat-ingestion:${COMMIT_SHA}
 
+  # Pinned: the floating `slim` tag dropped python3 in 592.0.0, which the
+  # smoke test below needs. Check python3 is still there before bumping.
   - id: deploy-smoke-promote
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:591.0.0-slim
     entrypoint: bash
     args:
       - -ceu
@@ -114,7 +116,7 @@ steps:
   # this step is the image authority for jobs, exactly as deploy-smoke-promote
   # is for the service.
   - id: update-ingestion-job-images
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:591.0.0-slim
     entrypoint: bash
     args:
       - -ceu

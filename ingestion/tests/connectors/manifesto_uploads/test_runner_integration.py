@@ -343,7 +343,7 @@ def test_an_empty_bucket_retires_the_last_stored_upload(
             return []
 
     monkeypatch.setenv("MANIFESTO_UPLOADS_SOURCE", "bucket")
-    monkeypatch.setattr(bucket_listing, "_client", lambda env=None: _EmptyBucket())
+    monkeypatch.setattr(bucket_listing, "storage_client", lambda: _EmptyBucket())
 
     qdrant = _Qdrant(stored)
     run_connector(ManifestoUploadsConnector(env="dev"), qdrant, _embed(), "c")

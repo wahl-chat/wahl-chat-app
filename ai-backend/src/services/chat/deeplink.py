@@ -18,6 +18,8 @@ import difflib
 import re
 from typing import Optional
 
+from wahlchat_common.content_words import content_words
+
 # Second-pass deep-link locator. A cited op speech chunk carries a
 # `meta.sentence_map` (verbatim sentences + per-sentence timestamps). The locator
 # matches the model's quoted text to the best sentence and rewrites the citation
@@ -104,65 +106,6 @@ def locate_deeplink(quoted: str, sentence_map: list[dict], video_uri: str) -> st
     return f"{video_uri}#t={ts}" if ts is not None else video_uri
 
 
-# German function words / fillers to ignore when scoring query↔sentence overlap.
-# Kept small and lowercase; the > 3-char length gate already drops most of them,
-# but the plenary-opener words ("damen", "herren", "kollegen"…) recur in every
-# speech and would otherwise dominate the overlap score.
-_DEEPLINK_STOPWORDS = frozenset(
-    {
-        "damen",
-        "herren",
-        "kollegen",
-        "kolleginnen",
-        "präsident",
-        "präsidentin",
-        "sehr",
-        "geehrte",
-        "geehrter",
-        "liebe",
-        "meine",
-        "unsere",
-        "diese",
-        "dieser",
-        "dieses",
-        "haben",
-        "werden",
-        "wird",
-        "wurde",
-        "worden",
-        "einen",
-        "eine",
-        "einem",
-        "einer",
-        "auch",
-        "aber",
-        "nicht",
-        "schon",
-        "noch",
-        "mehr",
-        "sein",
-        "sind",
-        "dass",
-        "denn",
-        "dann",
-        "hier",
-        "damit",
-        "durch",
-        "über",
-        "unter",
-    }
-)
-
-
-def _content_tokens(text: str) -> set[str]:
-    """Lowercase content words (> 3 chars, not a stopword) for overlap scoring."""
-    return {
-        w
-        for w in re.findall(r"\w+", (text or "").lower())
-        if len(w) > 3 and w not in _DEEPLINK_STOPWORDS
-    }
-
-
 def _best_sentence_ts_by_relevance(
     query: str, sentence_map: list[dict]
 ) -> Optional[float]:
@@ -175,13 +118,13 @@ def _best_sentence_ts_by_relevance(
     lands the deep-link on the sentence most topically related to the question
     (zero embeddings, never raises). Returns ``None`` when nothing overlaps.
     """
-    q_tokens = _content_tokens(query)
+    q_tokens = content_words(query)
     if not q_tokens:
         return None
     best_ts: Optional[float] = None
     best_score = 0
     for sentence in _sanitize_sentence_map(sentence_map):
-        score = len(q_tokens & _content_tokens(sentence.get("text") or ""))
+        score = len(q_tokens & content_words(sentence.get("text") or ""))
         if score > best_score:
             best_score = score
             best_ts = sentence.get("ts_start")

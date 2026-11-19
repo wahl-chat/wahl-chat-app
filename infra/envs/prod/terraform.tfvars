@@ -5,9 +5,9 @@
 project_id = "wahl-chat"
 region     = "europe-west1"
 
-# dip-api-key gets a sentinel version so an apply never depends on a real key;
+# These secrets get a sentinel version so an apply never depends on a real key;
 # the value is added out of band.
-bootstrap_secret_ids = ["dip-api-key"]
+bootstrap_secret_ids = ["dip-api-key", "revalidate-secret"]
 
 # The prod deployer creates the per-secret accessor grants and the scheduler
 # service account's run.invoker bindings. Turning this off removes those grants.
@@ -119,7 +119,7 @@ jobs = {
     }
     task_count  = 4
     parallelism = 2
-    schedule    = "0 4 * * 0"
+    schedule    = "0 4 * * *"
   }
 
   "ingest-aw-votes-laender" = {
@@ -139,7 +139,7 @@ jobs = {
     secret_env = {
       DIP_API_KEY = "dip-api-key"
     }
-    schedule = "0 3 * * 0"
+    schedule = "0 3 * * *"
   }
 
   "ingest-manifestos" = {
@@ -157,5 +157,19 @@ jobs = {
       MANIFESTO_UPLOADS_SOURCE = "bucket"
     }
     schedule = "30 5 * * 0"
+  }
+
+  "ingest-feed" = {
+    env = {
+      CONNECTOR_ID             = "feed"
+      ELECTION_FIXTURES_SOURCE = "firestore"
+    }
+    # --revalidate busts the web's feed cache after a run that wrote, so new
+    # items show at once.
+    secret_env = {
+      REVALIDATE_SECRET = "revalidate-secret"
+    }
+    args     = ["--days", "14", "--time-budget", "780", "--revalidate"]
+    schedule = "*/30 6-7 * * *"
   }
 }
