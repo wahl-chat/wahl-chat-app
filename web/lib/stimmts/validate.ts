@@ -1,11 +1,12 @@
 import { safeExternalUrl } from '@/lib/pledge-tracker/pledges';
 import { isIsoDate } from './berlin-time';
-import { hasBalancedEmphasis, splitEmphasis, stripEmphasis } from './emphasis';
 import { SEATING_ORDER } from './parties';
 import { feedTopicFor } from './topic';
 import type {
   BillDocument,
   DocumentSubmitter,
+  KeyPoint,
+  KeyPointSource,
   PartyResult,
   Puzzle,
   PuzzleOutcome,
@@ -24,10 +25,19 @@ const MIN_PARTY_UNITY = 0.8;
 const KEY_POINT_COUNT = 3;
 const MAX_KEY_POINT_WORDS = 12;
 
+/** It must fit the feed card's "Heute: …" line on a phone. */
+const MAX_SHORT_NAME_LENGTH = 22;
+
+/** The article lets the name read as a noun after "Heute: ". */
+const SHORT_NAME_PATTERN = /^(Der|Die|Das) \S/;
+
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /** A Drucksache number: Wahlperiode, slash, number ("21/6278"). */
 const DRUCKSACHE_PATTERN = /^[1-9]\d*\/[1-9]\d*$/;
+
+/** Two-digit Wahlperiode and at most five digits, as the PDF URL expects. */
+const KEY_POINT_DOCUMENT_PATTERN = /^\d{2}\/\d{1,5}$/;
 
 type Json = Record<string, unknown>;
 
@@ -171,34 +181,46 @@ function readTopic(record: Json, id: string): string {
 }
 
 function countWords(text: string): number {
-  return stripEmphasis(text).split(/\s+/).filter(Boolean).length;
+  return text.split(/\s+/).filter(Boolean).length;
 }
 
-function readKeyPoint(value: unknown, index: number, id: string): string {
-  const where = `key point ${index + 1}`;
+function readPage(record: Json, where: string, id: string): number {
+  const page = record.page;
+  if (typeof page !== 'number' || !Number.isInteger(page) || page < 1) {
+    return fail(id, `${where} "page" must be a whole number of 1 or more`);
+  }
+  return page;
+}
+
+function readKeyPointSource(
+  value: unknown,
+  where: string,
+  id: string,
+): KeyPointSource {
+  if (!isRecord(value)) {
+    return fail(id, `${where} needs a "source" object with document and page`);
+  }
+  const document = readString(value, 'document', id);
+  if (!KEY_POINT_DOCUMENT_PATTERN.test(document)) {
+    fail(id, `${where} "document" must be a Drucksache number like 21/8157`);
+  }
+  return {
+    document,
+    page: readPage(value, where, id),
+  };
+}
+
+function readKeyPointText(value: unknown, where: string, id: string): string {
   if (typeof value !== 'string' || value.trim() === '') {
-    return fail(id, `${where} must be a non-empty string`);
+    return fail(id, `${where} "text" must be a non-empty string`);
   }
   if (value !== value.trim()) {
     return fail(id, `${where} has leading or trailing whitespace`);
   }
-  if (!hasBalancedEmphasis(value)) {
-    return fail(id, `${where} has an unpaired "**" marker`);
-  }
-  if (stripEmphasis(value).trim() === '') {
-    return fail(id, `${where} has no text, only markers`);
-  }
-  // Runs of asterisks are ambiguous ("***a***" splits into stray "*"s) and
-  // "****" hides an empty bold run, so neither can render as intended.
-  if (/\*{3,}/.test(value)) {
-    return fail(id, `${where} has "***" or more; bold runs need text between`);
-  }
-  // A padded run renders as a bold space before or after the number.
-  const paddedRun = splitEmphasis(value).some(
-    (segment) => segment.strong && segment.text !== segment.text.trim(),
-  );
-  if (paddedRun) {
-    return fail(id, `${where} has a bold run that starts or ends with a space`);
+  // Nothing renders emphasis, so a stray marker would show up as literal
+  // asterisks on the card.
+  if (value.includes('*')) {
+    return fail(id, `${where} must not contain "*"; key points have no markup`);
   }
   if (countWords(value) > MAX_KEY_POINT_WORDS) {
     return fail(id, `${where} is longer than ${MAX_KEY_POINT_WORDS} words`);
@@ -206,7 +228,21 @@ function readKeyPoint(value: unknown, index: number, id: string): string {
   return value;
 }
 
-function readKeyPoints(value: unknown, id: string): [string, string, string] {
+function readKeyPoint(value: unknown, index: number, id: string): KeyPoint {
+  const where = `key point ${index + 1}`;
+  if (!isRecord(value)) {
+    return fail(id, `${where} must be an object with "text" and "source"`);
+  }
+  return {
+    text: readKeyPointText(value.text, where, id),
+    source: readKeyPointSource(value.source, where, id),
+  };
+}
+
+function readKeyPoints(
+  value: unknown,
+  id: string,
+): [KeyPoint, KeyPoint, KeyPoint] {
   if (!Array.isArray(value) || value.length !== KEY_POINT_COUNT) {
     return fail(id, `"keyPoints" must list exactly ${KEY_POINT_COUNT} points`);
   }
@@ -214,6 +250,45 @@ function readKeyPoints(value: unknown, id: string): [string, string, string] {
     readKeyPoint(point, index, id),
   );
   return [first, second, third];
+}
+
+/**
+ * A key point may only cite the bill itself or the version voted on: those
+ * are the PDFs the puzzle links to, so a reader can check what they are
+ * shown against the same documents.
+ */
+function checkKeyPointDocuments(
+  keyPoints: KeyPoint[],
+  document: BillDocument | undefined,
+  id: string,
+): void {
+  if (!document) {
+    return;
+  }
+  const allowed = [document.number];
+  if (document.votedIn) {
+    allowed.push(document.votedIn.number);
+  }
+  keyPoints.forEach((point, index) => {
+    if (!allowed.includes(point.source.document)) {
+      fail(
+        id,
+        `key point ${index + 1} cites ${point.source.document}, ` +
+          `but the puzzle's documents are ${allowed.join(' and ')}`,
+      );
+    }
+  });
+}
+
+function readShortName(record: Json, id: string): string {
+  const name = readString(record, 'shortName', id);
+  if (name.length > MAX_SHORT_NAME_LENGTH) {
+    fail(id, `"shortName" is longer than ${MAX_SHORT_NAME_LENGTH} characters`);
+  }
+  if (!SHORT_NAME_PATTERN.test(name)) {
+    fail(id, '"shortName" must start with Der, Die or Das');
+  }
+  return name;
 }
 
 function readParty(value: unknown, id: string): PartyResult {
@@ -275,22 +350,29 @@ export function validatePuzzle(data: unknown): Puzzle {
     );
   }
 
+  const keyPoints =
+    data.keyPoints === undefined
+      ? undefined
+      : readKeyPoints(data.keyPoints, id);
+  const document =
+    data.document === undefined ? undefined : readDocument(data.document, id);
+  if (keyPoints) {
+    checkKeyPointDocuments(keyPoints, document, id);
+  }
+
   return {
     id,
     voteDate: readDate(data, 'voteDate', id),
     topic: readTopic(data, id),
     title: readString(data, 'title', id),
+    shortName: readShortName(data, id),
     briefing: readString(data, 'briefing', id),
-    ...(data.keyPoints === undefined
-      ? {}
-      : { keyPoints: readKeyPoints(data.keyPoints, id) }),
+    ...(keyPoints ? { keyPoints } : {}),
     yesMeans: readString(data, 'yesMeans', id),
     outcome,
     parties,
     unaffiliated: readCount(data, 'unaffiliated', id),
-    ...(data.document === undefined
-      ? {}
-      : { document: readDocument(data.document, id) }),
+    ...(document ? { document } : {}),
     source: readLink(data.source, 'source', id),
   };
 }
