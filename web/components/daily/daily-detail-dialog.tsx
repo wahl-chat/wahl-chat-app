@@ -231,16 +231,23 @@ function SectionDetail({
             )}
           </section>
         )}
-        {protocol &&
-          (protocol.pdf_url ? (
-            <SourceLink href={protocol.pdf_url}>
-              Quelle: Plenarprotokoll {protocolLabel(digest)}
+        <div className="flex flex-col items-start">
+          {protocol &&
+            (protocol.pdf_url ? (
+              <SourceLink href={protocol.pdf_url}>
+                Quelle: Plenarprotokoll {protocolLabel(digest)}
+              </SourceLink>
+            ) : (
+              <p className={cn('text-[15px]', MUTED_TEXT)}>
+                Quelle: Plenarprotokoll {protocolLabel(digest)}
+              </p>
+            ))}
+          {section.op_url && (
+            <SourceLink href={section.op_url}>
+              Video: Open Parliament TV
             </SourceLink>
-          ) : (
-            <p className={cn('text-[15px]', MUTED_TEXT)}>
-              Quelle: Plenarprotokoll {protocolLabel(digest)}
-            </p>
-          ))}
+          )}
+        </div>
       </div>
     </>
   );

@@ -47,6 +47,7 @@ def _day(
     stored_edition_ids: Optional[list[str]] = None,
     out_of_time: Any = lambda: False,
     lookup_poll: Any = None,
+    lookup_op_agenda: Any = None,
 ) -> tuple[Optional[bulk.DayBuild], bulk.ParliamentRun]:
     run = bulk.ParliamentRun(BUNDESTAG, None)
     builder = FeedBuilder(llm)
@@ -63,6 +64,7 @@ def _day(
             out_of_time=out_of_time,
             now=NOW,
             lookup_poll=lookup_poll,
+            lookup_op_agenda=lookup_op_agenda,
         )
     finally:
         builder.close()
@@ -378,6 +380,53 @@ def test_drucksachen_are_looked_up_once_and_retried_after_a_failure() -> None:
         raise AssertionError("a poll with an answer is not looked up again")
 
     assert _day(FakeLLM(), _plan(), stored, edition_ids, lookup_poll=never)[0] is None
+
+
+TOP1_PAGE = "https://de.openparliament.tv/agendaItem/DE-1"
+
+
+def test_stored_debates_get_their_openparliament_page_without_a_rebuild() -> None:
+    stored, edition_ids = _stored_day()
+    llm = FakeLLM()
+    asked: list[tuple[int, int]] = []
+
+    def lookup(session: tuple[int, int]) -> dict[str, str]:
+        asked.append(session)
+        return {"top1": TOP1_PAGE}
+
+    day, _ = _day(llm, _plan(), stored, edition_ids, lookup_op_agenda=lookup)
+    assert day is not None
+    assert llm.calls == []
+    assert day.built == set()
+    items = {i.id: i for i in day.items}
+    assert items[TOP1].debate is not None
+    assert items[TOP1].debate.op_url == TOP1_PAGE
+    # The site lists no TOP 2 yet: that debate keeps no link.
+    top2 = "bundestag_2026-09-24_d45-top2"
+    assert items[top2].debate is not None
+    assert items[top2].debate.op_url is None
+    assert day.changed == {TOP1}
+    assert not needs_translation(items[TOP1], "en")
+    assert set(asked) == {(21, 45)}
+
+
+def test_a_found_openparliament_page_is_kept_and_a_failure_changes_nothing() -> None:
+    stored, edition_ids = _stored_day()
+    day, _ = _day(
+        FakeLLM(), _plan(), stored, edition_ids, lookup_op_agenda=lambda s: None
+    )
+    assert day is None
+
+    for item_id, item in list(stored.items()):
+        if item.debate is not None:
+            debate = item.debate.model_copy(update={"op_url": TOP1_PAGE})
+            stored[item_id] = item.model_copy(update={"debate": debate})
+
+    def never(session: tuple[int, int]) -> dict[str, str]:
+        raise AssertionError("a debate with a page is not looked up again")
+
+    day, _ = _day(FakeLLM(), _plan(), stored, edition_ids, lookup_op_agenda=never)
+    assert day is None
 
 
 def test_stored_debates_get_their_interjections_without_a_rebuild() -> None:

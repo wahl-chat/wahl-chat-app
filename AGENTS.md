@@ -539,6 +539,12 @@ reuse the same item: the feed now, later briefings and social posts.
   (`feed/passages.py`). It links the video time when openparliament.tv has it,
   else the protocol page. The sources are facts (`debate.key_point_sources`,
   `parties[].position_sources`). They are the same in all languages.
+- **Recording.** A debate links its agenda item's page on openparliament.tv
+  (`debate.op_url`). The bulk data has no id for it, so the job reads the
+  sitting from openparliament.tv's session API and matches the
+  Tagesordnungspunkt (`feed/op_agenda.py`). It is a fact: a stored item gets
+  it without a rebuild, and a debate the site does not list yet is asked for
+  again next run. Stored days get it from `make backfill-feed`.
 - **Card video.** The job chooses the speech a debate card plays and the
   second it starts at (`feed/card_video.py`, stored as
   `debate.card_video`). After the run has published and cleared the web

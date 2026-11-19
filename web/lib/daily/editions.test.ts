@@ -4,7 +4,7 @@ import feedFixture from '../../../firebase/firestore_data/emulator/feed.json';
 import { feedToDigests } from './editions';
 import { buildFeed, rankFeed } from './feed';
 import { DEFAULT_FILTER } from './filter';
-import { findItem, sectionItems, voteItems } from './items';
+import { debateForVote, findItem, sectionItems, voteItems } from './items';
 import { topicShortTitle } from './topics';
 
 const FEED = feedFixture as unknown as ParliamentFeed;
@@ -69,6 +69,38 @@ describe('feedToDigests', () => {
     const [section, other] = digest.session?.sections ?? [];
     expect(section.card_video).toEqual(card_video);
     expect(other.card_video).toBeNull();
+  });
+
+  it('passes the openparliament.tv link through, and none where unknown', () => {
+    const [first, second] = FEED.editions[0].item_ids;
+    const op_url = 'https://de.openparliament.tv/agendaItem/DE-1';
+    const feed: ParliamentFeed = {
+      editions: FEED.editions,
+      items: FEED.items.map((i) => {
+        if (!i.debate) {
+          return i;
+        }
+        if (i.id === first) {
+          return { ...i, debate: { ...i.debate, op_url } };
+        }
+        return i.id === second
+          ? { ...i, debate: { ...i.debate, op_url: undefined } }
+          : i;
+      }),
+    };
+    const [digest] = feedToDigests(feed);
+    const [section, other] = digest.session?.sections ?? [];
+    expect(section.op_url).toBe(op_url);
+    expect(other.op_url).toBeNull();
+  });
+
+  it('leads a vote to the debate it ended', () => {
+    const digests = feedToDigests(FEED);
+    const vote = voteItems(digests[0]).find((v) => v.vote.poll_id === 6601);
+    expect(vote).toBeDefined();
+    expect(vote && debateForVote(vote)?.key).toBe(
+      'bundestag_2026-07-10_d90-top22',
+    );
   });
 
   it('leaves retracted items out of the feed', () => {

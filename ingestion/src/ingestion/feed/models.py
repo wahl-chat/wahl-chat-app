@@ -234,6 +234,9 @@ class DebateFacts(BaseModel):
     # Chosen from the facts above by ``card_video.choose_card_video``; None on
     # items no run has given one yet.
     card_video: Optional[CardVideo] = None
+    # The agenda item's page on openparliament.tv, with every speech's
+    # recording. None until the site lists the item (see ``op_agenda``).
+    op_url: Optional[str] = None
 
 
 class VoteFacts(BaseModel):

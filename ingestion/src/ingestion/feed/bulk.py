@@ -61,6 +61,7 @@ from ingestion.feed.builder import (
 from ingestion.feed.calendar import FRESH_FOR, build_calendar
 from ingestion.feed.card_video import choose_card_video
 from ingestion.feed.documents import PollDocuments, poll_documents
+from ingestion.feed.op_agenda import OpAgendaPages, op_agenda_lookup
 from ingestion.feed.index import FEED_COLLECTION_NAME, IndexReport, index_items
 from ingestion.feed.items import BuildNeed, assemble_edition, build_needed
 from ingestion.feed.models import (
@@ -101,6 +102,7 @@ from ingestion.feed.speaker_parties import PartyResolver
 from ingestion.feed.reader import (
     SPEECH_SOURCE_TYPE,
     VOTE_SOURCE_TYPE,
+    AgendaItem,
     SittingDay,
     assemble_speeches,
     compute_window,
@@ -298,10 +300,11 @@ def attach_source_facts(
     items: list[FeedItem],
     plan: DayPlan,
     lookup_poll: Optional[PollDocuments],
+    lookup_op_agenda: Optional[OpAgendaPages] = None,
 ) -> tuple[list[FeedItem], set[str]]:
     """Give each item the facts read from its source: a debate its
-    Drucksachen, interjections and who its speakers are, a vote its
-    Drucksachen. Returns the items
+    Drucksachen, interjections, who its speakers are and its page on
+    openparliament.tv, a vote its Drucksachen. Returns the items
     and the ids that changed. Facts from the source, not the model: a stored
     item gets them without being rebuilt, and its texts and translation stay
     as they are. A debate follows this run's protocol, corrections included;
@@ -324,6 +327,10 @@ def attach_source_facts(
             parties = with_speaker_facts(item.debate.parties, agenda.speeches)
             if parties is not None:
                 update["parties"] = parties
+            if item.debate.op_url is None and lookup_op_agenda is not None:
+                op_url = _op_page(agenda, lookup_op_agenda)
+                if op_url is not None:
+                    update["op_url"] = op_url
             if update:
                 debate = item.debate.model_copy(update=update)
                 item = item.model_copy(update={"debate": debate})
@@ -340,6 +347,12 @@ def attach_source_facts(
                 changed.add(item.id)
         out.append(item)
     return out, changed
+
+
+def _op_page(agenda: AgendaItem, lookup: OpAgendaPages) -> Optional[str]:
+    if agenda.session is None or not agenda.slug:
+        return None
+    return (lookup(agenda.session) or {}).get(agenda.slug)
 
 
 def attach_card_videos(items: list[FeedItem]) -> tuple[list[FeedItem], set[str]]:
@@ -384,6 +397,7 @@ def plan_day(
     out_of_time: Callable[[], bool],
     now: datetime,
     lookup_poll: Optional[PollDocuments] = None,
+    lookup_op_agenda: Optional[OpAgendaPages] = None,
 ) -> Optional[DayBuild]:
     """Generate what changed in one day and assemble its edition; None when
     the day is unchanged and fully translated."""
@@ -428,7 +442,9 @@ def plan_day(
         item = built.get(item_id) or stored.get(item_id)
         if item is not None and item.status == "published":
             listed.append(item)
-    listed, documented = attach_source_facts(listed, plan, lookup_poll)
+    listed, documented = attach_source_facts(
+        listed, plan, lookup_poll, lookup_op_agenda
+    )
     listed, filmed = attach_card_videos(listed)
     edition, ranked = assemble_edition(
         parliament, plan.edition_id, plan.day, plan.protocols, listed, now
@@ -475,6 +491,7 @@ def build_for_parliament(
     out_of_time: Callable[[], bool] = lambda: False,
     now: Optional[datetime] = None,
     lookup_poll: Optional[PollDocuments] = None,
+    lookup_op_agenda: Optional[OpAgendaPages] = None,
 ) -> ParliamentRun:
     """Build the window's days newest first, publishing each one as it is built.
 
@@ -511,6 +528,7 @@ def build_for_parliament(
             out_of_time=out_of_time,
             now=now or datetime.now(timezone.utc),
             lookup_poll=lookup_poll,
+            lookup_op_agenda=lookup_op_agenda,
         )
         if day is None:
             run.unchanged += 1
@@ -771,6 +789,7 @@ def build_and_publish(
     index_to = qdrant if index and db is not None else None
     embed = _embeddings() if index_to is not None else None
     lookup_poll = poll_documents(AWClient())
+    lookup_op_agenda = op_agenda_lookup()
     glossary = read_glossary(db)
     runs: list[tuple[ParliamentRun, Published]] = []
     for parliament in parliaments:
@@ -808,6 +827,10 @@ def build_and_publish(
             publish_day=publish_day,
             out_of_time=out_of_time,
             lookup_poll=lookup_poll,
+            # openparliament.tv records the Bundestag only.
+            lookup_op_agenda=(
+                lookup_op_agenda if parliament.id == "bundestag" else None
+            ),
         )
         run.failed = builder.failed[failed_before:]
         runs.append((run, published))
