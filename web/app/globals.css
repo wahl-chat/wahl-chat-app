@@ -269,6 +269,102 @@ html[data-stimmts="today"]:not([data-stimmts-fly]) .stimmts-feed-card {
   display: none;
 }
 
+/* During the fly-in only the played card may show. The server renders the
+   invitation, which would flash until the browser swaps it; hiding it keeps
+   its place, so the feed does not move either. */
+html[data-stimmts-fly] .stimmts-feed-card:not([data-variant="played"]) {
+  visibility: hidden;
+}
+
+/* The header icon is for players only, known from the presence mark before
+   first paint; the check shows a game finished today. */
+.stimmts-header-icon,
+.stimmts-header-badge {
+  display: none;
+}
+
+html[data-stimmts] .stimmts-header-icon {
+  display: block;
+}
+
+html[data-stimmts="today"] .stimmts-header-badge {
+  display: inline-flex;
+}
+
+/* The icon takes 40 px of a phone's header, so for players the links beside
+   it give up their words before the header would scroll sideways: "Chat"
+   first, then "Meine Woche". Both keep their icon and their accessible
+   name. Keyed on the icon being in the header, not only on the player mark:
+   with the game switched off there is no icon, and the words stay. */
+@media (max-width: 419.98px) {
+  html[data-stimmts]
+    .daily-header:has(.stimmts-header-icon)
+    .daily-header-chat-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+@media (max-width: 369.98px) {
+  html[data-stimmts]
+    .daily-header:has(.stimmts-header-icon)
+    .daily-header-weekly-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+/* The icon appears as the card arrives: hidden until the flight fades it in,
+   and the check comes with the landing. Only on a page with the card to fly;
+   anywhere else the icon simply shows. */
+html[data-stimmts-fly]:has(.stimmts-feed-card) [data-stimmts-icon] {
+  opacity: 0;
+}
+
+html[data-stimmts-fly] .stimmts-header-badge {
+  display: none;
+}
+
+.stimmts-icon-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in srgb, var(--daily-yes) 50%, transparent);
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stimmts-icon-pulse {
+    animation: stimmts-icon-pulse 900ms ease-out both;
+  }
+}
+
+@keyframes stimmts-icon-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .stimmts-shine {
     position: relative;

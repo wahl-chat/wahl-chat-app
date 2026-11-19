@@ -12,6 +12,7 @@ import {
   chamberStates,
   selectParty,
 } from '@/lib/stimmts/game-view';
+import { browserSession, markJustPlayed } from '@/lib/stimmts/presence';
 import { getGame } from '@/lib/stimmts/progress';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import type { Puzzle, Schedule } from '@/lib/stimmts/types';
@@ -105,8 +106,10 @@ function PuzzleGame({
     if (finishedHere && !countedFinish.current) {
       countedFinish.current = true;
       trackPuzzleCompleted(number, scorePuzzle(puzzle, game.guesses).correct);
+      // The feed flies its card into the header icon on the way back.
+      markJustPlayed(today, browserSession(), document.documentElement);
     }
-  }, [finishedHere, number, puzzle, game.guesses]);
+  }, [finishedHere, number, puzzle, game.guesses, today]);
   useLayoutEffect(() => {
     if (finishedElsewhere) {
       stamped.current = true;

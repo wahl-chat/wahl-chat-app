@@ -11,15 +11,18 @@ import {
   nextFeedTick,
   recordFeedVisit,
 } from '@/lib/stimmts/feed-entry';
+import { browserSession, clearJustPlayed } from '@/lib/stimmts/presence';
 import { browserStorage } from '@/lib/stimmts/progress-store';
 import type { StimmtsStatus } from '@/lib/stimmts/status';
+import { type TodaysResult, todaysResult } from '@/lib/stimmts/todays-result';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { useStimmtsStatus } from '@/lib/stimmts/use-stimmts-status';
 import { cn } from '@/lib/utils';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CARD_SURFACE, FOCUS_RING, MUTED_TEXT } from './card-styles';
+import StimmtsFlyIn from './stimmts-fly-in';
 
 const SHINE_KEY = 'stimmts:shine-shown';
 
@@ -162,18 +165,124 @@ function StimmtsFeedCard({ initialStatus }: { initialStatus: StimmtsStatus }) {
     }
   }, [kind]);
 
+  const flying = useFlyFlag(kind);
+  const result =
+    flying.active && kind === 'played' && now
+      ? todaysResult(progress, berlinDate(now))
+      : null;
+
   if (!status.enabled) {
     return null;
   }
   if (entry === null) {
     return <Card entry={null} now={null} shine={false} />;
   }
-  // A game played today gets its own card later; until then nothing shows,
-  // as the presence rule already did before first paint.
+  if (result) {
+    return (
+      <StimmtsFlyIn onDone={flying.done}>
+        <PlayedCard result={result} />
+      </StimmtsFlyIn>
+    );
+  }
+  // Played today and already flown in (or never to): the header icon holds
+  // the result, as the presence rule said before first paint.
   if (entry.kind !== 'play' || now === null) {
     return null;
   }
   return <Card entry={entry} now={now} shine={shine} />;
+}
+
+/**
+ * Whether this visit comes straight from finishing a game, which the game
+ * marked on <html>. Read after mount, as the server cannot know. A flag that
+ * does not fit the progress (a game reset since) is dropped, or the CSS
+ * would keep the invitation hidden. A page restored from the back-forward
+ * cache drops it too, so going back never replays the flight.
+ */
+function useFlyFlag(kind: FeedEntry['kind'] | undefined): {
+  active: boolean;
+  done: () => void;
+} {
+  const [active, setActive] = useState(false);
+  const done = useCallback(() => setActive(false), []);
+
+  useEffect(() => {
+    setActive(document.documentElement.dataset.stimmtsFly !== undefined);
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        clearJustPlayed(browserSession(), document.documentElement);
+        setActive(false);
+      }
+    };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
+
+  useEffect(() => {
+    if (active && kind !== undefined && kind !== 'played') {
+      clearJustPlayed(browserSession(), document.documentElement);
+      setActive(false);
+    }
+  }, [active, kind]);
+
+  return { active, done };
+}
+
+/**
+ * Today's result, shown only on the way into the header icon: what the
+ * player just finished, so they see it land where it now lives.
+ */
+function PlayedCard({ result }: { result: TodaysResult }) {
+  return (
+    <Link
+      href="/stimmts"
+      prefetch={false}
+      data-variant="played"
+      aria-label={`Stimmt’s? heute gespielt: ${result.correct} von ${result.total} richtig. Ergebnis ansehen`}
+      className={cn(
+        'stimmts-feed-card flex items-center gap-3 py-3 pl-3.5 pr-2.5 text-[var(--daily-ink)] no-underline',
+        CARD_SURFACE,
+        FOCUS_RING,
+      )}
+    >
+      <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span
+          className={cn(
+            'flex h-[18px] items-center gap-1.5 whitespace-nowrap text-[13px] leading-[18px]',
+            MUTED_TEXT,
+          )}
+        >
+          <StimmtsLogo className="flex-none gap-[5px] text-[15px] text-[var(--daily-ink)] [&>svg]:h-3" />
+          <span>· Heute gespielt</span>
+        </span>
+        <span className="flex items-center gap-2 whitespace-nowrap">
+          <span className="text-xl font-extrabold leading-6">
+            {result.correct}/{result.total}
+          </span>
+          <span aria-hidden className="ml-1 inline-flex flex-none gap-0.5">
+            {result.verdicts.map((right, index) => (
+              <span
+                // Seating order never changes within a result.
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed order
+                key={index}
+                className={cn(
+                  'inline-flex size-[13px] items-center justify-center rounded-full text-[8px] font-extrabold text-[var(--daily-canvas)]',
+                  right ? 'bg-[var(--daily-yes)]' : 'bg-[var(--daily-no)]',
+                )}
+              >
+                {right ? '✓' : '✗'}
+              </span>
+            ))}
+          </span>
+        </span>
+      </span>
+      <ChevronRight
+        aria-hidden
+        className={cn('size-5 flex-none', MUTED_TEXT)}
+        strokeWidth={2}
+      />
+    </Link>
+  );
 }
 
 function Card({
