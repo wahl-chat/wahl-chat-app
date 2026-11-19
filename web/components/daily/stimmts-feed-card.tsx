@@ -8,6 +8,7 @@ import {
   feedCardLabel,
   feedEntry,
   hasPuzzleToday,
+  nextFeedTick,
   recordFeedVisit,
 } from '@/lib/stimmts/feed-entry';
 import { browserStorage } from '@/lib/stimmts/progress-store';
@@ -92,14 +93,20 @@ function StimmtsFeedCard({ initialStatus }: { initialStatus: StimmtsStatus }) {
   useEffect(() => {
     hydrate();
     setNow(new Date());
-    // Playing in another tab and coming back retires the card.
+    // Playing in another tab and coming back retires the card. A sleeping
+    // device delays timers, so coming back also reads the clock afresh.
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
         refresh();
+        setNow(new Date());
       }
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
   }, [hydrate, refresh]);
 
   const ready = now !== null && hydrated;
@@ -120,14 +127,28 @@ function StimmtsFeedCard({ initialStatus }: { initialStatus: StimmtsStatus }) {
   const kind = entry?.kind;
   const shine = useShine(kind === 'play');
 
-  // The clock only matters while there is a countdown to show.
+  // The countdown needs the clock every second.
   useEffect(() => {
     if (kind !== 'play') {
       return;
     }
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(
+      () => setNow(new Date()),
+      nextFeedTick(kind, new Date()),
+    );
     return () => clearInterval(timer);
   }, [kind]);
+
+  // Without a countdown, a tab left open still has to notice Berlin
+  // midnight: a played day turns into a new puzzle, a launch day begins.
+  // Each wake-up sets `now`, which schedules the next one.
+  useEffect(() => {
+    if (!status.enabled || kind === undefined || kind === 'play' || !now) {
+      return;
+    }
+    const timer = setTimeout(() => setNow(new Date()), nextFeedTick(kind, now));
+    return () => clearTimeout(timer);
+  }, [status.enabled, kind, now]);
 
   // The presence mark is set once, before first paint. A tab left open past
   // Berlin midnight, or a game finished in another tab, has to move it on,

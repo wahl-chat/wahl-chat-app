@@ -79,6 +79,20 @@ export function hasPuzzleToday(status: StimmtsStatus, now: Date): boolean {
   );
 }
 
+/** Past midnight by this much, so the wake-up lands safely on the new day. */
+const ROLLOVER_MARGIN_MS = 1000;
+
+/**
+ * Milliseconds until an open feed should look at the clock again: every
+ * second while the countdown runs, otherwise just after the next Berlin
+ * midnight, when a played day turns into a new puzzle or the launch begins.
+ */
+export function nextFeedTick(kind: FeedEntry['kind'], now: Date): number {
+  return kind === 'play'
+    ? 1000
+    : nextPuzzleAt(now).getTime() - now.getTime() + ROLLOVER_MARGIN_MS;
+}
+
 /**
  * Counts the Berlin days this device opened the feed, once per day, to tell
  * when the card stops being new. Storage that is missing, blocked or corrupt

@@ -6,6 +6,7 @@ import {
   feedCardLabel,
   feedEntry,
   hasPuzzleToday,
+  nextFeedTick,
   recordFeedVisit,
   remainingLabel,
 } from './feed-entry';
@@ -218,5 +219,18 @@ describe('hasPuzzleToday', () => {
 
   it('is false once the last puzzle has run', () => {
     expect(hasPuzzleToday(on, new Date('2030-01-01T12:00:00Z'))).toBe(false);
+  });
+});
+
+describe('nextFeedTick', () => {
+  it('ticks every second while there is a countdown', () => {
+    expect(nextFeedTick('play', new Date('2026-11-15T14:18:33Z'))).toBe(1000);
+  });
+
+  it('otherwise wakes just after the next Berlin midnight', () => {
+    // 22:59:00 UTC is 23:59:00 in Berlin: one minute, plus the margin.
+    const now = new Date('2026-11-15T22:59:00Z');
+    expect(nextFeedTick('played', now)).toBe(61_000);
+    expect(nextFeedTick('hidden', now)).toBe(61_000);
   });
 });
