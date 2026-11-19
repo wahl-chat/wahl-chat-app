@@ -222,6 +222,9 @@ function Result({
         }}
         onShared={(method) => trackResultShared('result', method, number)}
       />
+      {/* Not held back until the cast: the card is cast further down, and
+          the prompt appearing above would shift the page out from under the
+          player. */}
       <FeedbackPrompt />
 
       <VoteResultCard puzzle={puzzle} onOpen={onReview} />

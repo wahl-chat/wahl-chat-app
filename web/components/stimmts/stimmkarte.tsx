@@ -1,5 +1,10 @@
 import { CARD_SURFACE, FOCUS_RING } from '@/components/daily/card-styles';
-import { feedDate, formatDate, shortDay } from '@/lib/stimmts/labels';
+import {
+  feedDate,
+  formatDate,
+  shortDay,
+  voteDateShort,
+} from '@/lib/stimmts/labels';
 import { MAX_SCORE } from '@/lib/stimmts/share-image';
 import { cn } from '@/lib/utils';
 import type { ReactNode, Ref } from 'react';
@@ -16,7 +21,7 @@ type Props = {
   playDate: string;
   title: string;
   topic: string;
-  /** On the result: the score stamped beside the title. */
+  /** Once played: the score stamped on the card. */
   score?: number;
   /** With the score: right or wrong per party, in seating order. */
   verdicts?: readonly { partyId: string; correct: boolean }[];
@@ -34,23 +39,23 @@ type Props = {
  * personal card into the urn; the player gets one for their prediction. The
  * game's own logo stands where a real card prints "Deutscher Bundestag", and
  * the card never takes the blue, red or white of a real vote, so it can never
- * pass for an official one. Before the guess it is an ink card form; once
- * scored it sits among the result's feed cards and takes their look.
+ * pass for an official one. Waiting to be cast on the result, it sits among
+ * the feed cards there and takes their look; anywhere else it is an ink card
+ * form whose title is the page's heading.
  */
 function Stimmkarte(props: Props) {
   const { number, playDate, score, onCast, className, ref } = props;
   const scored = score !== undefined;
-  const label = `Stimmkarte, Tagesquiz Nummer ${number} vom ${formatDate(playDate)}${
-    scored ? `, ${score} von ${MAX_SCORE} richtig` : ''
-  }`;
+  const result = scored ? `, ${score} von ${MAX_SCORE} richtig` : '';
+  const casting = onCast !== undefined && scored;
 
-  const card = scored
+  const card = casting
     ? cn(
         CARD_SURFACE,
         'relative flex w-full flex-col gap-2.5 px-4 py-3.5 text-left text-[var(--daily-ink)]',
       )
     : 'relative flex w-full flex-col gap-3 rounded-[10px] bg-[var(--daily-ink)] p-4 pl-[18px] text-left text-[var(--daily-canvas)]';
-  const inner: ReactNode = scored ? (
+  const inner: ReactNode = casting ? (
     <ScoredFace {...props} score={score} />
   ) : (
     <FormFace {...props} />
@@ -62,7 +67,7 @@ function Stimmkarte(props: Props) {
         ref={ref as Ref<HTMLButtonElement>}
         type="button"
         onClick={onCast}
-        aria-label={`${label}. In die Urne werfen`}
+        aria-label={`Stimmkarte vom ${voteDateShort(playDate)}${result}. In die Urne werfen`}
         className={cn(card, 'cursor-pointer', FOCUS_RING, className)}
       >
         {inner}
@@ -73,7 +78,7 @@ function Stimmkarte(props: Props) {
     <div
       ref={ref as Ref<HTMLDivElement>}
       role="group"
-      aria-label={label}
+      aria-label={`Stimmkarte, Tagesquiz Nummer ${number} vom ${formatDate(playDate)}${result}`}
       className={cn(card, className)}
     >
       {inner}
@@ -81,9 +86,20 @@ function Stimmkarte(props: Props) {
   );
 }
 
-/** Before the guess: a printed card form with the title as the page heading. */
-function FormFace({ number, playDate, title, topic, onCast }: Props) {
-  // On the briefing the title is the page's heading; a button cannot hold one.
+/**
+ * A printed card form with the title as the page's heading, as a past day
+ * opens on it. A played card carries the score stamped where the topic was.
+ */
+function FormFace({
+  number,
+  playDate,
+  title,
+  topic,
+  score,
+  stamping = false,
+  onCast,
+}: Props) {
+  // A button cannot hold a heading.
   const Title = onCast ? 'span' : 'h1';
   return (
     <>
@@ -102,12 +118,26 @@ function FormFace({ number, playDate, title, topic, onCast }: Props) {
           <Title className="hyphens-auto break-words text-2xl font-bold leading-[30px]">
             {title}
           </Title>
-          <span className="flex items-baseline gap-2 self-stretch">
-            <span className={FORM_LABEL}>Thema</span>
-            <span className="min-w-0 flex-1 truncate border-b border-dotted border-[var(--daily-muted)] pb-0.5 font-document text-[15px] italic leading-5">
-              {topic}
+          {score !== undefined ? (
+            // The stamp takes the topic's place, so it never covers the
+            // title or the number.
+            <span
+              aria-hidden
+              className={cn(
+                'inline-block -rotate-6 whitespace-nowrap rounded-sm border-[2.5px] border-brand-red px-2 py-px font-display text-[19px] font-extrabold leading-6 tabular-nums text-brand-red',
+                stamping && 'animate-stimmts-stamp motion-reduce:animate-none',
+              )}
+            >
+              {score}/{MAX_SCORE} richtig
             </span>
-          </span>
+          ) : (
+            <span className="flex items-baseline gap-2 self-stretch">
+              <span className={FORM_LABEL}>Thema</span>
+              <span className="min-w-0 flex-1 truncate border-b border-dotted border-[var(--daily-muted)] pb-0.5 font-document text-[15px] italic leading-5">
+                {topic}
+              </span>
+            </span>
+          )}
         </span>
         <span
           aria-hidden
@@ -129,8 +159,8 @@ function FormFace({ number, playDate, title, topic, onCast }: Props) {
 }
 
 /**
- * Once scored: the feed card's layout, with the score stamped beside the
- * title. The stamp keeps its own column, so a long title wraps beside it
+ * On the result, waiting to be cast: the feed card's layout, with the score
+ * stamped beside the title. The stamp keeps its own column, so a long title wraps beside it
  * instead of running under it, down to the narrowest phone.
  */
 function ScoredFace({

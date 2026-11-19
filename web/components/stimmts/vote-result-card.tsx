@@ -10,11 +10,16 @@ import {
 import { OutcomeBadge } from '@/components/daily/outcome-badge';
 import { TopicDot } from '@/components/daily/topic-chip';
 import { chamberCenter, chamberStates } from '@/lib/stimmts/game-view';
-import { voteCountLabels, voteTotals } from '@/lib/stimmts/score';
+import {
+  type VoteTotals,
+  voteCountLabels,
+  voteTotals,
+} from '@/lib/stimmts/score';
 import { feedTopicFor } from '@/lib/stimmts/topic';
 import type { Puzzle, PuzzleOutcome } from '@/lib/stimmts/types';
 import { cn } from '@/lib/utils';
 import { ArrowUpRight } from 'lucide-react';
+import { useId } from 'react';
 import Hemicycle from './hemicycle';
 import VoteDot, { type DotKind } from './vote-dot';
 
@@ -24,12 +29,12 @@ const FEED_OUTCOME = {
   rejected: 'abgelehnt',
 } as const satisfies Record<PuzzleOutcome, string>;
 
-const DOT_KIND = {
+const DOT_KIND: Record<keyof VoteTotals, DotKind> = {
   yes: 'yes',
   no: 'no',
   abstain: 'abstain',
   noShow: 'absent',
-} as const satisfies Record<string, DotKind>;
+};
 
 /**
  * How the Bundestag actually voted, as the feed shows a vote: topic, outcome,
@@ -47,9 +52,11 @@ function VoteResultCard({
 }) {
   const all = new Set(puzzle.parties.map((party) => party.partyId));
   const counts = voteCountLabels(voteTotals(puzzle));
+  const headingId = useId();
 
   return (
     <article
+      aria-labelledby={headingId}
       className={cn(
         CARD_SURFACE,
         CARD_GROUP,
@@ -68,7 +75,10 @@ function VoteResultCard({
           className="px-2.5 py-0.5 text-xs"
         />
       </div>
-      <h2 className="hyphens-auto break-words text-[19px] font-bold leading-snug">
+      <h2
+        id={headingId}
+        className="hyphens-auto break-words text-[19px] font-bold leading-snug"
+      >
         <button type="button" onClick={onOpen} className={CARD_LINK}>
           <span className={HEADLINE_POP}>{puzzle.title}</span>
         </button>
