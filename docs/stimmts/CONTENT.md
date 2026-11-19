@@ -81,7 +81,8 @@ The dropped puzzle can stay in `puzzles.json` as a spare.
    - `shortName`: the feed card's name for the puzzle (see "Short name").
    - `keyPoints` (optional): three short bullets for the front of the
      briefing card, each with its source page (see below). The `briefing`
-     moves to the card's back.
+     moves into „Mehr Info“ (it expands on phones and is the card's back
+     side on desktop).
    - `document` (optional): the Drucksache as printed on its cover. Leave it
      out if it cannot be verified; the briefing then uses the plain layout.
    - `source`: the vote's Abgeordnetenwatch page.

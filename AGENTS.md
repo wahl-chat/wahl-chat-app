@@ -501,7 +501,7 @@ Ingestion must tolerate the 15-minute scheduled-job cap: runs are
 batch-windowed and time-budgeted (`--batch-size`, `--time-budget`) and resume
 from the Qdrant-derived cursor on the next run.
 
-### Stimmt's? (daily puzzle at `/stimmts`)
+### Stimmt's? (daily quiz at `/stimmts`)
 
 - **Switch**: Firestore doc `system_status/stimmts`
   `{enabled: true, launch_date: "2026-11-15"}` (`launch_date` is a string,
@@ -511,10 +511,38 @@ from the Qdrant-derived cursor on the next run.
   `docs/stimmts/CONTENT.md`). The doc is public-read
   under the existing `system_status/{id}` rule; edit it in the console, no
   deploy. Open pages follow it live.
+- **Server read.** The first paint of `/` and the other `(wide)` pages uses a
+  server read of the switch, `getStimmtsStatus()` in
+  `web/lib/firebase/firebase-server.ts`, cached for 5 minutes under the tag
+  `stimmts-status` (bust it via `/api/revalidate` with that tag). After a
+  flip, the feed card and the header icon can take up to 5 minutes to appear
+  in the HTML; until then they appear client-side, from the live listener. A
+  failed server read counts as off and is not cached.
 - **Off is the default.** A missing doc, `enabled` not exactly `true`, or a
   `launch_date` that is not a real date all hide the game. Before the launch
   date it says when it starts. If Firestore cannot be reached (ad blocker,
-  firewall), the page offers a retry after 8 seconds.
+  firewall), `/stimmts` offers a retry after 8 seconds; on `/` the feed card
+  and the header icon keep the server's reading.
+- **Feed card.** Above the Hot Topic on `/`
+  (`web/components/daily/stimmts-feed-card.tsx`), only while the switch is on
+  and a puzzle runs today. The page is shared, so the server draws the card
+  with empty slots and the browser fills in the name and countdown.
+- **Header icon.** Players (any finished game on this device) get the
+  Stimmt's? mark in the header of the `(wide)` pages
+  (`web/components/daily/stimmts-header-icon.tsx`), with a check once
+  today's game is done. Right after a game, the feed card shows the result
+  once and flies into the icon (`stimmts-fly-in.tsx`).
+- **Presence mark.** Whether this device played is device state on a shared,
+  cached page. An inline script in the root layout
+  (`web/lib/stimmts/presence.ts`) sets `data-stimmts` (`today` / `before`) and
+  `data-stimmts-fly` on `<html>` before first paint, and rules in
+  `web/app/globals.css` show or hide the card and the icon from those marks,
+  so neither flashes nor shifts the feed.
+- **Chat card.** Follow-up questions on the result screen, behind
+  `STIMMTS_CHAT_ENABLED` in `web/lib/stimmts/chat-chips.ts`, committed
+  `false`: its answers are a placeholder until the general chat exists.
+  Before enabling, verify that the chat route handles the `q` and `party_id`
+  parameters the card links with.
 - **Never change `launch_date` once anyone has played.** It renumbers every
   day, so played days turn into missed ones. Switching off and on again does
   not pause the calendar: the days keep counting from the launch date.
