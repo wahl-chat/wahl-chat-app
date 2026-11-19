@@ -7,7 +7,7 @@ import { isVoteAnswer } from './validate';
  * Bumped when the saved shape changes. Older saves are then discarded; a
  * newer one is left alone (see isNewerSave).
  */
-const PROGRESS_VERSION = 1;
+export const PROGRESS_VERSION = 1;
 
 type GameProgress = {
   guesses: Guesses;
