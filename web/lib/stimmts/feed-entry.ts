@@ -103,3 +103,43 @@ export function recordFeedVisit(
   }
   return count;
 }
+
+function counted(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+/**
+ * The countdown as a screen reader says it, "8 Stunden 41 Minuten". The
+ * visible clock ticks every second, which is noise when read aloud, so the
+ * spoken form stops at minutes. Seconds round up as on the clock, so both
+ * always show the same hours and minutes.
+ */
+export function remainingLabel(milliseconds: number): string {
+  const totalMinutes = Math.floor(
+    Math.max(0, Math.ceil(milliseconds / 1000)) / 60,
+  );
+  if (totalMinutes === 0) {
+    return 'weniger als 1 Minute';
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return [
+    hours > 0 ? counted(hours, 'Stunde', 'Stunden') : null,
+    minutes > 0 ? counted(minutes, 'Minute', 'Minuten') : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/**
+ * The accessible name of the feed card, which is one link: everything the
+ * card shows, in reading order. Null when there is no card to play.
+ */
+export function feedCardLabel(entry: FeedEntry, now: Date): string | null {
+  if (entry.kind !== 'play') {
+    return null;
+  }
+  const name = entry.isNew ? 'Stimmt’s?, neu' : 'Stimmt’s?';
+  const remaining = remainingLabel(entry.endsAt.getTime() - now.getTime());
+  return `${name}: Heute: ${entry.shortName}. Jeden Tag ein neues Quiz. Noch ${remaining}. Los geht’s`;
+}

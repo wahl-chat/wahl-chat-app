@@ -9,6 +9,7 @@ import {
   getLinkedFeedDay,
   getParliamentFeed,
   getSittingCalendar,
+  getStimmtsStatus,
 } from '@/lib/firebase/firebase-server';
 import type { FeedPage } from '@/lib/firebase/firebase.types';
 import {
@@ -84,14 +85,21 @@ async function HomePage({ searchParams }: Props) {
 
   // Only the Bundestag is in the feed for now (see `DAILY_STATES`).
   const item = typeof params.item === 'string' ? params.item : undefined;
-  const [bundestag, previewDigests, linkedDay, calendar, editionDates] =
-    await Promise.all([
-      getParliamentFeed('bundestag'),
-      getLocalPreviewDigests(),
-      item ? getLinkedFeedDay(item) : null,
-      getSittingCalendar('bundestag'),
-      getEditionDates('bundestag'),
-    ]);
+  const [
+    bundestag,
+    previewDigests,
+    linkedDay,
+    calendar,
+    editionDates,
+    stimmtsStatus,
+  ] = await Promise.all([
+    getParliamentFeed('bundestag'),
+    getLocalPreviewDigests(),
+    item ? getLinkedFeedDay(item) : null,
+    getSittingCalendar('bundestag'),
+    getEditionDates('bundestag'),
+    getStimmtsStatus(),
+  ]);
 
   return (
     <>
@@ -112,6 +120,7 @@ async function HomePage({ searchParams }: Props) {
         linkedDay={linkedDay}
         calendar={calendar}
         editionDates={editionDates}
+        stimmtsStatus={stimmtsStatus}
       />
     </>
   );
