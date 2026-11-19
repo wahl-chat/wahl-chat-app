@@ -29,6 +29,7 @@ import GuessStep from './guess-step';
 import Hemicycle from './hemicycle';
 import Result from './result';
 import Reveal from './reveal';
+import ShareBanner from './share-banner';
 import StartScreen from './start-screen';
 
 /** "Auflösen" turns the parties over one after another, left to right. */
@@ -40,6 +41,8 @@ type Props = {
   schedule: Schedule;
   /** Today's Berlin date: the puzzle's day, and the day answers are saved on. */
   today: string;
+  /** The challenge from a shared link, shown above the start screen. */
+  challenge?: string | null;
   onOpenDay: (number: number) => void;
 };
 
@@ -49,7 +52,14 @@ type Props = {
  * The chamber is the board: it stays on top while the player answers and
  * while the parties are turned over.
  */
-function PuzzleGame({ number, puzzle, schedule, today, onOpenDay }: Props) {
+function PuzzleGame({
+  number,
+  puzzle,
+  schedule,
+  today,
+  challenge,
+  onOpenDay,
+}: Props) {
   const game = useProgress((state) => getGame(state.progress, puzzle.id));
   const reduceMotion = useReducedMotion() ?? false;
   const [started, setStarted] = useState(false);
@@ -204,6 +214,7 @@ function PuzzleGame({ number, puzzle, schedule, today, onOpenDay }: Props) {
           number={number}
           playDate={today}
           puzzle={puzzle}
+          banner={challenge ? <ShareBanner text={challenge} /> : undefined}
           onStart={() => {
             // A double tap lands before the screen is gone; count one start.
             if (startCounted.current) {
