@@ -109,8 +109,12 @@ read them first, often on a phone, so they must be quick to take in:
   `Tanken kann bis zu **rund 17 Cent** pro Liter billiger werden.`
 - No hint at the result: no outcome, no tally, no party positions.
 
-The validator checks the count, the length (the `**` markers do not count as
-words), paired markers, and no spaces at the start or end.
+The validator checks the count, the length, paired markers, and no spaces at
+the start or end. Bold text must not be empty or start or end with a space,
+and three or more asterisks in a row are refused.
+
+Words are counted at the spaces. The `**` markers do not count, but a dash
+between spaces does: `Oktober – Dezember` is three words.
 
 ## Review checklist
 

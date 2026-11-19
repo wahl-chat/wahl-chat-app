@@ -48,6 +48,20 @@ describe('splitEmphasis', () => {
     ]);
   });
 
+  it('drops an empty bold run', () => {
+    expect(splitEmphasis('a ****b')).toEqual([
+      { text: 'a ', strong: false },
+      { text: 'b', strong: false },
+    ]);
+  });
+
+  it('keeps adjacent bold runs apart', () => {
+    expect(splitEmphasis('**a****b**')).toEqual([
+      { text: 'a', strong: true },
+      { text: 'b', strong: true },
+    ]);
+  });
+
   it('returns no segments for an empty string', () => {
     expect(splitEmphasis('')).toEqual([]);
   });

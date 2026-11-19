@@ -291,6 +291,33 @@ describe('validatePuzzle: key points', () => {
       ),
     ).toThrow('whitespace');
   });
+
+  function withFirstPoint(point: string): RawPuzzle {
+    return withKeyPoints([point, KEY_POINTS[1], KEY_POINTS[2]]);
+  }
+
+  it('rejects a point that is blank or only markers', () => {
+    expect(() => validatePuzzle(withFirstPoint('   '))).toThrow('non-empty');
+    expect(() => validatePuzzle(withFirstPoint('****'))).toThrow('no text');
+  });
+
+  it('rejects three or more asterisks in a row', () => {
+    expect(() => validatePuzzle(withFirstPoint('a ****b'))).toThrow('"***"');
+    expect(() => validatePuzzle(withFirstPoint('***a***'))).toThrow('"***"');
+  });
+
+  it('rejects a bold run padded with spaces', () => {
+    expect(() =>
+      validatePuzzle(withFirstPoint('Bis zu ** 17 Cent** billiger.')),
+    ).toThrow('bold run');
+    expect(() =>
+      validatePuzzle(withFirstPoint('Bis zu **17 Cent ** billiger.')),
+    ).toThrow('bold run');
+  });
+
+  it('rejects null instead of a list', () => {
+    expect(() => validatePuzzle(withKeyPoints(null))).toThrow('exactly 3');
+  });
 });
 
 describe('validatePuzzleOrder', () => {

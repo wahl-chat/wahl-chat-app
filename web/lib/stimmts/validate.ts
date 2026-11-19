@@ -1,6 +1,6 @@
 import { safeExternalUrl } from '@/lib/pledge-tracker/pledges';
 import { isIsoDate } from './berlin-time';
-import { hasBalancedEmphasis, stripEmphasis } from './emphasis';
+import { hasBalancedEmphasis, splitEmphasis, stripEmphasis } from './emphasis';
 import { SEATING_ORDER } from './parties';
 import { feedTopicFor } from './topic';
 import type {
@@ -184,6 +184,21 @@ function readKeyPoint(value: unknown, index: number, id: string): string {
   }
   if (!hasBalancedEmphasis(value)) {
     return fail(id, `${where} has an unpaired "**" marker`);
+  }
+  if (stripEmphasis(value).trim() === '') {
+    return fail(id, `${where} has no text, only markers`);
+  }
+  // Runs of asterisks are ambiguous ("***a***" splits into stray "*"s) and
+  // "****" hides an empty bold run, so neither can render as intended.
+  if (/\*{3,}/.test(value)) {
+    return fail(id, `${where} has "***" or more; bold runs need text between`);
+  }
+  // A padded run renders as a bold space before or after the number.
+  const paddedRun = splitEmphasis(value).some(
+    (segment) => segment.strong && segment.text !== segment.text.trim(),
+  );
+  if (paddedRun) {
+    return fail(id, `${where} has a bold run that starts or ends with a space`);
   }
   if (countWords(value) > MAX_KEY_POINT_WORDS) {
     return fail(id, `${where} is longer than ${MAX_KEY_POINT_WORDS} words`);
