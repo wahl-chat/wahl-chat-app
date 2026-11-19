@@ -63,16 +63,16 @@ PARTY_SITES: dict[str, str] = {
     "linksjugend-solid.de": "linke",
     "julis.de": "fdp",
 }
-# Sites of parties we have no data for: domain to the party's name. Parties
-# on the 2025 Bundestag or 2024 European ballot, plus the larger Landtag-only
-# ones; each domain matches the party's filing with the Bundeswahlleiterin or
-# names the party on its own pages.
+# Sites of parties we have no data for: domain to the party's name. Every
+# party or list on a ballot since 2021 whose domain matches its filing with the
+# Bundeswahlleiterin or names it on its own pages; not those the federal
+# Verfassungsschutzbericht names as extremist.
 EXTRA_PARTY_SITES: dict[str, str] = {
+    # Bundestag 2025 or European Parliament 2024
     "diebasis-partei.de": "dieBasis",
     "die-partei.de": "Die PARTEI",
     "pdh.eu": "Partei der Humanisten",
     "buendnis-c.de": "Bündnis C",
-    "mlpd.de": "MLPD",
     "menschlichewelt.de": "Menschliche Welt",
     "partei-des-fortschritts.de": "Partei des Fortschritts",
     "gleichheit.de": "Sozialistische Gleichheitspartei",
@@ -87,16 +87,45 @@ EXTRA_PARTY_SITES: dict[str, str] = {
     "wählefamilie.de": "Familien-Partei Deutschlands",
     "xn--whlefamilie-l8a.de": "Familien-Partei Deutschlands",
     "waehlefamilie.de": "Familien-Partei Deutschlands",
-    "die-heimat.de": "Die Heimat",
     "tierschutz-hier.de": "TIERSCHUTZ hier!",
     "bigpartei.de": "BIG",
-    "dkp.de": "DKP",
     "aktion-bfg.de": "Aktion Bürger für Gerechtigkeit",
     "dava-eu.org": "DAVA",
     "klimaliste.org": "Klimaliste Deutschland",
     "v-partei.de": "V-Partei³",
+    # Landtag elections only
     "bvb-fw.de": "BVB / Freie Wähler",
-    "freie-sachsen.info": "Freie Sachsen",
+    "wirbuerger.de": "Wir Bürger",
+    "tierschutzallianz.de": "Tierschutzallianz",
+    "gartenpartei.eu": "Gartenpartei",
+    "fbm-dieregionalen.de": "Freie Bürger Mitteldeutschland",
+    "wir2020partei.eu": "WiR2020",
+    "klimaliste-bw.de": "Klimaliste Baden-Württemberg",
+    "klimaliste-berlin.de": "Klimaliste Berlin",
+    "freier-horizont.de": "Freier Horizont",
+    "unabhaengige.info": "UNABHÄNGIGE",
+    "uepd.de": "bergpartei, die überpartei",
+    "bergpartei.de": "bergpartei, die überpartei",
+    "bildet-berlin.de": "Bildet Berlin!",
+    "die-urbane.de": "Die Urbane",
+    "grauepanther.info": "Graue Panther",
+    "graue-panther.eu": "Graue Panther",
+    "bunt.saarland": "bunt.saar",
+    "sgv-partei.de": "SGV",
+    "demokratie-durch-volksabstimmung.de": "Ab jetzt … Demokratie durch Volksabstimmung",
+    "die-violetten.de": "Die Violetten",
+    "zentrumspartei.de": "Zentrum",
+    "deutschesportpartei.de": "Deutsche Sportpartei",
+    "biw-partei.de": "Bürger in Wut",
+    "gfa-partei.de": "Grundeinkommen für Alle",
+    "appd.at": "APPD",
+    "neuemitte.org": "Die Neue Mitte",
+    "plusbrandenburg.de": "Plus Brandenburg",
+    "dlw-partei.de": "Deutsch Land Wirtschaft",
+    "partei-der-rentner.de": "Partei der Rentner",
+    "handwerkerparteideutschland.com": "Handwerker Partei Deutschland",
+    "k-p-d.org": "KPD",
+    "team-freiheit.de": "Team Freiheit",
 }
 # bundestag.de is the record our corpus already holds, not coverage of it.
 PRESS_SITES = tuple(d for d in PREFERRED_OUTLETS if d != "bundestag.de") + tuple(FRAKTION_SITES)

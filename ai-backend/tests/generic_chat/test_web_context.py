@@ -106,12 +106,17 @@ def test_a_party_without_data_speaks_without_an_icon(monkeypatch: pytest.MonkeyP
 
 
 @pytest.mark.parametrize(
-    "url", ["https://xn--whlefamilie-l8a.de/a", "https://www.dkp.de/b", "https://bayern.die-partei.de/c"]
+    "url", ["https://xn--whlefamilie-l8a.de/a", "https://www.gartenpartei.eu/b", "https://bayern.die-partei.de/c"]
 )
 def test_listed_party_sites_match_with_subdomains(url: str) -> None:
     from src.generic_chat.web_search import domain_of
 
     assert web_context.party_of(make_deps(), domain_of(url))[1] is not None
+
+
+@pytest.mark.parametrize("domain", ["dkp.de", "mlpd.de", "die-heimat.de", "freie-sachsen.info", "der-dritte-weg.info"])
+def test_parties_named_extremist_stay_external(domain: str) -> None:
+    assert web_context.party_of(make_deps(), domain) == (None, None)
 
 
 def test_youth_wing_speaks_for_its_party() -> None:
