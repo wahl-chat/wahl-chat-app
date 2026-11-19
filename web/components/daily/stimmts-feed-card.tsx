@@ -322,8 +322,8 @@ function Card({
           MUTED_TEXT,
         )}
       >
-        {/* The board's mark is 12 px high beside a 15 px wordmark; the
-            logo's own height follows the font, which would make it 21. */}
+        {/* The design sets the mark 12 px high beside a 15 px wordmark;
+            the logo's own height follows the font, which would make it 21. */}
         <StimmtsLogo className="flex-none gap-[5px] text-[15px] text-[var(--daily-ink)] [&>svg]:h-3" />
         {entry?.isNew && (
           <span className="inline-flex h-[18px] flex-none items-center rounded-full border border-[var(--daily-ink)] px-[7px] text-[11px] font-bold text-[var(--daily-ink)]">

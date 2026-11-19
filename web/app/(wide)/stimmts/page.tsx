@@ -41,16 +41,16 @@ export async function generateMetadata({
   const image = {
     url: shareImagePath('link', result),
     ...SHARE_FORMATS.link,
-    alt: "Stimmt's?, das tägliche Quiz von wahl.chat",
+    alt: 'Stimmt’s?, das tägliche Quiz von wahl.chat',
   };
 
   return {
-    title: "Stimmt's?",
+    title: 'Stimmt’s?',
     description: DESCRIPTION,
     // Stays out of search results until the game is released.
     robots: 'noindex',
     openGraph: {
-      title: "Stimmt's?",
+      title: 'Stimmt’s?',
       description: DESCRIPTION,
       images: [image],
     },
