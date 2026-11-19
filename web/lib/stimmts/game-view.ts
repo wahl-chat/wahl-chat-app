@@ -98,17 +98,6 @@ export function chamberCenter(
   };
 }
 
-/** The whole Bundestag's Ja and Nein, for the outcome line. */
-export function voteTotals(puzzle: Puzzle): { yes: number; no: number } {
-  return puzzle.parties.reduce(
-    (totals, party) => ({
-      yes: totals.yes + party.yes,
-      no: totals.no + party.no,
-    }),
-    { yes: 0, no: 0 },
-  );
-}
-
 type RevealSelection = {
   revealed: ReadonlySet<string>;
   /** The party whose counts are open under its row; one at a time. */

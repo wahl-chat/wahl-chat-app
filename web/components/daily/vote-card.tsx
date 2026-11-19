@@ -1,7 +1,5 @@
 import { type VoteItem, itemTeaser } from '@/lib/daily/items';
-import type { DigestVote } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
-import { CheckIcon, XIcon } from 'lucide-react';
 import { CardFooter, ItemTeaser } from './card-footer';
 import {
   CARD_GROUP,
@@ -12,35 +10,8 @@ import {
 } from './card-styles';
 import { Hemicycle, SeatLegend } from './hemicycle';
 import HotTopicTrail from './hot-topic-trail';
+import { OutcomeBadge } from './outcome-badge';
 import { TopicMeta } from './topic-chip';
-
-export function OutcomeBadge({
-  outcome,
-  className,
-}: {
-  outcome: DigestVote['outcome'];
-  className?: string;
-}) {
-  if (!outcome) {
-    return null;
-  }
-  const passed = outcome === 'angenommen';
-  const Icon = passed ? CheckIcon : XIcon;
-  return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold',
-        passed
-          ? 'bg-[var(--daily-yes-bg)] text-[var(--daily-yes)]'
-          : 'bg-[var(--daily-no-bg)] text-[var(--daily-no)]',
-        className,
-      )}
-    >
-      <Icon className="size-3.5" strokeWidth={3} aria-hidden />
-      {passed ? 'Angenommen' : 'Abgelehnt'}
-    </span>
-  );
-}
 
 type Props = {
   item: VoteItem;

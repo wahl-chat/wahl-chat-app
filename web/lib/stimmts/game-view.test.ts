@@ -8,7 +8,6 @@ import {
   chamberStates,
   currentPartyIndex,
   selectParty,
-  voteTotals,
 } from './game-view';
 
 const puzzle = PUZZLES[0];
@@ -84,7 +83,6 @@ describe('chamberCenter', () => {
       big: '323 : 269',
       small: 'angenommen',
     });
-    expect(voteTotals(puzzle)).toEqual({ yes: 323, no: 269 });
   });
 });
 
