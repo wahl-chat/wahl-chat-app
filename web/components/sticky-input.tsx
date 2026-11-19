@@ -8,8 +8,6 @@ import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
 import AutoGrowTextarea, { useCoarsePointer } from './ui/auto-grow-textarea';
 import { Button } from './ui/button';
 
-const KEYBOARD_COVER = 'var(--daily-canvas, hsl(var(--background)))';
-
 type Props = {
   isLoading: boolean;
   onSubmit: (message: string) => void;
@@ -85,14 +83,14 @@ function StickyInput({
       )}
     >
       {/* With the keyboard open, the page below the box shows above it.
-          The cover fills this bar's own padding; its shadow fills below. */}
+          A shadow covers it without changing the layout. */}
       {focused && touch && (
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
-            background: KEYBOARD_COVER,
-            boxShadow: `0 100vh 0 100vh ${KEYBOARD_COVER}`,
+            boxShadow:
+              '0 100vh 0 100vh var(--daily-canvas, hsl(var(--background)))',
           }}
         />
       )}

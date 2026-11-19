@@ -6,7 +6,7 @@ import { MediaViewerProvider } from '@/components/providers/media-viewer-provide
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/react';
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
 // pdf.js text-layer positioning for the citation PDF viewer. Imported here, NOT
 // in the dynamically imported viewer chunk: CSS imported only from a
@@ -35,14 +35,6 @@ import { headers } from 'next/headers';
 // Bundestag (the start page) first, then the election chat.
 const SITE_DESCRIPTION =
   'Verstehe, was im Bundestag passiert, und vergleiche die Positionen der Parteien zu Bundestags-, Landtags- und Kommunalwahlen. Bei wahl.chat liest du Debatten und Abstimmungen kompakt mit Quellen und unterhältst dich mit den Programmen der Parteien.';
-
-// Where supported, an open keyboard shrinks the layout, so inputs pinned to
-// the bottom sit on top of it instead of behind it.
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  interactiveWidget: 'resizes-content',
-};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://wahl.chat'),
