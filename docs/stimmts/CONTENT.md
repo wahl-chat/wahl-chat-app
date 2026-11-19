@@ -78,11 +78,43 @@ The dropped puzzle can stay in `puzzles.json` as a spare.
      630 seats.
    - `parties`: exactly `linke`, `spd`, `gruene`, `cdu`, `afd`, in that order.
    - `title`, `topic`, `briefing`, `yesMeans`: written by us (see the checklist).
+   - `keyPoints` (optional): three short bullets for the front of the
+     briefing card (see below). The `briefing` moves to the card's back.
    - `document` (optional): the Drucksache as printed on its cover. Leave it
      out if it cannot be verified; the briefing then uses the plain layout.
    - `source`: the vote's Abgeordnetenwatch page.
 4. Add its id to `schedule.json` (or leave it out as a spare).
 5. Run the checks and commit.
+
+## Topics
+
+The `topic` is a short German word, like `Energie` or `Migration`. The game
+shows it with the feed's coloured topic dot. The feed has fewer, broader
+topics, so `web/lib/stimmts/topic.ts` maps each word to one of them
+(`Energie` to climate, `Verteidigung` to foreign policy, and so on).
+
+Reuse a word that is already mapped where you can. A new word needs a new
+line in that map, or the checks fail: without it, the puzzle would have no
+dot.
+
+## Key points
+
+The briefing card shows three bullets before the long `briefing`. Players
+read them first, often on a phone, so they must be quick to take in:
+
+- Exactly three bullets, each at most 12 words.
+- Plain language, one fact per bullet.
+- Cover what changes, who it affects, and what it costs or demands.
+- Mark numbers and dates bold with `**…**`, for example
+  `Tanken kann bis zu **rund 17 Cent** pro Liter billiger werden.`
+- No hint at the result: no outcome, no tally, no party positions.
+
+The validator checks the count, the length, paired markers, and no spaces at
+the start or end. Bold text must not be empty or start or end with a space,
+and three or more asterisks in a row are refused.
+
+Words are counted at the spaces. The `**` markers do not count, but a dash
+between spaces does: `Oktober – Dezember` is three words.
 
 ## Review checklist
 
@@ -93,6 +125,8 @@ Before a puzzle is committed, a person checks:
 - [ ] The title is neutral and does not hint at the result.
 - [ ] The briefing explains what was voted on, in plain German, without the
       outcome, the tally, or who argued for or against it.
+- [ ] The key points, if any, follow the rules above and say nothing the
+      briefing does not.
 - [ ] `yesMeans` says in one sentence what a Ja vote meant. Take extra care
       with committee recommendations, where Ja can mean rejecting a motion.
 - [ ] The Drucksache fields are copied exactly from the PDF, or left out.
@@ -111,8 +145,9 @@ cd web && bun test lib/stimmts
 
 The tests load the real content through the validator and fail on a puzzle
 that breaks the contract: an answer the counts do not support, parties missing
-or out of order, seats that do not add up to all 630 members, unknown or
-duplicate ids in the schedule.
+or out of order, seats that do not add up to all 630 members, a topic word
+with no feed topic, key points that break the rules, unknown or duplicate ids
+in the schedule.
 
 To see a puzzle as players will, run `bun run dev` in `web/` and open
 `http://localhost:3000/stimmts?day=N`. Locally, preview mode is always on, and

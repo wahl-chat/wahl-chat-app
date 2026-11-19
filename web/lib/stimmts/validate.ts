@@ -1,6 +1,8 @@
 import { safeExternalUrl } from '@/lib/pledge-tracker/pledges';
 import { isIsoDate } from './berlin-time';
+import { hasBalancedEmphasis, splitEmphasis, stripEmphasis } from './emphasis';
 import { SEATING_ORDER } from './parties';
+import { feedTopicFor } from './topic';
 import type {
   BillDocument,
   DocumentSubmitter,
@@ -17,6 +19,10 @@ import type {
  * answer, so such a vote does not make a fair puzzle.
  */
 const MIN_PARTY_UNITY = 0.8;
+
+/** Key points are read at a glance on a phone, before the guess. */
+const KEY_POINT_COUNT = 3;
+const MAX_KEY_POINT_WORDS = 12;
 
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -153,6 +159,63 @@ function readDocument(value: unknown, id: string): BillDocument {
   };
 }
 
+function readTopic(record: Json, id: string): string {
+  const topic = readString(record, 'topic', id);
+  if (feedTopicFor(topic) === undefined) {
+    return fail(
+      id,
+      `topic "${topic}" has no feed topic; add it to topic.ts so it gets its dot`,
+    );
+  }
+  return topic;
+}
+
+function countWords(text: string): number {
+  return stripEmphasis(text).split(/\s+/).filter(Boolean).length;
+}
+
+function readKeyPoint(value: unknown, index: number, id: string): string {
+  const where = `key point ${index + 1}`;
+  if (typeof value !== 'string' || value.trim() === '') {
+    return fail(id, `${where} must be a non-empty string`);
+  }
+  if (value !== value.trim()) {
+    return fail(id, `${where} has leading or trailing whitespace`);
+  }
+  if (!hasBalancedEmphasis(value)) {
+    return fail(id, `${where} has an unpaired "**" marker`);
+  }
+  if (stripEmphasis(value).trim() === '') {
+    return fail(id, `${where} has no text, only markers`);
+  }
+  // Runs of asterisks are ambiguous ("***a***" splits into stray "*"s) and
+  // "****" hides an empty bold run, so neither can render as intended.
+  if (/\*{3,}/.test(value)) {
+    return fail(id, `${where} has "***" or more; bold runs need text between`);
+  }
+  // A padded run renders as a bold space before or after the number.
+  const paddedRun = splitEmphasis(value).some(
+    (segment) => segment.strong && segment.text !== segment.text.trim(),
+  );
+  if (paddedRun) {
+    return fail(id, `${where} has a bold run that starts or ends with a space`);
+  }
+  if (countWords(value) > MAX_KEY_POINT_WORDS) {
+    return fail(id, `${where} is longer than ${MAX_KEY_POINT_WORDS} words`);
+  }
+  return value;
+}
+
+function readKeyPoints(value: unknown, id: string): [string, string, string] {
+  if (!Array.isArray(value) || value.length !== KEY_POINT_COUNT) {
+    return fail(id, `"keyPoints" must list exactly ${KEY_POINT_COUNT} points`);
+  }
+  const [first, second, third] = value.map((point, index) =>
+    readKeyPoint(point, index, id),
+  );
+  return [first, second, third];
+}
+
 function readParty(value: unknown, id: string): PartyResult {
   if (!isRecord(value)) {
     return fail(id, 'each party must be an object');
@@ -215,9 +278,12 @@ export function validatePuzzle(data: unknown): Puzzle {
   return {
     id,
     voteDate: readDate(data, 'voteDate', id),
-    topic: readString(data, 'topic', id),
+    topic: readTopic(data, id),
     title: readString(data, 'title', id),
     briefing: readString(data, 'briefing', id),
+    ...(data.keyPoints === undefined
+      ? {}
+      : { keyPoints: readKeyPoints(data.keyPoints, id) }),
     yesMeans: readString(data, 'yesMeans', id),
     outcome,
     parties,

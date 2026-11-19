@@ -14,6 +14,8 @@ type RawPuzzle = {
   parties: { partyId: string; answer: string }[];
   unaffiliated?: unknown;
   document?: Record<string, unknown>;
+  keyPoints?: unknown;
+  topic?: unknown;
 };
 
 // A fresh copy per test, so a test can break one field without touching the rest.
@@ -95,6 +97,12 @@ describe('validatePuzzle', () => {
     const badDate = firstPuzzle();
     badDate.voteDate = '2026-13-45';
     expect(() => validatePuzzle(badDate)).toThrow('voteDate');
+  });
+
+  it('rejects a topic word with no feed topic, so it keeps its dot', () => {
+    const puzzle = firstPuzzle();
+    puzzle.topic = 'Raumfahrt';
+    expect(() => validatePuzzle(puzzle)).toThrow('topic.ts');
   });
 
   it('names the offending puzzle in the error', () => {
@@ -202,6 +210,113 @@ describe('validatePuzzle: the bill document', () => {
     const negative = firstPuzzle();
     negative.unaffiliated = -1;
     expect(() => validatePuzzle(negative)).toThrow('"unaffiliated"');
+  });
+});
+
+describe('validatePuzzle: key points', () => {
+  const KEY_POINTS: [string, string, string] = [
+    'Steuer auf Benzin und Diesel sinkt **von Oktober bis Dezember 2026**.',
+    'Tanken kann bis zu **rund 17 Cent** pro Liter billiger werden.',
+    'Der Bund nimmt **rund 2,5 Milliarden Euro** weniger Steuern ein.',
+  ];
+
+  function withKeyPoints(keyPoints: unknown): RawPuzzle {
+    const puzzle = firstPuzzle();
+    puzzle.keyPoints = keyPoints;
+    return puzzle;
+  }
+
+  it('reads three key points', () => {
+    expect(validatePuzzle(withKeyPoints(KEY_POINTS)).keyPoints).toEqual(
+      KEY_POINTS,
+    );
+  });
+
+  it('leaves them out when the puzzle has none', () => {
+    expect(validatePuzzle(firstPuzzle()).keyPoints).toBeUndefined();
+  });
+
+  it('needs exactly three', () => {
+    expect(() => validatePuzzle(withKeyPoints(KEY_POINTS.slice(0, 2)))).toThrow(
+      'exactly 3',
+    );
+    expect(() =>
+      validatePuzzle(withKeyPoints([...KEY_POINTS, 'Noch einer.'])),
+    ).toThrow('exactly 3');
+    expect(() => validatePuzzle(withKeyPoints('Ein Satz.'))).toThrow(
+      'exactly 3',
+    );
+  });
+
+  it('rejects an empty or non-text key point', () => {
+    expect(() =>
+      validatePuzzle(withKeyPoints([KEY_POINTS[0], '', KEY_POINTS[2]])),
+    ).toThrow('non-empty');
+    expect(() =>
+      validatePuzzle(withKeyPoints([KEY_POINTS[0], 17, KEY_POINTS[2]])),
+    ).toThrow('non-empty');
+  });
+
+  it('allows at most 12 words, not counting the markers', () => {
+    const twelve =
+      '**Eins** zwei drei vier fünf sechs sieben acht neun zehn elf zwölf.';
+    expect(
+      validatePuzzle(withKeyPoints([twelve, KEY_POINTS[1], KEY_POINTS[2]]))
+        .keyPoints?.[0],
+    ).toBe(twelve);
+
+    const thirteen = `${twelve} dreizehn`;
+    expect(() =>
+      validatePuzzle(withKeyPoints([thirteen, KEY_POINTS[1], KEY_POINTS[2]])),
+    ).toThrow('12 words');
+  });
+
+  it('rejects unbalanced bold markers', () => {
+    expect(() =>
+      validatePuzzle(
+        withKeyPoints(['Es kostet **17 Cent.', KEY_POINTS[1], KEY_POINTS[2]]),
+      ),
+    ).toThrow('"**"');
+  });
+
+  it('rejects leading or trailing whitespace', () => {
+    expect(() =>
+      validatePuzzle(
+        withKeyPoints([` ${KEY_POINTS[0]}`, KEY_POINTS[1], KEY_POINTS[2]]),
+      ),
+    ).toThrow('whitespace');
+    expect(() =>
+      validatePuzzle(
+        withKeyPoints([KEY_POINTS[0], KEY_POINTS[1], `${KEY_POINTS[2]}\n`]),
+      ),
+    ).toThrow('whitespace');
+  });
+
+  function withFirstPoint(point: string): RawPuzzle {
+    return withKeyPoints([point, KEY_POINTS[1], KEY_POINTS[2]]);
+  }
+
+  it('rejects a point that is blank or only markers', () => {
+    expect(() => validatePuzzle(withFirstPoint('   '))).toThrow('non-empty');
+    expect(() => validatePuzzle(withFirstPoint('****'))).toThrow('no text');
+  });
+
+  it('rejects three or more asterisks in a row', () => {
+    expect(() => validatePuzzle(withFirstPoint('a ****b'))).toThrow('"***"');
+    expect(() => validatePuzzle(withFirstPoint('***a***'))).toThrow('"***"');
+  });
+
+  it('rejects a bold run padded with spaces', () => {
+    expect(() =>
+      validatePuzzle(withFirstPoint('Bis zu ** 17 Cent** billiger.')),
+    ).toThrow('bold run');
+    expect(() =>
+      validatePuzzle(withFirstPoint('Bis zu **17 Cent ** billiger.')),
+    ).toThrow('bold run');
+  });
+
+  it('rejects null instead of a list', () => {
+    expect(() => validatePuzzle(withKeyPoints(null))).toThrow('exactly 3');
   });
 });
 
