@@ -210,6 +210,12 @@ def test_pdfs_are_cached_on_disk(tmp_path: Path) -> None:
     assert fetch.calls == [DOC_URL] and fetch_again.calls == []
 
 
+def test_without_a_cache_dir_nothing_is_written(tmp_path: Path) -> None:
+    fetch = _Fetch({DOC_URL: PDF_8457})
+    pdfs = PdfSource(fetch=fetch, min_interval=0, sleep=lambda _s: None)
+    assert pdfs.read(DOC_URL) == PDF_8457 and fetch.calls == [DOC_URL]
+
+
 def test_only_dserver_pdfs_are_fetched(tmp_path: Path) -> None:
     pdfs, fetch = _source(tmp_path, {})
     assert pdfs.read("https://example.org/a.pdf") is None

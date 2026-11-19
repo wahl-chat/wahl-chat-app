@@ -46,12 +46,12 @@ Pages = tuple[Optional[int], Optional[int]]
 
 
 class PdfSource:
-    """dserver PDFs, read from a disk cache or fetched at most once per
-    ``min_interval`` seconds, with a backoff when the server pushes back."""
+    """dserver PDFs, fetched at most once per ``min_interval`` seconds with a
+    backoff when the server pushes back, and kept in ``cache_dir`` if given."""
 
     def __init__(
         self,
-        cache_dir: Path,
+        cache_dir: Optional[Path] = None,
         *,
         fetch: Callable[[str], bytes] = fetch_bytes,
         min_interval: float = 1.0,
@@ -69,15 +69,14 @@ class PdfSource:
         self._parsed: OrderedDict[str, Optional[ProtocolPdf]] = OrderedDict()
         self.fetched = 0
 
-    def path(self, url: str) -> Optional[Path]:
-        """Where the PDF is cached; None for anything not a dserver PDF."""
+    @staticmethod
+    def _relative(url: str) -> Optional[str]:
+        """The path on dserver; None for anything not a dserver PDF."""
         base = url.split("#", 1)[0]
         if not base.startswith(_HOST):
             return None
         rel = base[len(_HOST) :]
-        if ".." in rel or not _SAFE_PATH.match(rel):
-            return None
-        return self._dir / rel
+        return None if ".." in rel or not _SAFE_PATH.match(rel) else rel
 
     def _wait_turn(self) -> None:
         if self._last_fetch is not None:
@@ -100,10 +99,11 @@ class PdfSource:
         raise AssertionError("unreachable")
 
     def read(self, url: str) -> Optional[bytes]:
-        path = self.path(url)
-        if path is None:
+        rel = self._relative(url)
+        if rel is None:
             return None
-        if path.exists():
+        path = self._dir / rel if self._dir is not None else None
+        if path is not None and path.exists():
             return path.read_bytes()
         try:
             data = self._download(url.split("#", 1)[0])
@@ -114,10 +114,11 @@ class PdfSource:
         if not data.startswith(b"%PDF"):
             logger.warning("Not a PDF: %s", url)
             return None
-        path.parent.mkdir(parents=True, exist_ok=True)
-        partial = path.with_suffix(f".{os.getpid()}.part")
-        partial.write_bytes(data)
-        partial.replace(path)
+        if path is not None:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            partial = path.with_suffix(f".{os.getpid()}.part")
+            partial.write_bytes(data)
+            partial.replace(path)
         return data
 
     def pdf(self, url: str) -> Optional[ProtocolPdf]:

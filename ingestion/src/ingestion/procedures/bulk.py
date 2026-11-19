@@ -31,9 +31,7 @@ import asyncio
 import logging
 import os
 import sys
-import tempfile
 from datetime import date, timedelta
-from pathlib import Path
 from typing import Any, Optional
 
 from qdrant_client import QdrantClient
@@ -345,7 +343,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         summary_call=None if args.no_summaries else _publication_call(),
         today=date.today(),
         dry_run=args.dry_run,
-        pdfs=PdfSource(Path(tempfile.gettempdir()) / "dip-pdfs"),
+        # Not cached: each PDF is read once per run, and a Cloud Run job's
+        # disk is its memory.
+        pdfs=PdfSource(),
     )
 
 
