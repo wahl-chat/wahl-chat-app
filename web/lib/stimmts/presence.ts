@@ -41,6 +41,50 @@ export function presenceOf(raw: string | null, today: string): Presence {
   }
 }
 
+type SessionLike = Pick<Storage, 'setItem' | 'removeItem'>;
+type RootLike = { dataset: DOMStringMap | Record<string, string | undefined> };
+
+/** sessionStorage, or null where reading it throws (blocked site data). */
+export function browserSession(): SessionLike | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Called by the page that finishes today's game. The flag lets a reload of
+ * the feed fly the card in; the marks on <html> do it for the feed reached
+ * by a client-side navigation, where the presence script does not run again.
+ */
+export function markJustPlayed(
+  today: string,
+  session: SessionLike | null,
+  root: RootLike,
+): void {
+  try {
+    session?.setItem(JUST_PLAYED_KEY, today);
+  } catch {
+    // Blocked storage: only a reload loses the flight.
+  }
+  root.dataset.stimmts = 'today';
+  root.dataset.stimmtsFly = '';
+}
+
+/** The flight plays once: after it, and on a page restored from history. */
+export function clearJustPlayed(
+  session: SessionLike | null,
+  root: RootLike,
+): void {
+  try {
+    session?.removeItem(JUST_PLAYED_KEY);
+  } catch {
+    // Nothing to clear when storage is blocked.
+  }
+  delete root.dataset.stimmtsFly;
+}
+
 // The feed page is cached and shared, so the device-specific state is set on
 // <html> before first paint instead of rendered; CSS then shows the right
 // variant without a flash. Storage can throw (blocked), hence the try.

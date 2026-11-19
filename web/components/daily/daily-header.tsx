@@ -6,13 +6,15 @@ import { IS_EMBEDDED, cn } from '@/lib/utils';
 import { MessageCircleIcon } from 'lucide-react';
 import Link from 'next/link';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
+import StimmtsHeaderIcon from './stimmts-header-icon';
 import WeeklySignupButton from './weekly-signup-button';
 
 /**
  * The site header on the feed's column width, so the logo and the login
  * button line up with the cards: "wahl.chat / News", the product's name next
  * to the brand. The Chat link opens the current election's page.
- * "Meine Woche" asks readers to sign up for the weekly digest.
+ * "Meine Woche" asks readers to sign up for the weekly digest. Players of
+ * Stimmt's? also get its icon, which leads back to their result.
  * Anleitung and Spenden live in the footer.
  */
 function DailyHeader({ chatHref }: { chatHref: string }) {
@@ -42,6 +44,7 @@ function DailyHeader({ chatHref }: { chatHref: string }) {
 
         {!IS_EMBEDDED && (
           <nav className="flex items-center gap-1 sm:gap-2">
+            <StimmtsHeaderIcon />
             <Link
               href={chatHref}
               className={cn(
@@ -52,7 +55,7 @@ function DailyHeader({ chatHref }: { chatHref: string }) {
             >
               <MessageCircleIcon className="size-4" aria-hidden />
               {/* The narrowest phones keep the icon, so "Meine Woche" fits. */}
-              <span className="max-[380px]:sr-only">
+              <span className="daily-header-chat-label max-[380px]:sr-only">
                 {SITE_LINKS.chat.label}
               </span>
             </Link>
