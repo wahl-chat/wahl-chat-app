@@ -18,7 +18,7 @@ type Props = {
 };
 
 function NavbarItem({ details, mobileClose }: Props) {
-  const { label, href, external, highlight, icon } = details;
+  const { label, href, external, highlight } = details;
   const pathname = usePathname();
   const isActive = href === '/' ? pathname === href : pathname.startsWith(href);
 
@@ -27,10 +27,7 @@ function NavbarItem({ details, mobileClose }: Props) {
       href={href}
       target={external ? '_blank' : undefined}
       className={cn(
-        // Phones stack a small label under the icon, like an app's tab bar.
-        'relative flex items-center rounded-md p-2 text-sm gap-1',
-        icon &&
-          'max-sm:flex-col max-sm:gap-1 max-sm:px-1.5 max-sm:text-[11px] max-sm:leading-none',
+        'relative flex items-center p-2 text-sm gap-1 rounded-md',
         isActive
           ? 'text-primary font-medium'
           : 'text-primary/50 hover:text-primary/70',
@@ -45,7 +42,6 @@ function NavbarItem({ details, mobileClose }: Props) {
           <span className="relative inline-flex size-2 rounded-full bg-indigo-600" />
         </span>
       )}
-      {icon && <span className="relative z-50 [&_svg]:size-4">{icon}</span>}
       <span className="relative z-50">{label}</span>
       {isActive && !highlight && (
         <span className="absolute inset-0 rounded-md bg-muted" />

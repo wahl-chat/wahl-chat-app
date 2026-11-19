@@ -26,7 +26,6 @@ function MobileNavbarItems({ userDetails, mobileClose, onFeedback }: Props) {
       href: '/how-to',
     },
     SITE_LINKS.chat,
-    SITE_LINKS.elections,
     // {
     //   label: 'Wahl Swiper',
     //   href: '/swiper',
