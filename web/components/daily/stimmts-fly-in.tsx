@@ -101,6 +101,7 @@ function StimmtsFlyIn({
 
   useEffect(() => {
     let cancelled = false;
+    const box = slot.current;
     const timer = setTimeout(async () => {
       const box = slot.current;
       const card = box?.firstElementChild;
@@ -129,6 +130,16 @@ function StimmtsFlyIn({
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      // Left mid-flight: the mark would keep hiding the icon's check on the
+      // next page. The session flag stays, so a reload still shows the
+      // flight the player missed. The check runs once React has detached
+      // the slot, so a development remount (the slot still in place) keeps
+      // the mark.
+      setTimeout(() => {
+        if (!box?.isConnected) {
+          delete document.documentElement.dataset.stimmtsFly;
+        }
+      }, 0);
     };
   }, []);
 

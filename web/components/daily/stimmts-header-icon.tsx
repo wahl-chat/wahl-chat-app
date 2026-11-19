@@ -2,7 +2,8 @@
 
 import { StimmtsMark } from '@/components/stimmts/stimmts-logo';
 import { berlinDate } from '@/lib/stimmts/berlin-time';
-import { todaysResult } from '@/lib/stimmts/todays-result';
+import { nextFeedTick } from '@/lib/stimmts/feed-entry';
+import { type TodaysResult, todaysResult } from '@/lib/stimmts/todays-result';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { useStimmtsStatus } from '@/lib/stimmts/use-stimmts-status';
 import { cn } from '@/lib/utils';
@@ -63,6 +64,64 @@ function useLanding(reduceMotion: boolean): { pulse: boolean; hint: Hint } {
 }
 
 /**
+ * Today's result on this device, kept current: a tab left open past Berlin
+ * midnight drops yesterday's score, and a game finished in another tab
+ * counts on return. Null on the server and in the first browser render, so
+ * both agree. It also moves the presence mark on, which the check's CSS
+ * reads, on pages without the feed card to do it.
+ */
+function useTodaysResult(): TodaysResult | null {
+  const hydrate = useProgress((s) => s.hydrate);
+  const hydrated = useProgress((s) => s.hydrated);
+  const refresh = useProgress((s) => s.refresh);
+  const progress = useProgress((s) => s.progress);
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    hydrate();
+    setNow(new Date());
+    // A sleeping device delays timers, so coming back reads the clock again.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        refresh();
+        setNow(new Date());
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [hydrate, refresh]);
+
+  useEffect(() => {
+    if (!now) {
+      return;
+    }
+    const timer = setTimeout(
+      () => setNow(new Date()),
+      nextFeedTick('played', now),
+    );
+    return () => clearTimeout(timer);
+  }, [now]);
+
+  const result =
+    hydrated && now ? todaysResult(progress, berlinDate(now)) : null;
+  const playedToday = result !== null;
+
+  useEffect(() => {
+    if (!hydrated || !now) {
+      return;
+    }
+    const root = document.documentElement;
+    if (playedToday) {
+      root.dataset.stimmts = 'today';
+    } else if (root.dataset.stimmts === 'today') {
+      root.dataset.stimmts = 'before';
+    }
+  }, [hydrated, now, playedToday]);
+
+  return result;
+}
+
+/**
  * The way back to Stimmt's? for someone who has played: the mark in the
  * header, with a check once today's game is done. It opens the game, which
  * shows today's result or the quiz menu.
@@ -72,32 +131,25 @@ function useLanding(reduceMotion: boolean): { pulse: boolean; hint: Hint } {
  * paint and globals.css shows the icon (and its check) from that mark: no
  * flash, and no shift for the many readers who never played.
  *
+ * Only while the switch is on: the server's reading decides the first paint,
+ * so a switched-off game never shows its icon to past players, and the live
+ * switch takes over once it answers. Loading or unreachable keeps the
+ * server's decision. On any day of a running game, not only puzzle days: it
+ * also leads to the result and the quiz menu after the last puzzle.
+ *
  * Not on /stimmts itself, where it would only link to the page it is on.
  */
-function StimmtsHeaderIcon() {
+function StimmtsHeaderIcon({ serverEnabled }: { serverEnabled: boolean }) {
   const pathname = usePathname();
   const { state } = useStimmtsStatus();
   const reduceMotion = useReducedMotion() ?? false;
   const { pulse, hint } = useLanding(reduceMotion);
+  const result = useTodaysResult();
 
-  const hydrate = useProgress((s) => s.hydrate);
-  const hydrated = useProgress((s) => s.hydrated);
-  const progress = useProgress((s) => s.progress);
-  useEffect(() => {
-    hydrate();
-  }, [hydrate]);
-
-  if (pathname === '/stimmts') {
+  const enabled = state.kind === 'known' ? state.status.enabled : serverEnabled;
+  if (pathname === '/stimmts' || !enabled) {
     return null;
   }
-  if (state.kind === 'known' && !state.status.enabled) {
-    return null;
-  }
-
-  // Unhydrated on the server and in the first browser render, so both agree.
-  const result = hydrated
-    ? todaysResult(progress, berlinDate(new Date()))
-    : null;
   const label = result
     ? `Stimmt’s? – heute ${result.correct} von ${result.total}. Ergebnis und Quiz`
     : 'Stimmt’s? – Ergebnis und Quiz';

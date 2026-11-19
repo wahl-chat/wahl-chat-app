@@ -14,12 +14,19 @@ import WeeklySignupButton from './weekly-signup-button';
  * button line up with the cards: "wahl.chat / News", the product's name next
  * to the brand. The Chat link opens the current election's page.
  * "Meine Woche" asks readers to sign up for the weekly digest. Players of
- * Stimmt's? also get its icon, which leads back to their result.
+ * Stimmt's? also get its icon, which leads back to their result, while the
+ * game is switched on (`stimmtsEnabled`, the server's reading of the switch).
  * Anleitung and Spenden live in the footer.
  */
-function DailyHeader({ chatHref }: { chatHref: string }) {
+function DailyHeader({
+  chatHref,
+  stimmtsEnabled,
+}: {
+  chatHref: string;
+  stimmtsEnabled: boolean;
+}) {
   return (
-    <header className="sticky top-0 z-30 h-header border-b border-[var(--daily-border)] bg-[var(--daily-canvas)]">
+    <header className="daily-header sticky top-0 z-30 h-header border-b border-[var(--daily-border)] bg-[var(--daily-canvas)]">
       <div className="mx-auto flex size-full max-w-screen-sm items-center justify-between gap-2 px-4 sm:gap-4">
         <Link
           href="/"
@@ -44,7 +51,7 @@ function DailyHeader({ chatHref }: { chatHref: string }) {
 
         {!IS_EMBEDDED && (
           <nav className="flex items-center gap-1 sm:gap-2">
-            <StimmtsHeaderIcon />
+            <StimmtsHeaderIcon serverEnabled={stimmtsEnabled} />
             <Link
               href={chatHref}
               className={cn(
