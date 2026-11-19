@@ -230,7 +230,10 @@ function useFlyFlag(kind: FeedEntry['kind'] | undefined): {
 
 /**
  * Today's result, shown only on the way into the header icon: what the
- * player just finished, so they see it land where it now lives.
+ * player just finished, so they see it land where it now lives. It takes the
+ * place of the hidden invitation the server rendered, so it keeps the
+ * invitation's padding and row heights: the feed must not move before the
+ * card leaves.
  */
 function PlayedCard({ result }: { result: TodaysResult }) {
   return (
@@ -240,7 +243,7 @@ function PlayedCard({ result }: { result: TodaysResult }) {
       data-variant="played"
       aria-label={`Stimmt’s? heute gespielt: ${result.correct} von ${result.total} richtig. Ergebnis ansehen`}
       className={cn(
-        'stimmts-feed-card flex items-center gap-3 py-3 pl-3.5 pr-2.5 text-[var(--daily-ink)] no-underline',
+        'stimmts-feed-card flex items-center gap-3 pb-3 pl-3.5 pr-2.5 pt-2.5 text-[var(--daily-ink)] no-underline',
         CARD_SURFACE,
         FOCUS_RING,
       )}
@@ -255,7 +258,9 @@ function PlayedCard({ result }: { result: TodaysResult }) {
           <StimmtsLogo className="flex-none gap-[5px] text-[15px] text-[var(--daily-ink)] [&>svg]:h-3" />
           <span>· Heute gespielt</span>
         </span>
-        <span className="flex items-center gap-2 whitespace-nowrap">
+        {/* The invitation's second row: room for a two-line name on a
+            phone, the 40 px button from sm up. */}
+        <span className="flex min-h-[59px] items-center gap-2 whitespace-nowrap sm:min-h-10">
           <span className="text-xl font-extrabold leading-6">
             {result.correct}/{result.total}
           </span>
