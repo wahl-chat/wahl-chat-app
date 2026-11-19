@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { FIXTURE_PUZZLES as PUZZLES } from './fixtures';
-import { isComplete, scorePuzzle } from './score';
+import { FIXTURE_PUZZLES as PUZZLES, TANKRABATT_PUZZLE } from './fixtures';
+import { isComplete, scorePuzzle, voteCountLabels, voteTotals } from './score';
 import type { Guesses } from './types';
 
 // Seating order: linke, spd, gruene, cdu, afd. Real answers for this puzzle:
@@ -71,5 +71,27 @@ describe('isComplete', () => {
     expect(isComplete(puzzle, {})).toBe(false);
     expect(isComplete(puzzle, { linke: 'no', spd: 'yes' })).toBe(false);
     expect(isComplete(puzzle, allRight)).toBe(true);
+  });
+});
+
+describe('voteTotals', () => {
+  it("sums every Fraktion's votes, leaving out the members without one", () => {
+    expect(voteTotals(TANKRABATT_PUZZLE)).toEqual({
+      yes: 433,
+      no: 127,
+      abstain: 0,
+      noShow: 67,
+    });
+  });
+});
+
+describe('voteCountLabels', () => {
+  it('names the four counts as the feed does, zeros included', () => {
+    expect(voteCountLabels(voteTotals(TANKRABATT_PUZZLE))).toEqual([
+      { vote: 'yes', label: '433 Ja' },
+      { vote: 'no', label: '127 Nein' },
+      { vote: 'abstain', label: '0 Enthalten' },
+      { vote: 'noShow', label: '67 Nicht beteiligt' },
+    ]);
   });
 });

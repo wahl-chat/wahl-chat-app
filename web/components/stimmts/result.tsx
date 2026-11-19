@@ -1,7 +1,8 @@
+import { CARD_SURFACE } from '@/components/daily/card-styles';
 import { BASE_URL } from '@/lib/seo';
 import { trackResultShared } from '@/lib/stimmts/analytics';
 import { PUZZLES } from '@/lib/stimmts/content';
-import { partyLabel } from '@/lib/stimmts/labels';
+import { feedDate, partyLabel } from '@/lib/stimmts/labels';
 import { periodSeats } from '@/lib/stimmts/logo';
 import {
   PERIOD_LENGTH,
@@ -21,7 +22,6 @@ import { useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Countdown from './countdown';
 import FeedbackPrompt from './feedback-prompt';
-import OutcomeCard from './outcome-card';
 import PartyTile from './party-tile';
 import PeriodChamber from './period-chamber';
 import ShareButton from './share-button';
@@ -29,6 +29,7 @@ import Stimmkarte from './stimmkarte';
 import StimmtsLogo from './stimmts-logo';
 import Urn from './urn';
 import { Verdict } from './verdict';
+import VoteResultCard from './vote-result-card';
 
 /**
  * The cast, step by step (see the stimmts-fly, -insert and -fall animations):
@@ -67,9 +68,11 @@ type Props = {
 };
 
 /**
- * The end of the day's puzzle: the stamped Stimmkarte for the player to cast
- * into the urn, then the score, the outcome, the Wahlperiode and sharing.
- * Once cast, the card is gone and the countdown takes its place.
+ * The end of the day's puzzle, read top to bottom: when the next one opens,
+ * the score and sharing it, how the Bundestag actually voted, and last the
+ * stamped Stimmkarte for the player to cast into the urn, with the
+ * Wahlperiode the urn fills. Once cast, the card is gone and the urn rises
+ * into its place.
  */
 function Result({
   number,
@@ -159,107 +162,28 @@ function Result({
   const cardsInUrn = castStep && castStep !== 'flying' ? cards + 1 : cards;
 
   return (
-    <div className="flex flex-col gap-10">
-      {!game.cast && (
-        // The card's space closes once it is in the urn, so the urn rises
-        // into its place instead of jumping.
-        <div
-          className={cn(
-            'grid transition-[grid-template-rows,margin] duration-300 ease-out',
-            castStep === 'closing'
-              ? '-mb-10 grid-rows-[0fr]'
-              : 'grid-rows-[1fr]',
-          )}
-        >
-          <div
-            className={cn(
-              'relative min-h-0',
-              castStep === 'closing' && 'overflow-hidden',
-            )}
-          >
-            {!castStep && (
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 animate-stimmts-pulse rounded-[10px] border-2 border-[var(--daily-ink)] motion-reduce:hidden"
-              />
-            )}
-            <Stimmkarte
-              ref={cardRef}
-              number={number}
-              playDate={playDate}
-              title={puzzle.title}
-              topic={puzzle.topic}
-              score={score.correct}
-              stamping={stampOnMount && !reduceMotion}
-              onCast={cast}
-              className={cn(
-                castStep === 'flying' &&
-                  'pointer-events-none z-[5] animate-stimmts-fly',
-                castStep === 'fading' &&
-                  'pointer-events-none opacity-0 transition-opacity duration-300',
-                castStep &&
-                  castStep !== 'flying' &&
-                  castStep !== 'fading' &&
-                  'invisible',
-              )}
-            />
-          </div>
-        </div>
-      )}
-
-      {game.cast && (
-        <div className="flex flex-col items-center gap-4">
-          {/* Once the card, which carries it, is in the urn. */}
-          <StimmtsLogo className="text-[26px]" />
-          <Countdown />
-        </div>
-      )}
-
-      <div className="flex flex-col gap-4">
-        {/* While the card waits, the urn sits a little lower, leaving the
-            hint room between the two. */}
-        <div className={cn('relative', !game.cast && 'mt-8')}>
-          {!game.cast && !castStep && <CastHint />}
-          <Urn
-            cards={cardsInUrn}
-            casting={
-              castStep === 'inserting' || castStep === 'falling'
-                ? castStep
-                : castStep === 'fading'
-                  ? 'appearing'
-                  : null
-            }
-            slotRef={slotRef}
-          />
-        </div>
-        {game.cast && (
-          <p
-            className={cn(
-              'text-center text-sm text-[var(--daily-muted)]',
-              justCast &&
-                'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
-            )}
-          >
-            <span className="font-display text-2xl font-extrabold tabular-nums text-[var(--daily-ink)]">
-              {cards}/{PERIOD_LENGTH}
-            </span>{' '}
-            Stimmkarten abgegeben
-          </p>
-        )}
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col items-center gap-1">
+        <StimmtsLogo className="text-[19px]" />
+        <Countdown size="compact" />
       </div>
 
-      <section aria-live="polite" className="flex flex-col gap-5">
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-sm text-[var(--daily-muted)]">
-            Dein Ergebnis
-          </span>
-          <p className="font-display text-5xl font-extrabold tabular-nums leading-[52px] tracking-[-0.02em]">
-            {score.correct} von {score.total}
-            <small className="ml-2 font-sans text-lg font-semibold leading-none tracking-normal text-[var(--daily-muted)]">
+      <section
+        aria-label="Dein Ergebnis"
+        aria-live="polite"
+        className={cn(CARD_SURFACE, 'flex flex-col gap-3 px-4 py-3.5')}
+      >
+        <p className="flex items-baseline justify-between gap-2">
+          <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
+            {score.correct} von {score.total}{' '}
+            <span className="font-sans text-[15px] font-semibold tracking-normal text-[var(--daily-muted)]">
               richtig
-            </small>
-          </p>
-        </div>
+            </span>
+          </span>
+          <span className="text-[13px] text-[var(--daily-muted)]">
+            {feedDate(playDate)}
+          </span>
+        </p>
         <ul
           aria-label="Deine Tipps je Partei"
           className="grid grid-cols-5 gap-1"
@@ -271,31 +195,14 @@ function Result({
             >
               <PartyTile partyId={entry.partyId} size="sm" />
               <span className="sr-only">{partyLabel(entry.partyId)}</span>
-              <Verdict correct={entry.correct} />
+              <Verdict
+                correct={entry.correct}
+                className="size-[22px] text-xs"
+              />
             </li>
           ))}
         </ul>
       </section>
-
-      <OutcomeCard puzzle={puzzle} onOpen={onReview} />
-
-      <div className="relative px-6">
-        <PeriodChamber
-          seats={periodSeats(period.days, false)}
-          complete={period.complete}
-          today={number}
-          onOpen={onOpenDay}
-          className="mx-auto max-w-[300px]"
-        />
-        <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 flex-col items-center whitespace-nowrap">
-          <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
-            Tag {period.day}
-          </span>
-          <span className="text-xs font-medium text-[var(--daily-muted)]">
-            von {PERIOD_LENGTH}
-          </span>
-        </div>
-      </div>
 
       <ShareButton
         text={buildShareText({
@@ -315,8 +222,113 @@ function Result({
         }}
         onShared={(method) => trackResultShared('result', method, number)}
       />
-      {/* After the cast, when the day's game is done with. */}
-      {game.cast && <FeedbackPrompt />}
+      <FeedbackPrompt />
+
+      <VoteResultCard puzzle={puzzle} onOpen={onReview} />
+
+      {/* The card that takes the day's vote into the chat goes here, between
+          the vote and the Stimmkarte. */}
+
+      <div className="mt-5 flex flex-col gap-10">
+        {!game.cast && (
+          // The card's space closes once it is in the urn, so the urn rises
+          // into its place instead of jumping.
+          <div
+            className={cn(
+              'grid transition-[grid-template-rows,margin] duration-300 ease-out',
+              castStep === 'closing'
+                ? '-mb-10 grid-rows-[0fr]'
+                : 'grid-rows-[1fr]',
+            )}
+          >
+            <div
+              className={cn(
+                'relative min-h-0',
+                castStep === 'closing' && 'overflow-hidden',
+              )}
+            >
+              {!castStep && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 animate-stimmts-pulse rounded-xl border-2 border-[var(--daily-ink)] motion-reduce:hidden"
+                />
+              )}
+              <Stimmkarte
+                ref={cardRef}
+                number={number}
+                playDate={playDate}
+                title={puzzle.title}
+                topic={puzzle.topic}
+                score={score.correct}
+                verdicts={score.parties}
+                stamping={stampOnMount && !reduceMotion}
+                onCast={cast}
+                className={cn(
+                  castStep === 'flying' &&
+                    'pointer-events-none z-[5] animate-stimmts-fly',
+                  castStep === 'fading' &&
+                    'pointer-events-none opacity-0 transition-opacity duration-300',
+                  castStep &&
+                    castStep !== 'flying' &&
+                    castStep !== 'fading' &&
+                    'invisible',
+                )}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-4">
+          {/* While the card waits, the urn sits a little lower, leaving the
+              hint room between the two. */}
+          <div className={cn('relative', !game.cast && 'mt-8')}>
+            {!game.cast && !castStep && <CastHint />}
+            <Urn
+              cards={cardsInUrn}
+              casting={
+                castStep === 'inserting' || castStep === 'falling'
+                  ? castStep
+                  : castStep === 'fading'
+                    ? 'appearing'
+                    : null
+              }
+              slotRef={slotRef}
+            />
+          </div>
+          {game.cast && (
+            <p
+              className={cn(
+                'text-center text-sm text-[var(--daily-muted)]',
+                justCast &&
+                  'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
+              )}
+            >
+              <span className="font-display text-2xl font-extrabold tabular-nums text-[var(--daily-ink)]">
+                {cards}/{PERIOD_LENGTH}
+              </span>{' '}
+              Stimmkarten abgegeben
+            </p>
+          )}
+        </div>
+
+        <div className="relative px-6">
+          <PeriodChamber
+            seats={periodSeats(period.days, false)}
+            complete={period.complete}
+            today={number}
+            onOpen={onOpenDay}
+            className="mx-auto max-w-[300px]"
+          />
+          <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 flex-col items-center whitespace-nowrap">
+            <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
+              Tag {period.day}
+            </span>
+            <span className="text-xs font-medium text-[var(--daily-muted)]">
+              von {PERIOD_LENGTH}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

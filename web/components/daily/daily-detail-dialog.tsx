@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
+import { OutcomeBadge } from './outcome-badge';
 import { PartyPositions, orderedPositions } from './party-positions';
 import { HeatInfo } from './plenary-card';
 import {
@@ -37,7 +38,6 @@ import {
 import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
-import { OutcomeBadge } from './vote-card';
 import { PartyVoteTable, SourceLink } from './vote-panels';
 
 const longDayFormat = new Intl.DateTimeFormat('de-DE', {
