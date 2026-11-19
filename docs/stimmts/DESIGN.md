@@ -149,13 +149,15 @@ count.
 
 - Vercel Analytics events: `stimmts_puzzle_started`,
   `stimmts_puzzle_completed` (day, score), `stimmts_result_shared` (screen,
-  method, day), `stimmts_rated` (stars, games) and
-  `stimmts_rating_dismissed`. Each puzzle is counted once, not again on a
-  reload or in another tab. Only counts leave the device, never the tips.
-- Feedback is one tap: five stars after the fifth finished puzzle, asked once.
-  Written forms are mostly closed unread, so the Fillout form
-  (`STIMMTS_FEEDBACK_FORM_ID`, empty until the form exists) is only offered
-  after a rating.
+  method, day) and `stimmts_more_games` (answer: yes, no or dismissed;
+  games). Each puzzle is counted once, not again on a reload or in another
+  tab. Only counts leave the device, never the tips.
+- Feedback is one tap, asked once after the first finished puzzle: „Stimmt’s?
+  ist neu. Sollen wir mehr kleine Spiele machen?" with „Ja, gern" and „Eher
+  nicht". It asks about the format, never about the vote, so the card names no
+  bill. An answer or a close both count as asked. While the PledgeTracker
+  study runs the card is hidden, because the study questionnaire is then the
+  only ask in the app.
 
 **Accessibility**
 

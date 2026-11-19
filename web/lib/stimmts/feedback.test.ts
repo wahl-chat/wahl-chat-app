@@ -14,17 +14,18 @@ function withGames(finished: number, open = 0): Progress {
 }
 
 describe('shouldAskForFeedback', () => {
-  it('asks once five puzzles are finished', () => {
-    expect(shouldAskForFeedback(withGames(4), false)).toBe(false);
-    expect(shouldAskForFeedback(withGames(5), false)).toBe(true);
-    expect(shouldAskForFeedback(withGames(12), false)).toBe(true);
+  it('asks once the first puzzle is finished', () => {
+    expect(shouldAskForFeedback(withGames(0), false)).toBe(false);
+    expect(shouldAskForFeedback(withGames(1), false)).toBe(true);
+    expect(shouldAskForFeedback(withGames(7), false)).toBe(true);
   });
 
   it('does not count puzzles left unfinished', () => {
-    expect(shouldAskForFeedback(withGames(4, 3), false)).toBe(false);
+    expect(shouldAskForFeedback(withGames(0, 3), false)).toBe(false);
   });
 
   it('never asks twice', () => {
+    expect(shouldAskForFeedback(withGames(1), true)).toBe(false);
     expect(shouldAskForFeedback(withGames(5), true)).toBe(false);
   });
 });
