@@ -43,8 +43,8 @@ Wahlperiode, starting on the launch date.
 5. **Result.** The score stamped on the Stimmkarte, which the player casts into
    the urn of this Wahlperiode; the outcome; the Wahlperiode as 30 seats, where
    a past day opens again; sharing; a countdown to the next puzzle.
-6. **After the fifth finished puzzle,** once: a one-tap star rating, with an
-   optional offer to say more.
+6. **After the first finished puzzle,** once: whether we should make more
+   small games („Ja, gern" / „Eher nicht").
 7. **After the last day,** a closing screen: the player's Wahlperiode, how many
    days they played and how many tips were right, and "Mehr Rätsel sind in
    Arbeit. Bleib dran!"
@@ -348,7 +348,7 @@ them after changing it.
 ## Status and rollout
 
 **Done:** the game, the switch, the status and closing screens, the intro,
-sharing, robustness, accessibility, analytics and the rating; the exporter;
+sharing, robustness, accessibility, analytics and the more-games question; the exporter;
 the 30 puzzles, reviewed in three batches, and their running order (see
 [puzzle-selection.md](puzzle-selection.md) for why each vote was picked).
 
@@ -362,7 +362,7 @@ the 30 puzzles, reviewed in three batches, and their running order (see
 4. *Launch:* indexing (`productionRobots`, canonical, sitemap) and the
    production switch doc.
 
-**Judging the pilot.** Return rate, completion, shares and ratings over the 30
+**Judging the pilot.** Return rate, completion, shares and the answers to the more-games question over the 30
 days.
 
 ## Risks and open questions
