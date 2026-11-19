@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "title": "Understand politics with wahl.chat – your AI election chat",
+    "description": "The AI-powered companion to the Wahl-O-Mat: understand the parties through plenary records, roll-call votes and manifestos. Get informed and vote now!"
+  },
+  "jsonLd": {
+    "electionListName": "Elections on wahl.chat"
+  },
+  "hero": {
+    "askQuestions": "Ask questions.",
+    "understandPolitics": "Understand politics.",
+    "voteInformed": "Vote informed.",
+    "subhead": "Which party suits you? Compare parties, backed by plenary records, roll-call votes and manifestos."
+  },
+  "heroElection": {
+    "yourElection": "Your election:"
+  },
+  "heroCta": {
+    "label": "Get informed",
+    "ariaLabel": "Get informed about the {name}"
+  },
+  "scrollCue": "Learn more",
+  "sections": {
+    "otherElections": "More elections on wahl.chat",
+    "reception": "Reception",
+    "exampleQuestions": "Example questions for the parties",
+    "about": "What is wahl.chat?",
+    "data": "What data is used?",
+    "faq": "Frequently asked questions",
+    "support": "Support wahl.chat"
+  },
+  "electionLinks": {
+    "navLabel": "All elections",
+    "upcomingOn": "Election on {date}",
+    "concludedOn": "Election held on {date}",
+    "showPast": "Show past elections"
+  },
+  "stats": {
+    "heading": "Facts and figures:",
+    "atLeast": "{value}+",
+    "users": "users",
+    "answeredQuestions": "questions answered",
+    "supportedElections": "elections supported"
+  },
+  "dataSources": {
+    "sourcesPage": "You can see which documents are behind them on the <link>sources page</link>."
+  },
+  "footer": {
+    "product": "Product",
+    "about": "About wahl.chat",
+    "legal": "Legal"
+  }
+}

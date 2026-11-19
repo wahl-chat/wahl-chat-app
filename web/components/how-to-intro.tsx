@@ -1,10 +1,11 @@
-import { INTRO_TEXT, PROCESS_STEPS } from '@/lib/how-to-content';
+import { getHowToContent } from '@/lib/how-to-content';
 import {
   MessageCircleQuestionIcon,
   MessageCircleReplyIcon,
   TextSearchIcon,
   WaypointsIcon,
 } from 'lucide-react';
+import { useLocale } from 'next-intl';
 
 // Fewer icons than steps: the last step has never had one. Kept as-is rather
 // than invented, so this stays a move and not a redesign.
@@ -19,25 +20,27 @@ const PROCESS_STEP_ICONS = [
  * What wahl.chat is, plus the five steps of how an answer comes about.
  *
  * Shared by /how-to and the landing page so the explanation exists once. No
- * hooks and no 'use client', so it server-renders on the landing page while
- * still being usable from the client HowTo component.
+ * 'use client' and only next-intl's `useLocale`, which works on both sides, so
+ * it server-renders on the landing page while still being usable from the
+ * client HowTo component.
  */
 function HowToIntro() {
+  const { introText, processSteps, labels } = getHowToContent(useLocale());
   return (
     <>
       <p>
         <span className="font-bold underline">wahl.chat</span>{' '}
-        {INTRO_TEXT.main.startsWith('wahl.chat ')
-          ? INTRO_TEXT.main.slice('wahl.chat '.length)
-          : INTRO_TEXT.main}
+        {introText.main.startsWith('wahl.chat ')
+          ? introText.main.slice('wahl.chat '.length)
+          : introText.main}
         <br />
-        {INTRO_TEXT.sources}
+        {introText.sources}
       </p>
 
-      <p className="mt-4 text-sm font-semibold">Der Prozess ist einfach:</p>
+      <p className="mt-4 text-sm font-semibold">{labels.processHeading}</p>
 
       <ul className="[&_li]:mt-4 [&_li]:text-sm">
-        {PROCESS_STEPS.map((step, index) => (
+        {processSteps.map((step, index) => (
           <li key={step} className="relative pl-10">
             {PROCESS_STEP_ICONS[index]}
             {step}

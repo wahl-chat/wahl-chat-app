@@ -3,6 +3,7 @@
 import type { DigestSpeaker } from '@/lib/firebase/firebase.types';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { PlayIcon, UserRoundIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import { GlossaryLabel } from './glossary-text';
@@ -21,12 +22,13 @@ export function SpeakerChips({
   photos?: Record<string, string>;
   onOpen: (speaker: DigestSpeaker) => void;
 }) {
+  const t = useTranslations('feed.speakers');
   const photoOf = (speaker: DigestSpeaker) =>
     speaker.mdb_id ? photos[speaker.mdb_id] : undefined;
   return (
     <div
       role="group"
-      aria-label="Redner·innen"
+      aria-label={t('label')}
       className="flex flex-wrap gap-1.5"
     >
       {speakers.map((speaker) =>
@@ -83,14 +85,18 @@ function SpeakerButton({
   onOpen: (speaker: DigestSpeaker) => void;
   className?: string;
 }) {
+  const t = useTranslations('feed.speakers');
   return (
     <button
       type="button"
       onClick={() => onOpen(speaker)}
       aria-label={
         speaker.duration
-          ? `${speaker.name}, Rede ${formatTimestamp(speaker.duration)} Minuten – Profil öffnen`
-          : `${speaker.name} – Profil öffnen`
+          ? t('openWithDuration', {
+              name: speaker.name,
+              duration: formatTimestamp(speaker.duration),
+            })
+          : t('open', { name: speaker.name })
       }
       className={cn(
         'inline-flex items-center gap-2 whitespace-nowrap text-[13px] font-semibold',

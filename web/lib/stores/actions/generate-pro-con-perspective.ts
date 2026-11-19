@@ -5,6 +5,7 @@ import type {
   ChatStoreActionHandlerFor,
   MessageItem,
 } from '@/lib/stores/chat-store.types';
+import { storeMessage } from '@/lib/stores/store-messages';
 import { toast } from 'sonner';
 
 export const generateProConPerspective: ChatStoreActionHandlerFor<
@@ -105,7 +106,7 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
             );
           } else if (annotation.type === 'error') {
             console.error('[pro-con] server error:', annotation.message);
-            toast.error('Fehler beim Laden der Pro/Contra-Perspektive.');
+            toast.error(storeMessage('proConFailed'));
             // Server-emitted error: stop the spinner (only `catch` cleared it
             // before, so an HTTP-200 error left it spinning forever).
             set((state) => {
@@ -124,7 +125,7 @@ export const generateProConPerspective: ChatStoreActionHandlerFor<
       }
     } catch (error) {
       console.error('[generateProConPerspective] error:', error);
-      toast.error('Fehler beim Laden der Pro/Contra-Perspektive.');
+      toast.error(storeMessage('proConFailed'));
 
       set((state) => {
         state.loading.proConPerspective = undefined;

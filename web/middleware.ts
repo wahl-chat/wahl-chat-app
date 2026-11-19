@@ -1,5 +1,8 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import createMiddleware from 'next-intl/middleware';
+import { NextRequest, NextResponse } from 'next/server';
+import { splitLocalePrefix } from './i18n/locale-path';
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from './i18n/locales';
+import { routing } from './i18n/routing';
 import {
   CONTEXT_ID_HEADER,
   DEFAULT_CONTEXT_ID,
@@ -23,9 +26,10 @@ const STATIC_PAGES = [
   '/api',
 ];
 
-// File-based metadata routes. The '/:contextId' matcher catches these, and they
-// must be served whatever else is going on — a sitemap or robots.txt answering
-// with a redirect is worse than one answering with stale content.
+// File-based metadata routes. The matcher already skips paths with a file
+// extension; listed anyway because they must be served whatever else is going
+// on — a sitemap or robots.txt answering with a redirect is worse than one
+// answering with stale content.
 const METADATA_ROUTES = [
   '/sitemap.xml',
   '/robots.txt',
@@ -44,6 +48,8 @@ function isStaticPage(pathname: string): boolean {
     )
   );
 }
+
+const handleI18nRouting = createMiddleware(routing);
 
 const ELECTION_PAST_BUFFER_MS = 5 * 24 * 60 * 60 * 1000;
 
@@ -83,7 +89,21 @@ function buildRedirectUrl(
 }
 
 export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  const { prefix, path: pathname } = splitLocalePrefix(
+    request.nextUrl.pathname,
+  );
+
+  // A reader who chose a language keeps it on prefix-less links. Crawlers
+  // carry no cookie, so / stays the same page for them.
+  const chosen = request.cookies.get(LOCALE_COOKIE)?.value;
+  if (!prefix && chosen && chosen !== DEFAULT_LOCALE && isLocale(chosen)) {
+    return NextResponse.redirect(
+      buildRedirectUrl(
+        request,
+        `/${chosen}${pathname === '/' ? '' : pathname}`,
+      ),
+    );
+  }
 
   // Handle tenant ID from search params
   const tenantIdSearchParam = request.nextUrl.searchParams.get('tenant_id');
@@ -98,13 +118,13 @@ export async function middleware(request: NextRequest) {
   // redirected the kill-switch landing page to itself forever, and sent
   // /sitemap.xml, /robots.txt and /manifest.json there too.
   if (isStaticPage(pathname)) {
-    return NextResponse.next({
-      request: { headers: requestHeaders },
-    });
+    return localized(request, requestHeaders);
   }
 
   if (process.env.BUDGET_SPENT === 'true') {
-    return NextResponse.redirect(new URL('/budget-spent', request.url));
+    return NextResponse.redirect(
+      new URL(`${prefix}/budget-spent`, request.url),
+    );
   }
 
   // Legacy context-less URLs. Bare paths go to /, which is stable — so those
@@ -118,7 +138,7 @@ export async function middleware(request: NextRequest) {
   // when production sent /chat to / permanently.
   if (pathname === '/chat') {
     return NextResponse.redirect(
-      buildRedirectUrl(request, '/election-chat'),
+      buildRedirectUrl(request, `${prefix}/election-chat`),
       307,
     );
   }
@@ -128,13 +148,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(
       buildRedirectUrl(
         request,
-        `/${getContextIdFromGeo(request)}/session?party_id=${partyId}`,
+        `${prefix}/${getContextIdFromGeo(request)}/session?party_id=${partyId}`,
       ),
     );
   }
 
   if (pathname === '/session') {
-    return NextResponse.redirect(buildRedirectUrl(request, '/'), 308);
+    return NextResponse.redirect(buildRedirectUrl(request, prefix || '/'), 308);
   }
 
   if (pathname.startsWith('/session/')) {
@@ -142,7 +162,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(
       buildRedirectUrl(
         request,
-        `/${getContextIdFromGeo(request)}/session${restPath}`,
+        `${prefix}/${getContextIdFromGeo(request)}/session${restPath}`,
       ),
     );
   }
@@ -152,14 +172,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(
       buildRedirectUrl(
         request,
-        `/${getContextIdFromGeo(request)}/swiper${restPath}`,
+        `${prefix}/${getContextIdFromGeo(request)}/swiper${restPath}`,
       ),
     );
   }
 
   if (pathname === '/share') {
     return NextResponse.redirect(
-      buildRedirectUrl(request, `/${getContextIdFromGeo(request)}/share`),
+      buildRedirectUrl(
+        request,
+        `${prefix}/${getContextIdFromGeo(request)}/share`,
+      ),
     );
   }
 
@@ -167,7 +190,10 @@ export async function middleware(request: NextRequest) {
   // better answer to /sources than the landing page.
   if (pathname === '/sources') {
     return NextResponse.redirect(
-      buildRedirectUrl(request, `/${getContextIdFromGeo(request)}/sources`),
+      buildRedirectUrl(
+        request,
+        `${prefix}/${getContextIdFromGeo(request)}/sources`,
+      ),
     );
   }
 
@@ -179,24 +205,19 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set(CONTEXT_ID_HEADER, potentialContextId);
   }
 
-  return NextResponse.next({
-    request: { headers: requestHeaders },
-  });
+  return localized(request, requestHeaders);
+}
+
+/** Hand over to next-intl, which maps the URL onto app/[locale]/…, carrying
+ * the tenant and context headers set above into the rewritten request. */
+function localized(request: NextRequest, headers: Headers) {
+  return handleI18nRouting(new NextRequest(request, { headers }));
 }
 
 export const config = {
-  matcher: [
-    // / is matched for the tenant header and the BUDGET_SPENT kill switch, not
-    // for routing: it serves the landing page. It must never be redirected —
-    // varying it by IP sends crawlers and German visitors to different
-    // elections and points every inbound link at a redirect instead of a page.
-    '/',
-    '/chat/:path*',
-    '/session/:path*',
-    '/swiper/:path*',
-    '/share',
-    '/sources',
-    '/:contextId',
-    '/:contextId/:path*',
-  ],
+  // Every page, since each one is served from app/[locale]/…. / is never
+  // redirected by IP: varying it would send crawlers and German visitors to
+  // different elections and point inbound links at a redirect. API routes,
+  // Next internals and files (sitemap.xml, robots.txt, icons) are left alone.
+  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 };

@@ -6,8 +6,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Link } from '@/i18n/navigation';
 import type { Source } from '@/lib/stores/chat-store.types';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { type JSX, memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -79,6 +80,7 @@ function buildReferenceMapping(
 }
 
 function AgentChatMarkdownComponent({ content, sources }: Props) {
+  const t = useTranslations('agent.chat');
   const cleanProps = (props: Record<string, unknown>) => {
     const rest = { ...props };
     rest.node = undefined;
@@ -125,7 +127,7 @@ function AgentChatMarkdownComponent({ content, sources }: Props) {
     const source = mapping?.source;
 
     if (!source) return null;
-    return `${source.source} - Seite: ${source.page}`;
+    return t('referenceTooltip', { source: source.source, page: source.page });
   };
 
   const getDisplayNumber = (partyId: string, partyIndex: number): number => {

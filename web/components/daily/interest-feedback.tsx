@@ -5,30 +5,32 @@ import { readInterest, recordInterest } from '@/lib/daily/interest';
 import type { FeedInterest } from '@/lib/firebase/firebase';
 import { cn } from '@/lib/utils';
 import { type LucideIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import { InfoTooltip } from './info-tooltip';
 
-const OPTIONS: { value: FeedInterest; label: string; Icon: LucideIcon }[] = [
-  { value: 'yes', label: 'Interessant', Icon: ThumbsUpIcon },
-  { value: 'no', label: 'Nicht interessant', Icon: ThumbsDownIcon },
+const OPTIONS: {
+  value: FeedInterest;
+  label: 'interestYes' | 'interestNo';
+  Icon: LucideIcon;
+}[] = [
+  { value: 'yes', label: 'interestYes', Icon: ThumbsUpIcon },
+  { value: 'no', label: 'interestNo', Icon: ThumbsDownIcon },
 ];
-
-const QUESTION = 'Interessant für dich?';
-const WHY_WE_ASK =
-  'Wenn du uns sagst, was dich interessiert, können wir die Reihenfolge des Feeds für dich verbessern.';
 
 /** Why we ask: on hover with a mouse, on tap on a touch screen. */
 function InterestQuestion() {
+  const t = useTranslations('feed');
   return (
     <InfoTooltip
-      content={WHY_WE_ASK}
+      content={t('interestWhy')}
       className={cn(
         'self-start rounded text-left text-[13px] underline decoration-dotted underline-offset-2',
         MUTED_TEXT,
       )}
     >
-      {QUESTION}
+      {t('interesting')}
     </InfoTooltip>
   );
 }
@@ -41,6 +43,7 @@ function InterestFeedback({
   itemKey: string;
   className?: string;
 }) {
+  const t = useTranslations('feed');
   const { user } = useAnonymousAuth();
   const [answer, setAnswer] = useState<FeedInterest | null>(null);
 
@@ -63,7 +66,7 @@ function InterestFeedback({
         className,
       )}
     >
-      <legend className="sr-only">{QUESTION}</legend>
+      <legend className="sr-only">{t('interesting')}</legend>
       <InterestQuestion />
       {/* Pulled left so the first icon lines up with the label above. */}
       <div className="-ml-2.5 flex items-center">
@@ -79,7 +82,7 @@ function InterestFeedback({
               )}
               <button
                 type="button"
-                aria-label={label}
+                aria-label={t(label)}
                 aria-pressed={pressed}
                 onClick={() => choose(value)}
                 className={cn(

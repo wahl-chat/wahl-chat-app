@@ -10,9 +10,11 @@ import {
   ResponsiveDialogTitle,
 } from '@/components/chat/responsive-drawer-dialog';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 function WahlSwiperProlificDisclaimer() {
+  const t = useTranslations('swiper.prolificDisclaimer');
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -23,31 +25,23 @@ function WahlSwiperProlificDisclaimer() {
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Willkommen zur Studie</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Wichtige Informationen
+            {t('description')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <p className="px-4 text-sm md:px-0">
           <span className="my-2 block rounded-md border border-border bg-muted p-4">
-            Um den Abschlusscode zu erhalten, musst du mindestens
-            <span className="font-semibold"> eine </span>
-            Frage mit
-            <span className="font-semibold"> ja </span>
-            oder
-            <span className="font-semibold"> nein </span>
-            beantworten.
+            {t.rich('requirement', {
+              b: (chunks) => <span className="font-semibold">{chunks}</span>,
+            })}
           </span>
-          Bitte schliesse diesen Browser-Tab nicht, bevor du den Abschlusscode
-          erhalten hast.
-          <span className="mt-2 block font-semibold">
-            Der Code wird dir am Ende des Swipers angezeigt und ist notwendig,
-            um die Studie abzuschliessen.
-          </span>
+          {t('keepTabOpen')}
+          <span className="mt-2 block font-semibold">{t('codeAtEnd')}</span>
         </p>
         <ResponsiveDialogFooter>
           <ResponsiveDialogClose asChild>
-            <Button className="w-full">Verstanden, los geht&apos;s!</Button>
+            <Button className="w-full">{t('start')}</Button>
           </ResponsiveDialogClose>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

@@ -6,6 +6,7 @@ import {
 } from '@/lib/daily/weekly-signup';
 import { cn } from '@/lib/utils';
 import { MailIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { forwardRef, useEffect, useState } from 'react';
 import { FOCUS_RING } from './card-styles';
 
@@ -18,6 +19,7 @@ const WeeklySignupButton = forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement>
 >(({ className, onClick, ...props }, ref) => {
+  const t = useTranslations('feed.weekly');
   const [isNew, setIsNew] = useState(false);
 
   // localStorage only exists after hydration.
@@ -44,7 +46,7 @@ const WeeklySignupButton = forwardRef<
       )}
     >
       <MailIcon className="size-4" aria-hidden />
-      Meine Woche
+      {t('button')}
       {isNew && (
         <span className="absolute -right-1 -top-1 flex size-2.5">
           <span
@@ -52,7 +54,7 @@ const WeeklySignupButton = forwardRef<
             className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75 motion-reduce:animate-none"
           />
           <span className="relative inline-flex size-2.5 rounded-full bg-red-500 ring-2 ring-[var(--daily-canvas)]">
-            <span className="sr-only">neu</span>
+            <span className="sr-only">{t('new')}</span>
           </span>
         </span>
       )}

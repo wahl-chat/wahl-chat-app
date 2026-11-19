@@ -1,6 +1,32 @@
-import type { GlossaryEntry, TermRef } from '@/lib/firebase/firebase.types';
+import type {
+  FeedLocale,
+  GlossaryEntry,
+  TermRef,
+} from '@/lib/firebase/firebase.types';
 
 export type GlossaryIndex = Record<string, GlossaryEntry>;
+
+/**
+ * The glossary as a reader of `locale` sees it, by term id. Another
+ * language gets only the entries translated into it, with its own term and
+ * definition, and that term as the one form an office is matched against;
+ * the rest would explain an English word in German, so they stay plain text.
+ */
+export function glossaryIndex(
+  entries: readonly GlossaryEntry[],
+  locale: FeedLocale,
+): GlossaryIndex {
+  const localized = entries.flatMap((entry): GlossaryEntry[] => {
+    if (locale === 'de') {
+      return [entry];
+    }
+    const translation = entry.translations?.[locale];
+    return translation
+      ? [{ ...entry, ...translation, forms: [translation.term] }]
+      : [];
+  });
+  return Object.fromEntries(localized.map((e) => [e.term_id, e]));
+}
 
 /** A piece of text: plain, or a term the glossary explains. */
 export type TextPart = { text: string; entry?: GlossaryEntry };

@@ -1,0 +1,35 @@
+{
+  "title": "wahl.chat - Understand politics interactively",
+  "description": "Understand what happens in the Bundestag and where the parties stand in federal, state and local elections in Germany. On wahl.chat you read debates and votes in brief, with sources, and chat with the parties' manifestos.",
+  "keywords": "wahl.chat News, Bundestag, Bundestag today, German parliament, Bundestag debate, plenary sitting, plenary record, Bundestag votes, roll-call vote, voting record, sitting week, parliament, politics news, wahl.chat, election chat, German elections, AI election chat, AI manifesto, election manifesto, party manifestos, German parties, German politics, understand politics, Bundestag election, German federal election, German state election, local elections Germany, state elections 2026, local elections 2026, AI, artificial intelligence, chatbot, Germany, voting advice, election guide, voting decision help, Wahl-o-Mat, Wahl-o-Mat alternative",
+  "organizationDescription": "Political information platform – understand the Bundestag in brief and compare party positions interactively.",
+  "websiteDescription": "Understand what happens in the Bundestag and where the parties stand in federal, state and local elections in Germany.",
+  "feed": {
+    "title": "The Bundestag in brief: debates & votes – wahl.chat News",
+    "description": "Understand what happens in the German Bundestag: debates and votes summarised day by day, filtered by topic and backed by sources.",
+    "keywords": "Bundestag, German parliament, plenary sitting, debates, votes, plenary record, party positions"
+  },
+  "context": {
+    "title": "{name} – compare party positions in the chat",
+    "pageTitle": "{page} – {name}",
+    "descriptionWithDate": "Compare the parties' positions for the {name} on {date}. Ask questions and get answers backed by sources.",
+    "descriptionWithoutDate": "Compare the parties' positions in {location}. Ask questions about political issues and get answers backed by sources.",
+    "jsonLdDescriptionWithDate": "Compare party positions for the {name} in {location} on {date}.",
+    "jsonLdDescriptionWithoutDate": "Compare party positions in {location}."
+  },
+  "login": {
+    "title": "Log in"
+  },
+  "donate": {
+    "title": "Donate",
+    "description": "Support wahl.chat with a donation – help us cover the running costs of the AI."
+  },
+  "budgetSpent": {
+    "title": "Budget used up",
+    "description": "wahl.chat's budget is currently used up. Support us with a donation."
+  },
+  "aboutUs": {
+    "title": "About us",
+    "description": "The team behind wahl.chat – who we are and why we make politics interactive and accessible."
+  }
+}

@@ -1,4 +1,5 @@
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
+import { storeMessage } from '@/lib/stores/store-messages';
 import { toast } from 'sonner';
 import { finalizeStreamingMessagesIfComplete } from './complete-streaming-message';
 
@@ -16,7 +17,7 @@ export const failStreamingMessage: ChatStoreActionHandlerFor<
   if (!chatSessionId || chatSessionId !== sessionId) return;
   if (!currentStreamingMessages) return;
 
-  toast.error('Eine Antwort konnte nicht geladen werden.');
+  toast.error(storeMessage('streamFailed'));
 
   set((state) => {
     if (!state.currentStreamingMessages) return;

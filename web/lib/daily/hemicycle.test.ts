@@ -140,10 +140,10 @@ describe('rowCount', () => {
 describe('voteBreakdown', () => {
   it("counts one Fraktion's votes, members without a vote as Nicht beteiligt", () => {
     expect(voteBreakdown(party('spd', 110, 3, 1, 6))).toEqual([
-      { vote: 'yes', label: 'Ja', count: 110 },
-      { vote: 'no', label: 'Nein', count: 3 },
-      { vote: 'abstain', label: 'Enthalten', count: 1 },
-      { vote: 'absent', label: 'Nicht beteiligt', count: 6 },
+      { vote: 'yes', count: 110 },
+      { vote: 'no', count: 3 },
+      { vote: 'abstain', count: 1 },
+      { vote: 'absent', count: 6 },
     ]);
   });
 });

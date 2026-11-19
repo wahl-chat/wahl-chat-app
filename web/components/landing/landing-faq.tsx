@@ -1,10 +1,11 @@
 import {
-  WAHL_O_MAT_LIST_LEAD_IN,
+  type HowToAccordionItem,
+  getHowToContent,
   getLandingFaqItems,
   parseLabeledListItem,
 } from '@/lib/how-to-content';
-import type { HowToAccordionItem } from '@/lib/how-to-pdf-export';
 import { ChevronDownIcon } from 'lucide-react';
+import { useLocale } from 'next-intl';
 
 /**
  * The five how-to answers a first-time visitor arrives with, as native
@@ -13,10 +14,16 @@ import { ChevronDownIcon } from 'lucide-react';
  * Native <details> rather than the Radix accordion for the same reason
  * election-links.tsx gives: Radix does not mount closed content, so every
  * answer would be missing from the server HTML — and the answers being real
- * crawlable German text is the entire point of putting a FAQ on this page.
+ * crawlable text is the entire point of putting a FAQ on this page.
  * It also keeps the landing page free of a client-side accordion bundle.
  */
-function FaqAnswer({ item }: { item: HowToAccordionItem }) {
+function FaqAnswer({
+  item,
+  listLeadIn,
+}: {
+  item: HowToAccordionItem;
+  listLeadIn: string;
+}) {
   const { intro, orderedList, paragraphs } = item.content;
 
   return (
@@ -26,9 +33,7 @@ function FaqAnswer({ item }: { item: HowToAccordionItem }) {
       {orderedList && orderedList.length > 0 && (
         <>
           {item.id === 'wahl-o-mat-difference' && (
-            <p className="font-bold text-foreground">
-              {WAHL_O_MAT_LIST_LEAD_IN}
-            </p>
+            <p className="font-bold text-foreground">{listLeadIn}</p>
           )}
 
           <ol className="list-outside list-decimal pl-4 [&_li]:pt-1">
@@ -62,7 +67,9 @@ function FaqAnswer({ item }: { item: HowToAccordionItem }) {
 }
 
 function LandingFaq() {
-  const items = getLandingFaqItems();
+  const locale = useLocale();
+  const items = getLandingFaqItems(locale);
+  const { labels } = getHowToContent(locale);
 
   if (items.length === 0) return null;
 
@@ -80,7 +87,7 @@ function LandingFaq() {
             />
           </summary>
 
-          <FaqAnswer item={item} />
+          <FaqAnswer item={item} listLeadIn={labels.wahlOMatListLeadIn} />
         </details>
       ))}
     </div>

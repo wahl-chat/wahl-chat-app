@@ -2,14 +2,34 @@ import { describe, expect, it } from 'bun:test';
 import type { SittingCalendar } from '@/lib/firebase/firebase.types';
 import feedFixture from '../../../firebase/firestore_data/emulator/feed.json';
 import {
+  type StatusWords,
   berlinToday,
+  calendarFormat,
   calendarMonths,
   monthCells,
-  shortRange,
-  sittingStatus,
+  sittingStatus as statusIn,
   upcomingSlots,
   waitingDays,
 } from './sitting-calendar';
+
+const GERMAN: StatusWords = {
+  sitsToday: 'Tagt heute',
+  sitsTodayThenNext: (when) => `Tagt heute · nächste Sitzung ${when}`,
+  inProgress: (dates) => `${dates} in Arbeit`,
+  nextDay: (date) => `nächste Sitzung ${date}`,
+  nextWeek: (range) => `nächste Sitzungswoche ${range}`,
+  nextDayAlone: (date) => `Nächste Sitzung ${date}`,
+  nextWeekAlone: (range) => `Nächste Sitzungswoche ${range}`,
+};
+const DE = calendarFormat('de-DE');
+
+function sittingStatus(
+  calendar: Parameters<typeof statusIn>[0],
+  today: string,
+  waiting: Parameters<typeof statusIn>[2] = [],
+) {
+  return statusIn(calendar, today, waiting, GERMAN, DE);
+}
 
 const days = (...dates: [string, number][]) =>
   dates.map(([date, number]) => ({ date, number }));
@@ -126,13 +146,27 @@ describe('days on their way into the feed', () => {
   });
 });
 
+describe('calendarFormat', () => {
+  it("writes the dates in the reader's language", () => {
+    const en = calendarFormat('en-GB');
+    expect(en.shortDay('2026-11-06')).toBe('Fri, 6 Nov');
+    expect(en.monthLabel('2026-11')).toBe('November 2026');
+    expect(en.weekdays[0]).toBe('Mon');
+    expect(DE.shortDay('2026-11-06')).toBe('Fr, 6. Nov.');
+    expect(DE.shortRange('2026-11-09', '2026-11-13')).toBe('9.–13. Nov.');
+    expect(DE.weekdays).toEqual(['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']);
+  });
+});
+
 describe('upcomingSlots', () => {
   it('skips past days and weeks', () => {
     expect(upcomingSlots(CALENDAR, '2026-11-06')[0]).toEqual({
       kind: 'day',
       date: '2026-11-06',
     });
-    expect(shortRange('2026-11-30', '2026-12-04')).toBe('30. Nov. – 4. Dez.');
+    expect(DE.shortRange('2026-11-30', '2026-12-04')).toBe(
+      '30. Nov. – 4. Dez.',
+    );
   });
 });
 

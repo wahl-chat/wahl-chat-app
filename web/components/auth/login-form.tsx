@@ -10,6 +10,7 @@ import { useStudyRunning } from '@/components/providers/study-status-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Link } from '@/i18n/navigation';
 import { oauthErrorAction } from '@/lib/auth/oauth-errors';
 import { getUser, userJoinBriefingsWaitlist } from '@/lib/firebase/firebase';
 import { FirebaseError } from 'firebase/app';
@@ -26,7 +27,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { ChevronLeftIcon } from 'lucide-react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import PasswordResetForm from './password-reset-form';
@@ -45,24 +46,20 @@ type Props = {
   purpose?: LoginPurpose;
 };
 
-const DESCRIPTIONS: Record<
-  LoginPurpose,
-  Record<'login' | 'register', string>
-> = {
+const DESCRIPTION_KEYS = {
   'chat-history': {
-    login:
-      'Du kannst dich bei wahl.chat anmelden um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.',
-    register:
-      'Du kannst dich bei wahl.chat registrieren um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.',
+    login: 'loginDescription',
+    register: 'registerDescription',
   },
   briefings: {
-    login: 'Melde dich an, dann melden wir uns, sobald „Meine Woche“ losgeht.',
-    register:
-      'Registriere dich mit E-Mail und Passwort, dann melden wir uns, sobald „Meine Woche“ losgeht.',
+    login: 'briefingsLoginDescription',
+    register: 'briefingsRegisterDescription',
   },
-};
+} as const;
 
 function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
+  const t = useTranslations('auth');
+  const tErrors = useTranslations('errors');
   const { refreshUser } = useAnonymousAuth();
   const studyRunning = useStudyRunning();
   // "Meine Woche" opens on its own pitch; its email option is signing up.
@@ -110,15 +107,13 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
     if (error instanceof FirebaseError) {
       switch (oauthErrorAction(error.code)) {
         case 'invalid-credential':
-          return toast.error('Die eingegebenen Daten sind ungültig.');
+          return toast.error(t('loginForm.invalidCredentials'));
         case 'sign-in-with-credential':
           return signInWithExistingCredential(error, provider);
         case 'already-linked':
           return handleProviderAlreadyLinked();
         case 'popup-blocked':
-          return toast.error(
-            'Das Anmeldefenster wurde blockiert. Bitte erlaube Pop-ups für wahl.chat und versuche es erneut.',
-          );
+          return toast.error(t('loginForm.popupBlocked'));
         case 'ignore':
           return;
       }
@@ -134,9 +129,7 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
   ) => {
     if (provider === 'email') {
       setIsRegister(false);
-      toast.error(
-        'Zu dieser E-Mail-Adresse gibt es schon ein Konto. Bitte melde dich an.',
-      );
+      toast.error(t('loginForm.emailInUse'));
       return;
     }
 
@@ -272,16 +265,16 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
   };
 
   const showErrorReloadToast = () => {
-    toast.error(
-      'Es ist ein Fehler aufgetreten. Bitte lade die Seite neu und versuche es erneut.',
-    );
+    toast.error(tErrors('reloadAndRetry'));
   };
 
   const showSuccessToast = () => {
     toast.success(
-      purpose === 'briefings'
-        ? 'Du bist dabei – wir melden uns, sobald „Meine Woche“ startet.'
-        : 'Erfolgreich angemeldet',
+      t(
+        purpose === 'briefings'
+          ? 'loginForm.briefingsSuccess'
+          : 'loginForm.success',
+      ),
     );
   };
 
@@ -346,44 +339,48 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
           disabled={isLoading}
         >
           <ChevronLeftIcon className="size-4" aria-hidden />
-          Zurück
+          {t('back')}
         </Button>
       )}
       <div className="mb-4">
         <ResponsiveDialogTitle className="text-center text-2xl font-bold md:text-left">
-          {isRegister ? 'Registrieren' : 'Anmelden'}
+          {isRegister ? t('register') : t('login')}
         </ResponsiveDialogTitle>
         <ResponsiveDialogDescription className="text-center text-sm text-muted-foreground md:text-left">
-          {DESCRIPTIONS[purpose][isRegister ? 'register' : 'login']}
+          {t(
+            `loginForm.${DESCRIPTION_KEYS[purpose][isRegister ? 'register' : 'login']}`,
+          )}
         </ResponsiveDialogDescription>
       </div>
 
       {pendingCredential && (
         <p className="rounded-md border border-border p-3 text-sm">
-          Zu dieser E-Mail-Adresse gibt es schon ein Konto. Melde dich mit
-          deinem Passwort an – danach kannst du dich auch mit{' '}
-          {pendingCredential.providerId === 'google.com' ? 'Google' : 'Github'}{' '}
-          anmelden.
+          {t('loginForm.linkWithPassword', {
+            provider:
+              pendingCredential.providerId === 'google.com'
+                ? 'Google'
+                : 'Github',
+          })}
         </p>
       )}
 
       <div className="flex flex-col">
         <div className="mt-4 grid gap-1">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t('emailLabel')}</Label>
           <Input
             // Re-mounts so the address from a provider collision is filled in.
             key={pendingEmail}
             id="email"
             name="email"
             type="email"
-            placeholder="max@mustermann.de"
+            placeholder={t('emailPlaceholder')}
             defaultValue={pendingEmail}
             required
           />
         </div>
         <div className="my-4 grid gap-1">
           <div className="flex items-center">
-            <Label htmlFor="password">Passwort</Label>
+            <Label htmlFor="password">{t('passwordLabel')}</Label>
             <Button
               variant="link"
               className="ml-auto inline-block h-fit p-0 text-sm underline-offset-4 hover:underline"
@@ -391,7 +388,7 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
               size="sm"
               type="button"
             >
-              Passwort vergessen?
+              {t('forgotPassword')}
             </Button>
           </div>
           <Input
@@ -405,20 +402,30 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
         </div>
         <div className="flex flex-col gap-2">
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isRegister ? 'Registrieren' : 'Anmelden'}
+            {isRegister ? t('register') : t('login')}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            Mit deinem Klick auf {isRegister ? 'Registrieren' : 'Anmelden'}{' '}
-            akzeptierst du unsere{' '}
-            <Link href="/datenschutz" target="_blank" className="underline">
-              Datenschutzerklärung
-            </Link>
-            .
+            {t.rich(
+              isRegister
+                ? 'loginForm.registerConsent'
+                : 'loginForm.loginConsent',
+              {
+                link: (chunks) => (
+                  <Link
+                    href="/datenschutz"
+                    target="_blank"
+                    className="underline"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+              },
+            )}
           </p>
 
           <div className="relative my-4 text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
             <span className="relative z-10 bg-background px-2 text-muted-foreground">
-              Oder nutze einen der folgenden Anbieter
+              {t('loginForm.otherProviders')}
             </span>
           </div>
 
@@ -431,7 +438,7 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
               type="button"
             >
               <GoogleIcon className="!size-3" />
-              Mit Google anmelden
+              {t('loginForm.google')}
             </Button>
             <Button
               variant="outline"
@@ -441,13 +448,13 @@ function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
               onClick={handleGithubLogin}
             >
               <GithubIcon className="!size-3" />
-              Mit Github anmelden
+              {t('loginForm.github')}
             </Button>
           </div>
         </div>
       </div>
       <div className="mt-4 text-center text-sm">
-        {isRegister ? 'Hast du schon einen Account?' : 'Noch keinen Account?'}{' '}
+        {isRegister ? t('hasAccount') : t('noAccount')}{' '}
         <Button
           size="sm"
           type="button"

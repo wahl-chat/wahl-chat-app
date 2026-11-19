@@ -130,7 +130,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field, and migrate the
 # stored items to it. Recorded on each item; it does not trigger a rebuild.
-FEED_FORMAT_VERSION = "6"
+FEED_FORMAT_VERSION = "7"
 
 
 class LocalizedPosition(BaseModel):
@@ -149,6 +149,19 @@ class TermRef(BaseModel):
     surface: str
 
 
+class TranslatedText(BaseModel):
+    """A German text that stays German in the data, and its translation. The
+    web looks the German text up and shows it untranslated when it finds no
+    pair. A list of pairs rather than a map keyed by the German text: such a
+    key is an indexed field path in Firestore and may not hold every
+    character a text does."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: str
+    text: str
+
+
 class LocalizedContent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -161,15 +174,21 @@ class LocalizedContent(BaseModel):
     # The opening quote stays verbatim German in ``facts``; other locales carry
     # a faithful translation next to it, never in place of it.
     quote_translation: Optional[str] = None
+    # Likewise the offices government speakers spoke in (``DigestSpeaker.role``):
+    # German in ``facts``, translated here in every other locale.
+    speaker_roles: list[TranslatedText] = Field(default_factory=list)
     origin: Literal["generated", "translated"]
     # Hash of the German content this text was made from (for German itself,
-    # its own hash), so a stale translation is detectable without a diff.
+    # its own hash; see ``items.translation_source_hash`` for the others), so a
+    # stale translation is detectable without a diff.
     source_hash: str
     prompt_version: str
     generated_by: Optional[str] = None
     generated_at: datetime
     # Expert terms in the text the glossary explains (see ``glossary``), and
-    # the hash of the text they were found in. German only for now.
+    # the hash of the text they were found in. In a translation, ``surface``
+    # is the words that render the German term there, and the hash also
+    # covers the German refs they were mapped from.
     terms: list[TermRef] = Field(default_factory=list)
     terms_hash: Optional[str] = None
 

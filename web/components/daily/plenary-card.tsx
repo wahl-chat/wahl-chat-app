@@ -1,6 +1,6 @@
 'use client';
 
-import { HEAT_SCALE, heatExplanation } from '@/lib/daily/feed';
+import { HEAT_SCALE, heatRating } from '@/lib/daily/feed';
 import {
   type SectionItem,
   itemTeaser,
@@ -10,6 +10,7 @@ import {
 } from '@/lib/daily/items';
 import { cn } from '@/lib/utils';
 import { FlameIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { CardFooter, ItemTeaser } from './card-footer';
 import {
   CARD_GROUP,
@@ -49,18 +50,18 @@ function HeatFlames({ heat }: { heat: number }) {
  * above the card's link, so a tap explains rather than opens the debate.
  */
 export function HeatInfo({ heat }: { heat: number }) {
-  const [counted, rating] = heatExplanation(heat);
+  const t = useTranslations('feed');
   return (
     <InfoTooltip
-      label={`Hitzigkeit ${heat} von ${HEAT_SCALE}`}
+      label={t('heatOutOf', { heat, max: HEAT_SCALE })}
       side="bottom"
       className="inline-flex items-center rounded p-0.5"
       content={
         <>
-          <p>{counted}</p>
+          <p>{t('heat.counted')}</p>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 font-semibold">
             <HeatFlames heat={heat} />
-            <span>{rating}</span>
+            <span>{t(`heat.${heatRating(heat)}`)}</span>
           </p>
         </>
       }
@@ -86,8 +87,11 @@ type Props = {
  * read; the Hot Topic's stands next to its heading.
  */
 export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
+  const t = useTranslations('feed');
   const { section, digest } = item;
-  const media = sectionMedia(section);
+  const media = sectionMedia(section, (speaker, time) =>
+    t('startsAt', { speaker, time }),
+  );
   const hot = variant === 'hot';
   const protocol = protocolLabel(digest);
 
@@ -110,7 +114,7 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
       <div className="flex flex-1 flex-col gap-2 px-4 pb-2 pt-4">
         <TopicMeta
           topics={sectionTopics(section)}
-          suffix={hot && protocol ? `Protokoll ${protocol}` : null}
+          suffix={hot && protocol ? t('protocol', { id: protocol }) : null}
           trailing={heat ? <HeatInfo heat={heat} /> : null}
         />
         <h3

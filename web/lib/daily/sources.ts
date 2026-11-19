@@ -127,15 +127,28 @@ export function isVideoSource(source: SpeechSource): boolean {
   return Boolean(source.video_url);
 }
 
+/** Where a passage is, in the reader's language. */
+export type SourceWords = {
+  /** "ab 1:23" */
+  from: (time: string) => string;
+  video: string;
+  /** "Plenarprotokoll S. 14" */
+  protocolPage: (page: number) => string;
+  protocol: string;
+};
+
 /** "Name (Partei) · ab 1:23", or the protocol page without a video. */
-export function sourceTooltip(source: SpeechSource): string {
+export function sourceTooltip(
+  source: SpeechSource,
+  words: SourceWords,
+): string {
   const who = speakerLabel(source);
   if (source.video_url) {
     return source.start !== null && source.start !== undefined
-      ? `${who} · ab ${formatTimestamp(source.start)}`
-      : `${who} · Video`;
+      ? `${who} · ${words.from(formatTimestamp(source.start))}`
+      : `${who} · ${words.video}`;
   }
   return source.page
-    ? `${who} · Plenarprotokoll S. ${source.page}`
-    : `${who} · Plenarprotokoll`;
+    ? `${who} · ${words.protocolPage(source.page)}`
+    : `${who} · ${words.protocol}`;
 }

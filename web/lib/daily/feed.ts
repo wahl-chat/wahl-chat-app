@@ -137,19 +137,16 @@ function interjectionRate(item: SectionItem): number | null {
 
 export const HEAT_SCALE = 5;
 
-/** What the flames count, then what this debate's number of them says; the
- * flames themselves stand in front of that second part. The scale is
- * relative to the day, so it names the day. */
-export function heatExplanation(heat: number): [string, string] {
-  const counted =
-    'Die Flammen zählen Zwischenrufe, Widerspruch, Gelächter und Unruhe.';
+/** What this debate's number of flames says. The scale is relative to the
+ * day, so the explanation names the day. */
+export function heatRating(heat: number): 'hottest' | 'quietest' | 'compared' {
   if (heat >= HEAT_SCALE) {
-    return [counted, 'die hitzigste Debatte dieses Sitzungstags'];
+    return 'hottest';
   }
   if (heat <= 1) {
-    return [counted, 'die ruhigste Debatte dieses Sitzungstags'];
+    return 'quietest';
   }
-  return [counted, 'verglichen mit den anderen Debatten dieses Sitzungstags'];
+  return 'compared';
 }
 
 /**

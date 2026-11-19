@@ -5,6 +5,7 @@ import { isProlificStudy } from '@/lib/prolific-study/prolific-metadata';
 import { cn } from '@/lib/utils';
 import * as RadixPopover from '@radix-ui/react-popover';
 import { ChevronsRightIcon, MessageCircleMoreIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type { WahlSwiperButtonVariant } from './wahl-swiper-button';
 
@@ -15,6 +16,7 @@ type Props = {
 };
 
 function WahlSwiperSkipButton({ variant, clicked, onClick }: Props) {
+  const t = useTranslations('swiper.skipPopover');
   const expandChat = useWahlSwiperStore((state) => state.setChatIsExpanded);
   const showSkipDisclaimer = useWahlSwiperStore(
     (state) => state.showSkipDisclaimer,
@@ -66,16 +68,16 @@ function WahlSwiperSkipButton({ variant, clicked, onClick }: Props) {
       </RadixPopover.Anchor>
 
       <PopoverContent side="top" sideOffset={12}>
-        <h1 className="font-bold">Willst du mehr über die These erfahren?</h1>
+        <h1 className="font-bold">{t('title')}</h1>
         <p className="text-sm text-muted-foreground">
-          Nutze unseren <span className="font-bold">Chat</span> um mehr über die
-          These zu erfahren und eine{' '}
-          <span className="font-bold">bessere Entscheidung</span> zu treffen.
+          {t.rich('body', {
+            b: (chunks) => <span className="font-bold">{chunks}</span>,
+          })}
         </p>
         <div className="mt-2 flex justify-center gap-2">
           <Button size="sm" className="grow" onClick={handleStartChat}>
             <MessageCircleMoreIcon className="size-4" />
-            Chat starten
+            {t('startChat')}
           </Button>
           <Button
             variant="outline"

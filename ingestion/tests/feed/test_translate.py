@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
 from ingestion.feed.builder import FeedBuilder
-from ingestion.feed.models import FeedItem
+from ingestion.feed.items import translation_source_hash
+from ingestion.feed.models import FeedItem, TranslatedText
 from ingestion.feed.prompts import (
     TRANSLATION_PROMPT_VERSION,
     TranslatedSegment,
@@ -162,3 +163,75 @@ def test_retracted_items_are_not_translated() -> None:
     items = [i.model_copy(update={"status": "retracted"}) for i in _items()]
     _, fake = _run(items)
     assert fake.calls == 0
+
+
+_ROLE = "Bundesministerin der Finanzen"
+
+
+def _with_role(item: FeedItem, role: str = _ROLE) -> FeedItem:
+    assert item.debate is not None
+    party = item.debate.parties[0]
+    party.speakers[0] = party.speakers[0].model_copy(update={"role": role})
+    return item
+
+
+def _debate_with_role(items: list[FeedItem]) -> FeedItem:
+    return _with_role(next(i for i in items if i.debate is not None))
+
+
+def test_the_offices_speakers_spoke_in_are_translated_next_to_the_facts() -> None:
+    items = _items()
+    item = _debate_with_role(items)
+    report, _ = _run(items)
+    assert report.failed == 0
+    en = item.content["en"]
+    assert en.speaker_roles == [TranslatedText(source=_ROLE, text=f"EN {_ROLE}")]
+    # The facts stay German, the same object in every language.
+    assert item.debate is not None
+    assert item.debate.parties[0].speakers[0].role == _ROLE
+    # The hash covers the offices, so a new office is translated too.
+    assert en.source_hash == translation_source_hash(item)
+    assert en.source_hash != item.content["de"].source_hash
+    assert not needs_translation(item, "en")
+
+
+def test_an_item_without_offices_keeps_the_german_hash() -> None:
+    items = _items()
+    _run(items)
+    item = next(i for i in items if i.debate is not None)
+    assert item.content["en"].source_hash == item.content["de"].source_hash
+    assert item.content["en"].speaker_roles == []
+
+
+def test_a_new_office_makes_a_stored_translation_stale() -> None:
+    items = _items()
+    _run(items)
+    item = _debate_with_role(items)
+    assert needs_translation(item, "en")
+    _, fake = _run(items)
+    assert fake.calls == 1
+    assert [r.source for r in item.content["en"].speaker_roles] == [_ROLE]
+
+
+def test_an_office_left_untranslated_keeps_the_item_german() -> None:
+    items = _items()
+    item = _debate_with_role(items)
+
+    def drop_role(ref: str, german: str) -> Optional[str]:
+        return None if german == _ROLE else _english(german)
+
+    report, _ = _run(items, edit=drop_role)
+    assert "en" not in item.content
+    assert report.failed == 1
+
+
+def test_an_office_that_loses_its_number_keeps_the_item_german() -> None:
+    items = _items()
+    role = "Beauftragte für den Haushalt 2027"
+    item = _with_role(next(i for i in items if i.debate is not None), role)
+
+    def drop_year(ref: str, german: str) -> str:
+        return "EN Budget Commissioner" if german == role else _english(german)
+
+    _run(items, edit=drop_year)
+    assert "en" not in item.content

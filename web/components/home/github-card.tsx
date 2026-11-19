@@ -1,6 +1,7 @@
 import GithubIcon from '@/components/icons/github-icon';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 function GitHubCard({
   fullWidth = false,
@@ -10,6 +11,8 @@ function GitHubCard({
   /** h3 under a landing-page section heading; h2 as a top-level card. */
   titleAs?: 'h2' | 'h3';
 }) {
+  const t = useTranslations('home.githubCard');
+
   return (
     <div
       className={`flex flex-col rounded-md border border-border${
@@ -19,12 +22,18 @@ function GitHubCard({
       <div className="flex grow flex-col justify-between p-4">
         <div>
           <Title className="font-bold">
-            Der Code hinter <span className="underline">wahl.chat</span>
+            {t.rich('title', {
+              underline: (chunks) => (
+                <span className="underline">{chunks}</span>
+              ),
+            })}
           </Title>
           <p className="mb-4 text-sm text-muted-foreground">
-            Du willst wissen wie <span className="underline">wahl.chat</span>{' '}
-            funktioniert oder sogar selbst mitentwickeln? Der gesamte Code ist
-            Open Source und auf GitHub verfügbar.
+            {t.rich('description', {
+              underline: (chunks) => (
+                <span className="underline">{chunks}</span>
+              ),
+            })}
           </p>
         </div>
         <Button asChild variant="secondary" className="w-full">

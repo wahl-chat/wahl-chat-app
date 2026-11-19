@@ -9,6 +9,7 @@ import {
 import CompletionCode from '@/components/prolific-study/completion-code';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Gift } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 type Props = {
@@ -16,6 +17,7 @@ type Props = {
 };
 
 function ChatProlificCompletion({ minInteractions }: Props) {
+  const t = useTranslations('study.prolific');
   const prolificMessageCount = useChatStore(
     (state) => state.prolificMessageCount,
   );
@@ -37,10 +39,10 @@ function ChatProlificCompletion({ minInteractions }: Props) {
         <Gift className="size-5 shrink-0 text-green-600 dark:text-green-400" />
         <div className="flex-1">
           <p className="font-semibold text-green-800 dark:text-green-200">
-            Studie abgeschlossen!
+            {t('completedTitle')}
           </p>
           <p className="text-sm text-green-700 dark:text-green-300">
-            Klicke hier, um deinen Abschlusscode zu erhalten.
+            {t('completedCta')}
           </p>
         </div>
       </button>
@@ -48,7 +50,7 @@ function ChatProlificCompletion({ minInteractions }: Props) {
       <ResponsiveDialog open={modalOpen} onOpenChange={setModalOpen}>
         <ResponsiveDialogContent>
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Studie abgeschlossen!</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>{t('completedTitle')}</ResponsiveDialogTitle>
           </ResponsiveDialogHeader>
           <CompletionCode />
         </ResponsiveDialogContent>

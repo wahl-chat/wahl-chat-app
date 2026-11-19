@@ -5,6 +5,7 @@ import Logo from '@/components/chat/logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MailCheckIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 
@@ -13,6 +14,7 @@ type Props = {
 };
 
 function KeepUpToDateTeaserCard({ initialUser }: Props) {
+  const t = useTranslations('home.keepUpToDateCard');
   const { user, updateUser } = useAnonymousAuth();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -21,10 +23,9 @@ function KeepUpToDateTeaserCard({ initialUser }: Props) {
     const email = formData.get('email') as string;
 
     toast.promise(handleAddEmail(email), {
-      loading: 'Einen Moment, wir fügen deine E-Mail hinzu...',
-      success:
-        'Vielen Dank! Wir werden dich benachrichtigen, wenn der Koalitionsvertrag verfügbar ist.',
-      error: 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.',
+      loading: t('toast.loading'),
+      success: t('toast.success'),
+      error: t('toast.error'),
       duration: 5000,
     });
   };
@@ -53,22 +54,21 @@ function KeepUpToDateTeaserCard({ initialUser }: Props) {
       <div className="flex items-center gap-4">
         <Logo variant="small" className="size-6" />
         <div className="flex flex-col">
-          <h1 className="text-base font-bold">Der Koalitionsvertrag!</h1>
+          <h1 className="text-base font-bold">{t('title')}</h1>
           <p className="text-sm text-muted-foreground">
-            Bald auf <span className="font-bold">wahl.chat</span>
+            {t.rich('subtitle', {
+              bold: (chunks) => <span className="font-bold">{chunks}</span>,
+            })}
           </p>
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        Teile uns deine E-Mail mit, um benachrichtigt zu werden, wenn der
-        Koalitionsvertrag auf wahl.chat verfügbar ist.
-      </p>
+      <p className="text-sm text-muted-foreground">{t('description')}</p>
 
       <form className="flex flex-col gap-2 md:flex-row" onSubmit={handleSubmit}>
         <Input
           name="email"
-          placeholder="Email"
+          placeholder={t('emailPlaceholder')}
           type="email"
           autoComplete="email"
           autoCapitalize="off"
@@ -78,7 +78,7 @@ function KeepUpToDateTeaserCard({ initialUser }: Props) {
 
         <Button type="submit">
           <MailCheckIcon />
-          Benachrichtige mich
+          {t('submit')}
         </Button>
       </form>
     </div>

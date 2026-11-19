@@ -5,6 +5,7 @@ import ZdfHeuteIcon from '@/components/icons/zdf-heute-icon';
 import LabeledDivider from '@/components/labeled-divider';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 /**
  * Each logo links to the piece that outlet ran about wahl.chat.
@@ -47,6 +48,7 @@ type Props = {
 };
 
 function KnownFrom({ className, trailingSeparator = true }: Props) {
+  const t = useTranslations('home.knownFrom');
   // The hover state is driven from the link rather than the mark itself, so
   // the whole cell reacts and not just the glyphs the pointer happens to be on.
   const iconClassNames =
@@ -59,8 +61,8 @@ function KnownFrom({ className, trailingSeparator = true }: Props) {
         className,
       )}
     >
-      <LabeledDivider>Bekannt aus:</LabeledDivider>
-      <nav aria-label="Presseberichte über wahl.chat">
+      <LabeledDivider>{t('label')}</LabeledDivider>
+      <nav aria-label={t('navLabel')}>
         <ul className="grid h-16 w-full grid-cols-4 items-center justify-center gap-8">
           {PRESS_MENTIONS.map(({ name, Icon, href }) => (
             <li key={name} className="flex h-full items-center justify-center">
@@ -68,7 +70,7 @@ function KnownFrom({ className, trailingSeparator = true }: Props) {
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Bericht über wahl.chat bei ${name}`}
+                aria-label={t('linkLabel', { outlet: name })}
                 className="group flex size-full items-center justify-center rounded-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <Icon className={iconClassNames} />

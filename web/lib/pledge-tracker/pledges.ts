@@ -1,9 +1,10 @@
+import type { Locale } from '@/i18n/locales';
 import type {
   PledgeRecord,
   PledgeTimelineEvent,
   PledgeTrackerSuggestions,
 } from '@/lib/stores/chat-store.types';
-import { formatGermanDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 
 /**
  * Only events PledgeTracker flagged as relevant for tracking (Cambridge label
@@ -68,7 +69,10 @@ export function safeExternalUrl(value?: string | null): string | null {
  * the leading date part and fall back to the raw string when it will not
  * parse.
  */
-export function formatPledgeDate(value?: string | null): string | null {
+export function formatPledgeDate(
+  value: string | null | undefined,
+  locale: Locale,
+): string | null {
   if (!value) {
     return null;
   }
@@ -77,5 +81,5 @@ export function formatPledgeDate(value?: string | null): string | null {
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return formatGermanDate(isoPart, 'medium') ?? value;
+  return formatDate(isoPart, locale, 'medium') ?? value;
 }

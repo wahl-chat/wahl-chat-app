@@ -2,6 +2,7 @@
 
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { auth, getFeedOpinion } from '@/lib/firebase/firebase';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -98,6 +99,7 @@ export function useFeedOpinions(
   itemId: string | undefined,
   askConsent: AskConsent | undefined,
 ): FeedOpinions {
+  const t = useTranslations('opinions');
   const { user, refreshUser } = useAnonymousAuth();
   const uid = user?.uid;
   const storedConsent = Boolean(user?.feed_opinion_consent);
@@ -185,7 +187,7 @@ export function useFeedOpinions(
         }
       } catch (error) {
         console.error('Failed to store opinion', error);
-        toast.error('Deine Bewertung konnte nicht gespeichert werden.');
+        toast.error(t('saveFailed'));
         if (consent || error instanceof ConsentRequired) {
           // Consent was not stored, or was withdrawn on another device: the
           // next tap asks again.

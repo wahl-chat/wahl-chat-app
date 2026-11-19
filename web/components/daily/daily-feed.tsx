@@ -1,6 +1,7 @@
 'use client';
 
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
+import type { Locale } from '@/i18n/locales';
 import { FEED_CHAT_ENABLED } from '@/lib/daily/chat-handoff';
 import { feedToDigests } from '@/lib/daily/editions';
 import {
@@ -46,6 +47,7 @@ import type {
   SittingCalendar,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
@@ -168,18 +170,24 @@ function useNearViewport(onReach: () => void, enabled: boolean, deps: unknown) {
   return ref;
 }
 
-function digestsOf(pages: FeedPage[]): DailyDigest[] {
-  return feedToDigests({
-    editions: pages.flatMap((p) => p.editions),
-    items: pages.flatMap((p) => p.items),
-  });
+function digestsOf(pages: FeedPage[], locale: Locale): DailyDigest[] {
+  return feedToDigests(
+    {
+      editions: pages.flatMap((p) => p.editions),
+      items: pages.flatMap((p) => p.items),
+    },
+    locale,
+  );
 }
 
-function digestsIn(pages: Pages): Record<DigestParliamentId, DailyDigest[]> {
+function digestsIn(
+  pages: Pages,
+  locale: Locale,
+): Record<DigestParliamentId, DailyDigest[]> {
   return {
-    bundestag: digestsOf(pages.bundestag),
-    landtag_st: digestsOf(pages.landtag_st),
-    landtag_bw: digestsOf(pages.landtag_bw),
+    bundestag: digestsOf(pages.bundestag, locale),
+    landtag_st: digestsOf(pages.landtag_st, locale),
+    landtag_bw: digestsOf(pages.landtag_bw, locale),
   };
 }
 
@@ -195,6 +203,9 @@ function DailyFeed({
   glossary = [],
   opinionsEnabled = true,
 }: Props) {
+  // Both languages are loaded with the feed; the page's locale picks one.
+  const locale = useLocale();
+  const t = useTranslations('feed');
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
   );
@@ -236,7 +247,7 @@ function DailyFeed({
     }
   }, [initialStates]);
 
-  const digests = useMemo(() => digestsIn(pages), [pages]);
+  const digests = useMemo(() => digestsIn(pages, locale), [pages, locale]);
   // The server already cut the stored slices; only previews need a window.
   const lists = useMemo(
     () =>
@@ -315,7 +326,7 @@ function DailyFeed({
       );
       setPages((current) => appendPages(current, loaded));
     } catch {
-      toast.error('Ältere Tage konnten nicht geladen werden.');
+      toast.error(t('olderFailed'));
       setOlderFailed(true);
     } finally {
       busy.current = false;
@@ -332,8 +343,8 @@ function DailyFeed({
   // Only for opening a shared item the loaded slices do not reach; the feed
   // itself never shows it out of order.
   const linkedDigests = useMemo(
-    () => (linkedDay ? feedToDigests(linkedDay) : []),
-    [linkedDay],
+    () => (linkedDay ? feedToDigests(linkedDay, locale) : []),
+    [linkedDay, locale],
   );
   const openItem = openKey
     ? (findItem(allDigests, openKey) ??
@@ -366,7 +377,7 @@ function DailyFeed({
    * then scroll to it. */
   const jumpToDay = async (date: string) => {
     if (busy.current) {
-      toast.info('Einen Moment, ältere Tage werden noch geladen.');
+      toast.info(t('olderStillLoading'));
       return;
     }
     busy.current = true;
@@ -380,7 +391,7 @@ function DailyFeed({
         loaded.push(await fetchOlder(['bundestag', last.from]));
       }
     } catch {
-      toast.error('Dieser Tag konnte nicht geladen werden.');
+      toast.error(t('dayFailed'));
       return;
     } finally {
       busy.current = false;
@@ -435,7 +446,7 @@ function DailyFeed({
         <div className="flex flex-col gap-12 pt-2">
           {visibleDays.length === 0 ? (
             <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
-              Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
+              {t('empty')}
             </p>
           ) : (
             visibleDays.map((day) => (
@@ -462,7 +473,7 @@ function DailyFeed({
                     FOCUS_RING,
                   )}
                 >
-                  Erneut versuchen
+                  {t('retry')}
                 </button>
               ) : (
                 loadingOlder && <DaySkeleton />

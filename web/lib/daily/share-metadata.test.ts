@@ -90,6 +90,17 @@ describe('itemShareMetadata', () => {
     );
   });
 
+  it('labels the chamber in the language the link was shared in', () => {
+    const images = itemShareMetadata(voteItem, ORIGIN, FALLBACK, 'en').openGraph
+      ?.images;
+    const [first] = Array.isArray(images) ? images : [images];
+    expect(
+      first && typeof first === 'object' && 'url' in first && first.url,
+    ).toBe(
+      'https://dev.wahl.chat/api/og/feed/bundestag_2026-07-10_v42?locale=en',
+    );
+  });
+
   it("leads with the debate's headline and the text under it", () => {
     const { openGraph } = itemShareMetadata(debate({}), ORIGIN, FALLBACK);
     expect(openGraph?.title).toEqual({ absolute: 'Debatte über Wohnungsbau' });

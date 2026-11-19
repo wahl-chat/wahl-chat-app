@@ -4,12 +4,14 @@ import ChatGroupPartySelect from '@/components/chat/chat-group-party-select';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
 import { GitCompareIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   contextId: string;
 };
 
 function ChatSidebarGroupSelect({ contextId }: Props) {
+  const t = useTranslations('chat.sidebar');
   const { setOpenMobile, isMobile } = useSidebar();
 
   const handleNewChat = () => {
@@ -35,7 +37,7 @@ function ChatSidebarGroupSelect({ contextId }: Props) {
           variant="secondary"
         >
           <GitCompareIcon />
-          Parteien vergleichen
+          {t('compareParties')}
         </Button>
       </ChatGroupPartySelect>
     </div>

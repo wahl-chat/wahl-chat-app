@@ -9,12 +9,14 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { SquarePenIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   onTriggerClick?: () => void;
 };
 
 function CreateNewChatDropdownButtonTrigger({ onTriggerClick }: Props) {
+  const t = useTranslations('chat.newChat');
   const { isMobile, state } = useSidebar();
 
   if (!isMobile && state === 'expanded') return null;
@@ -33,7 +35,7 @@ function CreateNewChatDropdownButtonTrigger({ onTriggerClick }: Props) {
           </Button>
         </DropdownMenuTrigger>
       </TooltipTrigger>
-      <TooltipContent>Erstelle einen neuen Chat</TooltipContent>
+      <TooltipContent>{t('tooltip')}</TooltipContent>
     </Tooltip>
   );
 }

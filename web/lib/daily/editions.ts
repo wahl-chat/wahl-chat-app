@@ -4,17 +4,31 @@ import type {
   DigestVote,
   FeedEdition,
   FeedItem,
+  FeedLocale,
+  LocalizedContent,
   ParliamentFeed,
 } from '@/lib/firebase/firebase.types';
 import { feedLogoId } from './party-logos';
 
+/** The item's text in `locale`, or the German original until it is translated. */
+export function localized(
+  item: FeedItem,
+  locale: FeedLocale,
+): LocalizedContent {
+  return item.content[locale] ?? item.content.de;
+}
+
 function toSection(
   item: FeedItem,
   facts: NonNullable<FeedItem['debate']>,
+  locale: FeedLocale,
 ): DigestSessionSection {
-  // German is the canonical text every item has.
-  const content = item.content.de;
+  const content = localized(item, locale);
   const text = new Map(content.positions.map((p) => [p.party_id, p.text]));
+  // Offices stay German in the facts; a translation replaces them per text.
+  const roles = new Map(
+    (content.speaker_roles ?? []).map((r) => [r.source, r.text]),
+  );
   return {
     topic: item.topics[0],
     topics: item.topics,
@@ -22,6 +36,10 @@ function toSection(
     summary: content.teaser ?? '',
     positions: facts.parties.map(({ position_sources, ...party }) => ({
       ...party,
+      speakers: party.speakers.map((speaker) => ({
+        ...speaker,
+        role: (speaker.role && roles.get(speaker.role)) || speaker.role,
+      })),
       logo_id: feedLogoId(item.parliament, party.party_id),
       position: text.get(party.party_id) ?? null,
       sources: position_sources ?? [],
@@ -46,8 +64,9 @@ function toSection(
 function toVote(
   item: FeedItem,
   facts: NonNullable<FeedItem['vote']>,
+  locale: FeedLocale,
 ): DigestVote {
-  const content = item.content.de;
+  const content = localized(item, locale);
   return {
     poll_id: facts.poll_id,
     title: facts.official_title,
@@ -73,6 +92,7 @@ function toVote(
 export function editionToDigest(
   edition: FeedEdition,
   items: ReadonlyMap<string, FeedItem>,
+  locale: FeedLocale,
 ): DailyDigest {
   const sections: DigestSessionSection[] = [];
   const votes: DigestVote[] = [];
@@ -82,9 +102,9 @@ export function editionToDigest(
       continue;
     }
     if (item.debate) {
-      sections.push(toSection(item, item.debate));
+      sections.push(toSection(item, item.debate, locale));
     } else if (item.vote) {
-      votes.push(toVote(item, item.vote));
+      votes.push(toVote(item, item.vote, locale));
     }
   }
   const hasSession = sections.length > 0 || edition.protocols.length > 0;
@@ -99,7 +119,12 @@ export function editionToDigest(
   };
 }
 
-export function feedToDigests(feed: ParliamentFeed): DailyDigest[] {
+export function feedToDigests(
+  feed: ParliamentFeed,
+  locale: FeedLocale,
+): DailyDigest[] {
   const items = new Map(feed.items.map((item) => [item.id, item]));
-  return feed.editions.map((edition) => editionToDigest(edition, items));
+  return feed.editions.map((edition) =>
+    editionToDigest(edition, items, locale),
+  );
 }

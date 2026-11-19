@@ -1,7 +1,6 @@
 import {
   ABSENT_RING,
   type SeatVote,
-  VOTE_LABELS,
   layoutHemicycle,
   seatShape,
   voteTotals,
@@ -9,6 +8,8 @@ import {
 import { getLinkedItem } from '@/lib/daily/linked-item';
 import { SEAT_FILLS } from '@/lib/daily/palette';
 import { OG_IMAGE_SIZE } from '@/lib/daily/share-metadata';
+import { resolveLocale } from '@/lib/seo';
+import { getTranslations } from 'next-intl/server';
 import { ImageResponse } from 'next/og';
 
 // The seats span x ∈ [-1, 1] and y ∈ [-1, 0] plus a seat radius; no room is
@@ -41,11 +42,15 @@ function LegendSwatch({ vote }: { vote: SeatVote }) {
 /** A shared vote's link preview: the chamber with every seat coloured by how
  * its member voted, as the detail view draws it. */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ itemId: string }> },
 ) {
   const { itemId } = await params;
-  const item = await getLinkedItem(itemId);
+  const locale = resolveLocale(
+    new URL(request.url).searchParams.get('locale') ?? undefined,
+  );
+  const t = await getTranslations({ locale, namespace: 'feed' });
+  const item = await getLinkedItem(itemId, locale);
   if (item?.kind !== 'vote') {
     return new Response('Not found', { status: 404 });
   }
@@ -103,7 +108,9 @@ export async function GET(
           <div style={{ fontSize: 0.14 * UNIT, fontWeight: 700 }}>
             {`${totals.yes} : ${totals.no}`}
           </div>
-          <div style={{ fontSize: 0.075 * UNIT, color: MUTED }}>Ja : Nein</div>
+          <div style={{ fontSize: 0.075 * UNIT, color: MUTED }}>
+            {t('yesNo')}
+          </div>
         </div>
       </div>
 
@@ -114,7 +121,7 @@ export async function GET(
             style={{ display: 'flex', alignItems: 'center', gap: 12 }}
           >
             <LegendSwatch vote={vote} />
-            {`${VOTE_LABELS[vote]} ${totals[vote]}`}
+            {`${t(`seat.${vote}`)} ${totals[vote]}`}
           </div>
         ))}
       </div>

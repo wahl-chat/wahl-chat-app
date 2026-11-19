@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import type { UserDetails } from '@/lib/utils';
 import { FilloutPopupEmbed } from '@fillout/react';
 import { StarIcon, UserIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import '@fillout/react/style.css';
 
@@ -16,6 +17,7 @@ type Props = {
 };
 
 function WahlSwiperSurveyLoginCard({ resultId, userDetails }: Props) {
+  const t = useTranslations('swiper.survey');
   const [open, setOpen] = useState(false);
   const [userClosedSurvey, setUserClosedSurvey] = useState(false);
   const { user } = useAnonymousAuth();
@@ -45,13 +47,11 @@ function WahlSwiperSurveyLoginCard({ resultId, userDetails }: Props) {
   return (
     <section className="flex w-full flex-col gap-2 rounded-md border border-border bg-muted p-4">
       <div className="flex flex-col gap-1">
-        <h1 className="font-bold">⭐️ Bitte gib uns dein Feedback</h1>
+        <h1 className="font-bold">{t('title')}</h1>
 
         <p className="text-sm text-muted-foreground">
-          Wir würden uns sehr freuen, wenn du uns dein Feedback zu unserem Wahl
-          Swiper mitteilst.
-          {!hasValidUser &&
-            ' Wenn du auch weiterhin nach der Wahl von uns benachrichtigt werden möchtest wenn deine Meinungen auch umgesetzt werden, kannst du dich hier anmelden.'}
+          {t('intro')}
+          {!hasValidUser && ` ${t('signUpHint')}`}
         </p>
       </div>
 
@@ -61,14 +61,14 @@ function WahlSwiperSurveyLoginCard({ resultId, userDetails }: Props) {
           noUserChildren={
             <Button size="sm">
               <UserIcon />
-              Anmelden
+              {t('signIn')}
             </Button>
           }
         />
 
         <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
           <StarIcon />
-          Feedback
+          {t('feedback')}
         </Button>
       </div>
       {open && (

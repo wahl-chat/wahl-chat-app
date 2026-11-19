@@ -1,30 +1,36 @@
 'use client';
 
+import { LOCALE_INFO } from '@/i18n/locales';
 import type { RankedDay } from '@/lib/daily/feed';
 import { type DetailItem, protocolLabel } from '@/lib/daily/items';
 import type { DailyDigest } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
+import { useLocale, useTranslations } from 'next-intl';
 import { META_TEXT } from './card-styles';
 import { useSnapCarousel } from './carousel';
 import { HeatInfo, PlenaryCard } from './plenary-card';
 import { ScrollRow, slideStep } from './scroll-row';
 import VoteCard from './vote-card';
 
-const dayFormat = new Intl.DateTimeFormat('de-DE', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  timeZone: 'UTC',
-});
+function dayFormat(intl: string) {
+  return new Intl.DateTimeFormat(intl, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  });
+}
 
 // The carousel's gap-3.
 const SLIDE_GAP_PX = 12;
 
-const shortDayFormat = new Intl.DateTimeFormat('de-DE', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-});
+function shortDayFormat(intl: string) {
+  return new Intl.DateTimeFormat(intl, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+}
 
 function utcDay(isoDay: string): Date {
   return new Date(`${isoDay}T00:00:00Z`);
@@ -40,11 +46,13 @@ function GroupHeader({
   digest: DailyDigest;
   count?: string;
 }) {
+  const t = useTranslations('feed');
+  const intl = LOCALE_INFO[useLocale()].intl;
   const protocol = protocolLabel(digest);
   const meta = [
-    kind === 'sitting' ? 'Plenarsitzung' : 'Abstimmung',
+    kind === 'sitting' ? t('plenarySitting') : t('vote'),
     digest.parliament !== 'bundestag' && digest.parliament_name,
-    protocol && `Protokoll ${protocol}`,
+    protocol && t('protocol', { id: protocol }),
   ]
     .filter(Boolean)
     .join(' · ');
@@ -53,7 +61,7 @@ function GroupHeader({
       <div>
         <p className={META_TEXT}>{meta}</p>
         <h3 className="text-[19px] font-bold">
-          {dayFormat.format(utcDay(digest.date))}
+          {dayFormat(intl).format(utcDay(digest.date))}
         </h3>
       </div>
       {count && <span className={cn(META_TEXT, 'tabular-nums')}>{count}</span>}
@@ -73,6 +81,7 @@ function PlenaryRow({
   heat: Map<string, number>;
   onOpen: (item: DetailItem) => void;
 }) {
+  const t = useTranslations('feed');
   const { ref, active, onScroll } = useSnapCarousel(SLIDE_GAP_PX);
   return (
     <div className="flex flex-col gap-3">
@@ -82,7 +91,7 @@ function PlenaryRow({
         count={items.length > 1 ? `${active + 1} / ${items.length}` : undefined}
       />
       <ScrollRow
-        label="Debatten"
+        label={t('debates')}
         scrollerRef={ref}
         onScroll={onScroll}
         step={slideStep(SLIDE_GAP_PX)}
@@ -120,6 +129,8 @@ type Props = {
  * parliament.
  */
 function DailyDaySection({ day, onOpen }: Props) {
+  const t = useTranslations('feed');
+  const intl = LOCALE_INFO[useLocale()].intl;
   const { hot, match } = day;
   return (
     <section
@@ -128,29 +139,29 @@ function DailyDaySection({ day, onOpen }: Props) {
       // jump stops below the header and the sticky filter bar (4.5rem).
       tabIndex={-1}
       className="flex scroll-mt-[calc(var(--header-height,4rem)+4.5rem+1rem)] flex-col gap-8"
-      aria-label={dayFormat.format(utcDay(day.date))}
+      aria-label={dayFormat(intl).format(utcDay(day.date))}
     >
       {hot && (
         <div className="flex flex-col gap-3">
           <header className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold">Hot Topic</h2>
+              <h2 className="text-lg font-bold">{t('hotTopic')}</h2>
               {day.heat.has(hot.key) && (
                 <HeatInfo heat={day.heat.get(hot.key) as number} />
               )}
             </div>
             <span className={META_TEXT}>
               {hot.digest.parliament === 'bundestag'
-                ? 'Plenarsitzung'
+                ? t('plenarySitting')
                 : hot.digest.parliament_name}{' '}
-              · {shortDayFormat.format(utcDay(day.date))}
+              · {shortDayFormat(intl).format(utcDay(day.date))}
             </span>
           </header>
           {/* Its flames sit next to "Hot Topic" above, not on the card. */}
           <PlenaryCard item={hot} onOpen={() => onOpen(hot)} variant="hot" />
           {match && (
             <div className="flex flex-col gap-2 pt-3">
-              <h3 className={META_TEXT}>Abstimmung zu dieser Debatte</h3>
+              <h3 className={META_TEXT}>{t('voteOnDebate')}</h3>
               <VoteCard item={match} onOpen={() => onOpen(match)} hot />
             </div>
           )}

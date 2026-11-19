@@ -6,6 +6,7 @@ import FeedbackDialog from '@/components/feedback-dialog';
 import { type UserDetails, cn } from '@/lib/utils';
 import * as Dialog from '@radix-ui/react-dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import MobileNavbarItems from './mobile-navbar-items';
 
@@ -16,6 +17,7 @@ type Props = {
 };
 
 function MobileNavbar({ userDetails, alwaysVisible = false }: Props) {
+  const t = useTranslations('nav');
   const [isOpen, setIsOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isDeleteOpinionsOpen, setIsDeleteOpinionsOpen] = useState(false);
@@ -47,7 +49,7 @@ function MobileNavbar({ userDetails, alwaysVisible = false }: Props) {
               hiddenOnDesktop,
             )}
             type="button"
-            aria-label="Open menu"
+            aria-label={t('openMenu')}
           >
             <div className="h-[2px] w-4 rounded-full bg-foreground transition-all duration-300 group-data-[state=open]:translate-y-[3px] group-data-[state=open]:rotate-45" />
             <div className="h-[2px] w-5 rounded-full bg-foreground transition-all duration-300 group-data-[state=open]:w-4 group-data-[state=open]:-translate-y-[3px] group-data-[state=open]:-rotate-45" />
@@ -69,8 +71,8 @@ function MobileNavbar({ userDetails, alwaysVisible = false }: Props) {
             )}
           >
             <VisuallyHidden>
-              <Dialog.Title>Dialog Title</Dialog.Title>
-              <Dialog.Description>Dialog Description</Dialog.Description>
+              <Dialog.Title>{t('menuTitle')}</Dialog.Title>
+              <Dialog.Description>{t('menuDescription')}</Dialog.Description>
             </VisuallyHidden>
 
             <MobileNavbarItems

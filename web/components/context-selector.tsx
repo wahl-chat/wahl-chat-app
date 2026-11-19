@@ -12,8 +12,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useRouter } from '@/i18n/navigation';
 import { ChevronDownIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 type ContextSelectorProps = {
   className?: string;

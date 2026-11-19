@@ -13,11 +13,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { LOCALE_INFO } from '@/i18n/locales';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import { speakerLogoId, speakerPartyLabel } from '@/lib/daily/party-logos';
 import {
+  type PoliticianWords,
   displayName,
   gremienOf,
+  localizedPolitician,
   mandateLabel,
   officeLines,
   tenureLabel,
@@ -37,8 +40,9 @@ import type {
 import { useIsDesktop } from '@/lib/hooks/use-is-desktop';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { ChevronDownIcon, PlayIcon, UserRoundIcon, XIcon } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { GlossaryLabel } from './glossary-text';
 import { PartyLogo } from './party-positions';
@@ -111,6 +115,17 @@ function usePolitician(mdbId: string | null): {
     : { politician: null, loading: true };
 }
 
+/** The labels around a record's own texts, in the reader's language. */
+function usePoliticianWords(): PoliticianWords {
+  const t = useTranslations('feed.politician');
+  return {
+    tenure: (since, terms) => t('tenure', { since: String(since), terms }),
+    direct: (number, name) => t('direct', { number, name }),
+    list: (land) => t('list', { land }),
+    fraktion: (name) => t('fraktion', { name }),
+  };
+}
+
 const TILE =
   'flex flex-col gap-0.5 rounded-lg bg-[var(--daily-surface)] px-3 py-2';
 
@@ -171,13 +186,14 @@ function Avatar({
 }
 
 function Committees({ politician }: { politician: Politician }) {
+  const t = useTranslations('feed.politician');
   const rows = gremienOf(politician, 'ausschuss');
   if (rows.length === 0) {
     return null;
   }
   return (
     <section className="flex flex-col">
-      <h3 className={cn(SECTION_LABEL, 'pb-1')}>Ausschüsse</h3>
+      <h3 className={cn(SECTION_LABEL, 'pb-1')}>{t('committees')}</h3>
       <ul className="divide-y divide-[var(--daily-border)] border-t border-[var(--daily-border)]">
         {rows.map((row) => (
           <li
@@ -203,13 +219,14 @@ function Committees({ politician }: { politician: Politician }) {
 }
 
 function OtherGremien({ politician }: { politician: Politician }) {
+  const t = useTranslations('feed.politician');
   const rows = gremienOf(politician, 'sonstige');
   if (rows.length === 0) {
     return null;
   }
   return (
     <section className="flex flex-col gap-1.5">
-      <h3 className={SECTION_LABEL}>Weitere Gremien &amp; Ämter</h3>
+      <h3 className={SECTION_LABEL}>{t('otherBodies')}</h3>
       <ul className="flex flex-wrap gap-1.5">
         {rows.map((row) => (
           <li
@@ -272,12 +289,14 @@ const VOTE_BADGE: Record<RollCallVote['vote'], string> = {
   other: 'bg-[var(--daily-surface)] text-[var(--daily-muted)]',
 };
 
-const voteDayFormat = new Intl.DateTimeFormat('de-DE', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
+function voteDayFormat(intl: string) {
+  return new Intl.DateTimeFormat(intl, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
 
 /** The latest namentliche Abstimmungen as the profile lists them, each
  * linked to the vote's own page with every member's vote. */
@@ -288,8 +307,10 @@ function RollCallList({
   votes: RollCallVote[];
   bioUrl: string | null;
 }) {
+  const t = useTranslations('feed.politician');
+  const dayFormat = voteDayFormat(LOCALE_INFO[useLocale()].intl);
   return (
-    <FoldedSection title="Aktuelle namentliche Abstimmungen">
+    <FoldedSection title={t('rollCalls')}>
       <ul className="divide-y divide-[var(--daily-border)] border-t border-[var(--daily-border)]">
         {votes.map((vote) => (
           <li
@@ -298,7 +319,7 @@ function RollCallList({
           >
             <span className="flex min-w-0 flex-col">
               <span className={cn('text-[11px]', MUTED_TEXT)}>
-                {voteDayFormat.format(new Date(`${vote.day}T00:00:00Z`))}
+                {dayFormat.format(new Date(`${vote.day}T00:00:00Z`))}
               </span>
               {vote.url ? (
                 <a
@@ -322,15 +343,13 @@ function RollCallList({
                 VOTE_BADGE[vote.vote],
               )}
             >
-              {vote.label}
+              {t(`voteLabel.${vote.vote}`)}
             </span>
           </li>
         ))}
       </ul>
       {bioUrl && (
-        <SourceLink href={`${bioUrl}?subview=na`}>
-          Alle Abstimmungen auf bundestag.de
-        </SourceLink>
+        <SourceLink href={`${bioUrl}?subview=na`}>{t('allVotes')}</SourceLink>
       )}
     </FoldedSection>
   );
@@ -339,8 +358,9 @@ function RollCallList({
 /** The Veröffentlichungspflichtige Angaben exactly as listed on the
  * profile: one block per organisation, its functions below it. */
 function DisclosureList({ disclosures }: { disclosures: Disclosures }) {
+  const t = useTranslations('feed.politician');
   return (
-    <FoldedSection title="Veröffentlichungspflichtige Angaben">
+    <FoldedSection title={t('disclosures')}>
       {disclosures.note && <p>{disclosures.note}</p>}
       {disclosures.sections.map((section, i) => (
         <div key={`${i}-${section.heading}`} className="flex flex-col gap-1.5">
@@ -371,7 +391,7 @@ function DisclosureList({ disclosures }: { disclosures: Disclosures }) {
       ))}
       {disclosures.link && (
         <SourceLink href={disclosures.link}>
-          {disclosures.link_phrase ?? 'Erläuterungen des Abgeordneten'}
+          {disclosures.link_phrase ?? t('memberExplanation')}
         </SourceLink>
       )}
     </FoldedSection>
@@ -381,6 +401,8 @@ function DisclosureList({ disclosures }: { disclosures: Disclosures }) {
 /** A member of the government or the Bundesrat who sits in no Bundestag
  * Fraktion: no Bundestag profile to show, only party and office. */
 function OutsideProfile({ politician }: { politician: Politician }) {
+  const t = useTranslations('feed.politician');
+  const locale = useLocale();
   const institutions = [
     ...new Set(politician.offices.map((office) => office.institution)),
   ];
@@ -388,30 +410,40 @@ function OutsideProfile({ politician }: { politician: Politician }) {
     <>
       {politician.partei && (
         <div className="grid grid-cols-2 gap-1.5">
-          <Tile label="Partei" value={politician.partei} />
+          <Tile label={t('party')} value={politician.partei} />
         </div>
       )}
       <p className={cn('text-[14px]', MUTED_TEXT)}>
-        {politician.name} ist kein Mitglied des Bundestages und spricht dort für{' '}
-        {institutions.join(' und ') || 'die Bundesregierung'}.
+        {institutions.length > 0
+          ? t('speaksFor', {
+              name: politician.name,
+              institutions: new Intl.ListFormat(
+                LOCALE_INFO[locale].intl,
+              ).format(institutions),
+            })
+          : t('speaksForGovernment', { name: politician.name })}
       </p>
     </>
   );
 }
 
 function Profile({ politician }: { politician: Politician }) {
+  const t = useTranslations('feed.politician');
+  const words = usePoliticianWords();
   if (politician.source === 'roster') {
     return <OutsideProfile politician={politician} />;
   }
-  const tenure = tenureLabel(politician);
-  const mandate = mandateLabel(politician);
+  const tenure = tenureLabel(politician, words);
+  const mandate = mandateLabel(politician, words);
   return (
     <>
       {(tenure || politician.beruf || mandate) && (
         <div className="grid grid-cols-2 gap-1.5">
-          {tenure && <Tile label="Im Bundestag seit" value={tenure} />}
-          {politician.beruf && <Tile label="Beruf" value={politician.beruf} />}
-          {mandate && <Tile label="Mandat" value={mandate} wide />}
+          {tenure && <Tile label={t('since')} value={tenure} />}
+          {politician.beruf && (
+            <Tile label={t('profession')} value={politician.beruf} />
+          )}
+          {mandate && <Tile label={t('mandate')} value={mandate} wide />}
         </div>
       )}
       <Committees politician={politician} />
@@ -424,16 +456,15 @@ function Profile({ politician }: { politician: Politician }) {
       )}
       <footer className={cn('flex flex-col gap-0.5 text-[12px]', MUTED_TEXT)}>
         {politician.photo_credit && (
-          <span>Foto: {politician.photo_credit}</span>
+          <span>{t('photo', { credit: politician.photo_credit })}</span>
         )}
         <span>
-          Quelle: Deutscher Bundestag
-          {politician.source_stand && `, Stand ${politician.source_stand}`}
+          {politician.source_stand
+            ? t('sourceAsOf', { stand: politician.source_stand })
+            : t('source')}
         </span>
         {politician.bio_url && (
-          <SourceLink href={politician.bio_url}>
-            Profil auf bundestag.de
-          </SourceLink>
+          <SourceLink href={politician.bio_url}>{t('profile')}</SourceLink>
         )}
       </footer>
     </>
@@ -468,6 +499,9 @@ export function PoliticianSheet({
   container?: HTMLElement | null;
   onClose: () => void;
 }) {
+  const t = useTranslations('feed.politician');
+  const locale = useLocale();
+  const words = usePoliticianWords();
   const isDesktop = useIsDesktop();
   const viewer = useMediaViewer();
   // Kept while the sheet animates out, so it does not empty first.
@@ -475,7 +509,13 @@ export function PoliticianSheet({
   if (open && open !== shown) {
     setShown(open);
   }
-  const { politician, loading } = usePolitician(shown?.speaker.mdb_id ?? null);
+  const { politician: record, loading } = usePolitician(
+    shown?.speaker.mdb_id ?? null,
+  );
+  const politician = useMemo(
+    () => record && localizedPolitician(record, locale),
+    [record, locale],
+  );
   if (!shown) {
     return null;
   }
@@ -483,7 +523,7 @@ export function PoliticianSheet({
   const photo =
     politician?.photo_url ??
     (speaker.mdb_id ? photos[speaker.mdb_id] : undefined);
-  const offices = politician ? officeLines(politician) : [];
+  const offices = politician ? officeLines(politician, words) : [];
   const speech = speakerViewerSource(speaker, party);
 
   return (
@@ -533,7 +573,7 @@ export function PoliticianSheet({
                 )}
               >
                 <XIcon className="size-4" aria-hidden />
-                <span className="sr-only">Schließen</span>
+                <span className="sr-only">{t('close')}</span>
               </ResponsiveDialogClose>
             )}
           </header>
@@ -557,7 +597,7 @@ export function PoliticianSheet({
                 <PlayIcon className="size-3 fill-current" />
               </span>
               <span className="flex-1 text-[14px] font-semibold">
-                Rede in dieser Debatte ansehen
+                {t('watchSpeech')}
               </span>
               {speaker.duration ? (
                 <span className={cn('text-[12px]', MUTED_TEXT)}>
@@ -573,8 +613,8 @@ export function PoliticianSheet({
           ) : (
             <p className={cn('text-[14px]', MUTED_TEXT)}>
               {isNonMember(speaker)
-                ? `${speaker.name} ist kein Mitglied des Bundestages, daher gibt es hier kein Bundestagsprofil.`
-                : 'Für diese Person liegt kein Profil des Bundestages vor.'}
+                ? t('notAMember', { name: speaker.name })
+                : t('noProfile')}
             </p>
           )}
         </div>

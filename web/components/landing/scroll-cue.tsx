@@ -1,4 +1,5 @@
 import { ChevronDownIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   href: string;
@@ -16,12 +17,14 @@ type Props = {
  * overlap the call to action on a short landscape phone.
  */
 function ScrollCue({ href }: Props) {
+  const t = useTranslations('landing');
+
   return (
     <a
       href={href}
       className="relative mx-auto mb-8 flex flex-col items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground md:mb-10"
     >
-      Mehr erfahren
+      {t('scrollCue')}
       <ChevronDownIcon
         className="size-4 animate-bounce motion-reduce:animate-none"
         aria-hidden="true"

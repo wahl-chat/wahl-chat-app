@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -13,14 +14,16 @@ type Props = {
 };
 
 function DonationDialog({ children }: Props) {
+  const t = useTranslations('donate.dialog');
+
   return (
     <ResponsiveDialog>
       <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
       <ResponsiveDialogContent>
         <VisuallyHidden>
-          <ResponsiveDialogTitle>Spenden</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Halte wahl.chat mit deiner Spende am Leben!
+            {t('description')}
           </ResponsiveDialogDescription>
         </VisuallyHidden>
         <DonationForm />

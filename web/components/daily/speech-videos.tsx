@@ -3,6 +3,7 @@
 import type { DigestSessionSection } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { Loader2Icon, PlayIcon, VolumeXIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 // The same speech can sit in the feed and in the open detail at once; starting
@@ -31,8 +32,11 @@ function formatTime(seconds: number): string {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-function startCaption(label: string, start: number) {
-  return Math.floor(start) > 0 ? `${label} · ab ${formatTime(start)}` : label;
+/** Formats "speaker · from 1:23" in the reader's language. */
+export type StartCaption = (speaker: string, time: string) => string;
+
+function startCaption(label: string, start: number, caption: StartCaption) {
+  return Math.floor(start) > 0 ? caption(label, formatTime(start)) : label;
 }
 
 /**
@@ -40,7 +44,10 @@ function startCaption(label: string, start: number) {
  * start, so the card plays on from the frame it shows. Nothing is chosen
  * here: a second rule on this side would show one frame and play another.
  */
-export function sectionMedia(section: DigestSessionSection): Media | null {
+export function sectionMedia(
+  section: DigestSessionSection,
+  caption: StartCaption,
+): Media | null {
   if (section.audio) {
     const { duration_seconds: duration } = section.audio;
     return {
@@ -62,7 +69,7 @@ export function sectionMedia(section: DigestSessionSection): Media | null {
       src: `${card.video_url}#t=${card.start}`,
       poster: card.poster_url,
       badge: 'Video',
-      caption: label ? startCaption(label, card.start) : null,
+      caption: label ? startCaption(label, card.start, caption) : null,
     };
   }
   return section.video_url
@@ -99,6 +106,7 @@ export function SectionMediaFrame({
   /** The detail view: the video plays muted at once, and a tap unmutes it. */
   autoPlayMuted?: boolean;
 }) {
+  const t = useTranslations('feed');
   const ref = useRef<HTMLMediaElement | null>(null);
   const [started, setStarted] = useState(false);
   const [painted, setPainted] = useState(false);
@@ -225,7 +233,7 @@ export function SectionMediaFrame({
         <button
           type="button"
           onClick={unmute}
-          aria-label="Ton einschalten"
+          aria-label={t('unmute')}
           className="absolute inset-0 z-10 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
         >
           {media.poster && !painted ? (
@@ -246,7 +254,7 @@ export function SectionMediaFrame({
             type="button"
             onClick={play}
             aria-label={
-              media.kind === 'video' ? 'Rede abspielen' : 'Audio abspielen'
+              media.kind === 'video' ? t('playSpeech') : t('playAudio')
             }
             className={cn(
               BUTTON_DISC,

@@ -6,8 +6,13 @@ import gzip
 import json
 from pathlib import Path
 
+from ingestion.feed.glossary import has_word, translated_texts
 from ingestion.feed.models import FeedEdition, FeedItem, SittingCalendar
-from ingestion.feed.politicians import Politician, speaker_ids
+from ingestion.feed.politicians import (
+    Politician,
+    needs_politician_translation,
+    speaker_ids,
+)
 from ingestion.feed.translate import needs_translation
 
 EMULATOR_DATA = (
@@ -33,6 +38,14 @@ def test_emulator_sample_feed_matches_the_stored_shape() -> None:
         assert not needs_translation(item, "en")
         if item.debate is not None:
             assert item.debate.opening_quote is not None
+        en = item.content["en"]
+        assert all(
+            any(has_word(t, r.surface) for t in translated_texts(item, "en"))
+            for r in en.terms
+        ), item.id
+    # Local review shows English terms and offices.
+    assert any(i.content["en"].terms for i in items.values())
+    assert any(i.content["en"].speaker_roles for i in items.values())
 
 
 def test_emulator_politicians_match_the_stored_shape_and_the_speakers() -> None:
@@ -52,3 +65,6 @@ def test_emulator_politicians_match_the_stored_shape_and_the_speakers() -> None:
     # Every identified speaker who is a member has a record.
     members = [i for i in ids if not i.startswith("9999")]
     assert set(members) <= set(politicians)
+    translated = [r for r in politicians.values() if r.translations]
+    assert translated
+    assert not any(needs_politician_translation(r, "en") for r in translated)

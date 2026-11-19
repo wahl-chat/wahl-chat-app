@@ -4,6 +4,7 @@ import { getAuthHeader } from '@/lib/firebase/firebase';
 import type { PledgeTrackerSuggestions } from '@/lib/stores/chat-store.types';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useChatStore } from './chat-store-provider';
@@ -38,6 +39,7 @@ export function getSseChatStop() {
 }
 
 function SseChatProvider({ children }: Props) {
+  const t = useTranslations('errors');
   // Bind all Zustand store actions at the top for stable refs in useChat callbacks.
   const selectRespondingParties = useChatStore(
     (state) => state.selectRespondingParties,
@@ -180,7 +182,7 @@ function SseChatProvider({ children }: Props) {
         // Surface mid-stream backend error parts instead of silently dropping
         // them (generate_chat_stream emits them from its error paths).
         console.error('[SseChatProvider] backend stream error:', ann.message);
-        toast.error('Es ist ein Fehler aufgetreten.');
+        toast.error(t('generic'));
         // Clear the streaming state so loading.newMessage does not stay stuck
         // until the watchdog fires (the backend ends the stream after an error
         // part, so nothing else would ever clear it).
@@ -193,9 +195,7 @@ function SseChatProvider({ children }: Props) {
       // streaming state immediately instead of leaving a frozen UI until the
       // inactivity watchdog silently clears it.
       cancelStreamingMessages();
-      toast.error(
-        'Die Antwort konnte nicht geladen werden. Bitte versuche es erneut.',
-      );
+      toast.error(t('answerLoadFailed'));
     },
   });
 

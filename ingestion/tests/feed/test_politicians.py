@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -10,7 +11,13 @@ import pytest
 
 from ingestion.feed import politician_sources as s
 from ingestion.feed import politicians as p
+from ingestion.feed.builder import FeedBuilder
 from ingestion.feed.models import DebateFacts, DebateParty, DigestSpeaker, FeedItem
+from ingestion.feed.prompts import (
+    POLITICIAN_TRANSLATION_PROMPT_VERSION,
+    TranslatedSegment,
+    TranslationBatch,
+)
 
 from tests.feed.politician_samples import (
     INDEX,
@@ -433,3 +440,213 @@ def test_a_minister_from_outside_the_bundestag_gets_a_record_from_the_roster(
             "kind": "government",
         }
     ]
+
+
+# --- translation -------------------------------------------------------------
+
+
+class Translator:
+    """Answers each segment with ``EN <German>``, unless ``edit`` says
+    otherwise; records every German text it was sent."""
+
+    def __init__(
+        self, edit: Optional[dict[str, str]] = None, fail: bool = False
+    ) -> None:
+        self.edit = edit or {}
+        self.fail = fail
+        self.sent: list[str] = []
+
+    async def __call__(self, messages: list, schema: type) -> tuple[Any, str]:
+        assert schema is TranslationBatch
+        if self.fail:
+            raise RuntimeError("quota")
+        segments = []
+        for ref, german in re.findall(
+            r"^\[(S\d+)\] (.*)$", messages[0].content, re.MULTILINE
+        ):
+            self.sent.append(german)
+            segments.append(
+                TranslatedSegment(ref=ref, text=self.edit.get(german, f"EN {german}"))
+            )
+        return TranslationBatch(segments=segments), "fake-translator"
+
+
+def _translated_refresh(
+    db: FakeDb,
+    ids: list[str],
+    stammdaten: Path,
+    fetch: s.Fetch,
+    translator: Translator,
+    **kwargs: Any,
+) -> p.RefreshReport:
+    builder = FeedBuilder(translator)
+    try:
+        return _refresh(db, ids, stammdaten, fetch, builder=builder, **kwargs)
+    finally:
+        builder.close()
+
+
+def _english(record: p.Politician) -> dict[str, str]:
+    return {t.source: t.text for t in record.translations["en"].texts}
+
+
+def test_a_new_record_is_written_with_its_english(stammdaten: Path) -> None:
+    db = FakeDb()
+    translator = Translator()
+    fetch = _fetcher(_pages(**{"2314": profile_xml()}))
+    report = _translated_refresh(db, ["11005000"], stammdaten, fetch, translator)
+    assert report.written == ["11005000"]
+    record = p.Politician.model_validate(db.docs["11005000"])
+    english = _english(record)
+    texts = p.display_texts(record)
+    assert set(english) == set(texts)
+    assert all(english[t] == f"EN {t}" for t in texts)
+    for german in (
+        "Parlamentarische Staatssekretärin",
+        "Bundesministerium der Finanzen",
+        "Ausschuss für wirtschaftliche Zusammenarbeit und Entwicklung",
+        "Obfrau",
+        "Vertrags- und Finanzmanagerin",
+        "Änderung des Brennstoffemissionshandelsgesetzes",
+        "Individuelle Erläuterungen",
+    ):
+        assert german in english, german
+    # Proper names stay as published and are never sent.
+    assert not {"Sanae Abdi", "SPD", "Köln I"} & set(translator.sent)
+    # Each distinct text once, though the Gremium is listed twice.
+    assert len(translator.sent) == len(set(translator.sent))
+    translation = record.translations["en"]
+    assert translation.source_hash == p.texts_hash(record)
+    assert translation.prompt_version == POLITICIAN_TRANSLATION_PROMPT_VERSION
+    assert not p.needs_politician_translation(record, "en")
+
+
+def test_a_current_record_costs_no_translation(stammdaten: Path) -> None:
+    db = FakeDb()
+    fetch = _fetcher(_pages(**{"2314": profile_xml()}))
+    _translated_refresh(db, ["11005000"], stammdaten, fetch, Translator())
+    translator = Translator()
+    report = _translated_refresh(
+        db, ["11005000"], stammdaten, _fetcher(_pages()), translator
+    )
+    assert (report.written, translator.sent) == ([], [])
+
+
+def test_a_stored_record_without_english_is_translated_without_a_fetch(
+    stammdaten: Path,
+) -> None:
+    db = FakeDb()
+    _refresh(db, ["11005000"], stammdaten, _fetcher(_pages(**{"2314": profile_xml()})))
+    assert db.docs["11005000"]["translations"] == {}
+    log: list[str] = []
+    report = _translated_refresh(
+        db, ["11005000"], stammdaten, _fetcher(_pages(), log), Translator()
+    )
+    assert report.written == ["11005000"]
+    assert log == [s.INDEX_URL, s.ROLL_CALL_LIST_URL]
+    record = p.Politician.model_validate(db.docs["11005000"])
+    assert set(_english(record)) == set(p.display_texts(record))
+
+
+def test_a_new_vote_is_translated_and_the_known_texts_are_not_sent_again(
+    stammdaten: Path,
+) -> None:
+    db = FakeDb()
+    fetch = _fetcher(_pages(**{"2314": profile_xml()}))
+    _translated_refresh(db, ["11005000"], stammdaten, fetch, Translator())
+    pages = _pages("12. November 2026")
+    pages[s.VOTES_URL.format(bio_id="2314")] = VOTES.replace(
+        "Cum-Cum", "Gesetz zur Modernisierung des Wehrdienstes"
+    )
+    translator = Translator()
+    morning = datetime(2026, 11, 13, 6, tzinfo=timezone.utc)
+    _translated_refresh(
+        db, ["11005000"], stammdaten, _fetcher(pages), translator, now=morning
+    )
+    assert translator.sent == ["Gesetz zur Modernisierung des Wehrdienstes"]
+    record = p.Politician.model_validate(db.docs["11005000"])
+    assert "Cum-Cum" not in _english(record)
+    assert not p.needs_politician_translation(record, "en")
+
+
+def test_a_stale_translation_is_renewed(stammdaten: Path) -> None:
+    db = FakeDb()
+    fetch = _fetcher(_pages(**{"2314": profile_xml()}))
+    _translated_refresh(db, ["11005000"], stammdaten, fetch, Translator())
+    db.docs["11005000"]["translations"]["en"]["source_hash"] = "older texts"
+    db.docs["11005000"]["translations"]["en"]["prompt_version"] = "0"
+    translator = Translator()
+    report = _translated_refresh(
+        db, ["11005000"], stammdaten, _fetcher(_pages()), translator
+    )
+    assert report.written == ["11005000"]
+    record = p.Politician.model_validate(db.docs["11005000"])
+    assert record.translations["en"].source_hash == p.texts_hash(record)
+    assert not p.needs_politician_translation(record, "en")
+
+
+def test_a_text_that_fails_its_check_stays_german_and_is_retried(
+    stammdaten: Path,
+) -> None:
+    db = FakeDb()
+    title = "Antrag zur Kassenzulassung des nicht-invasiven Pränataltests"
+    # Runs on far past its German text.
+    translator = Translator({title: "EN " + "very " * 60 + "long"})
+    fetch = _fetcher(_pages(**{"2314": profile_xml()}))
+    _translated_refresh(db, ["11005000"], stammdaten, fetch, translator)
+    record = p.Politician.model_validate(db.docs["11005000"])
+    english = _english(record)
+    assert title not in english
+    assert english["Obfrau"] == "EN Obfrau"
+    assert p.needs_politician_translation(record, "en")
+
+    retry = Translator()
+    _translated_refresh(db, ["11005000"], stammdaten, _fetcher(_pages()), retry)
+    assert retry.sent == [title]
+    record = p.Politician.model_validate(db.docs["11005000"])
+    assert not p.needs_politician_translation(record, "en")
+
+
+def test_a_failed_translation_call_still_writes_the_record(stammdaten: Path) -> None:
+    db = FakeDb()
+    fetch = _fetcher(_pages(**{"2314": profile_xml()}))
+    report = _translated_refresh(
+        db, ["11005000"], stammdaten, fetch, Translator(fail=True)
+    )
+    assert report.written == ["11005000"]
+    assert db.docs["11005000"]["translations"] == {}
+    # The next run fills it in without reading bundestag.de again.
+    assert _translated_refresh(
+        db, ["11005000"], stammdaten, _fetcher(_pages()), Translator()
+    ).written == ["11005000"]
+
+
+def test_a_record_read_again_keeps_its_english_while_translation_fails(
+    stammdaten: Path,
+) -> None:
+    db = FakeDb()
+    fetch = _fetcher(_pages(**{"2314": profile_xml()}))
+    _translated_refresh(db, ["11005000"], stammdaten, fetch, Translator())
+    later = NOW + p.RECHECK_AFTER
+    fetch = _fetcher(_pages(**{"2314": profile_xml()}))
+    _translated_refresh(
+        db, ["11005000"], stammdaten, fetch, Translator(fail=True), now=later
+    )
+    record = p.Politician.model_validate(db.docs["11005000"])
+    assert _english(record)["Obfrau"] == "EN Obfrau"
+
+
+def test_stored_records_are_translated_without_reading_bundestag_de(
+    stammdaten: Path,
+) -> None:
+    db = FakeDb()
+    _refresh(db, ["11005000"], stammdaten, _fetcher(_pages(**{"2314": profile_xml()})))
+    builder = FeedBuilder(Translator())
+    try:
+        written = p.translate_stored_politicians(
+            db, ["11005000", "missing"], builder, now=NOW
+        )
+        assert written == ["11005000"]
+        assert p.translate_stored_politicians(db, ["11005000"], builder) == []
+    finally:
+        builder.close()

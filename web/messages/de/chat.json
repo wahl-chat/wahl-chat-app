@@ -1,0 +1,226 @@
+{
+  "dislikeFeedback": {
+    "title": "Feedback abgeben",
+    "description": "Was gefällt dir nicht an dieser Antwort?",
+    "placeholder": "Bitte gib hier dein Feedback ein. (optional)",
+    "submit": "Feedback abgeben"
+  },
+  "header": {
+    "openMenu": "Menü öffnen"
+  },
+  "emptyView": {
+    "party": "Stelle den Dokumenten der Partei <bold>{party}</bold> deine Fragen und vergleiche ihre Antworten mit denen anderer Parteien.",
+    "general": "Stelle Fragen zu allen Themen rund um die <bold>{election}</bold> oder frage die Parteien direkt zu ihren Positionen im Wahlprogramm.",
+    "groupIntro": "Starte deinen Vergleichschat mit folgenden Parteien:"
+  },
+  "partySelect": {
+    "title": "Parteiauswahl",
+    "descriptionChange": "Ändere die ausgewählten Parteien.",
+    "descriptionStart": "Wähle bis zu sieben Parteien, mit denen du den Chat starten möchtest.",
+    "maxReached": "Du kannst nur maximal {max} Parteien auswählen",
+    "submitChange": "Parteien ändern",
+    "submitStart": "Vergleichschat starten"
+  },
+  "rateLimit": {
+    "title": "Server derzeit ausgelastet!",
+    "description": "Chatte mit den vorgeschlagenen Fragen weiter oder <bold>melde dich an</bold>, um eigene Fragen zu stellen.",
+    "login": "Anmelden"
+  },
+  "input": {
+    "placeholder": "Schreibe eine Nachricht..."
+  },
+  "markdown": {
+    "referenceTooltip": "{source} - Seite: {page}",
+    "referenceFallback": "Ref. {number}",
+    "videoReference": "Video {name}"
+  },
+  "messageIcon": {
+    "noParty": "Keine Partei ausgewählt"
+  },
+  "pledgeTracker": {
+    "dialogDescription": "Zeitleisten zu politischen Zielen, erstellt von PledgeTracker.",
+    "matchCount": "{count, plural, one {# passendes Ziel} other {# passende Ziele}} zu diesem Gespräch",
+    "pledgeTab": "Ziel {number}",
+    "pledgeDate": "Ziel vom {date}",
+    "status": "Status: <value>{status}</value>",
+    "showMoreEvents": "{count} weitere Ereignisse anzeigen",
+    "newestEvent": "Neuestes Ereignis",
+    "more": "Mehr",
+    "less": "Weniger",
+    "source": "Quelle",
+    "tagline": "PledgeTracker ist ein Projekt der Forschungsgruppe von Prof. Andreas Vlachos an der University of Cambridge.",
+    "detail": "Es erstellt aus öffentlichen Quellen Zeitleisten zu politischen Zielen. Die Funktion befindet sich noch in Entwicklung und die Ergebnisse können unvollständig sein.",
+    "evidenceCount": "{count, plural, one {# Beleg} other {# Belege}}",
+    "latest": "zuletzt {date}",
+    "otherPledges": "{count, plural, one {+# weiteres Ziel} other {+# weitere Ziele}}",
+    "buttonSubtitle": "Ziele im Verlauf",
+    "quotedClaim": "„{claim}“",
+    "fallbackTitle": "Passende Ziele der Partei",
+    "cta": "Umsetzung ansehen"
+  },
+  "proCon": {
+    "buttonTooltip": "Ordne die Position in Pro oder Contra ein",
+    "button": "Position einordnen",
+    "loading": {
+      "understand": "Thema verstehen...",
+      "feasibility": "Machbarkeit analysieren...",
+      "shortTerm": "Kurzfristige Effekte identifizieren...",
+      "longTerm": "Langfristige Effekte identifizieren...",
+      "finish": "Analyse abschließen..."
+    },
+    "collapsedHint": "Diese Nachricht enthält eine <bold>eingeordnete Position</bold>.",
+    "poweredBy": "Powered by Perplexity",
+    "hide": "Verbergen",
+    "show": "Anzeigen"
+  },
+  "userMessage": {
+    "reloadToResend": "Bitte lade die Seite neu, um eine Nachricht erneut zu senden.",
+    "resend": "Erneut senden"
+  },
+  "view": {
+    "loading": "Chat wird geladen …",
+    "answerLanguageNote": "Antworten werden derzeit auf Deutsch gegeben."
+  },
+  "votes": {
+    "yes": "Ja",
+    "no": "Nein",
+    "abstain": "Enthaltung",
+    "notVoted": "Nicht abgestimmt",
+    "votesLabel": "Abstimmungen",
+    "noValidVotes": "Keine gültigen Stimmen abgegeben",
+    "noResults": "Es konnten keine Ergebnisse ermittelt werden",
+    "outcome": "Antrag wurde <bold>{outcome, select, accepted {Angenommen.} rejected {Abgelehnt.} other {Unentschieden.}}</bold>",
+    "outcomePercentage": "{outcome, select, tie {Antrag wurde unentschieden mit jeweils {percentage}% der Stimmen.} accepted {Antrag wurde mit {percentage}% der Stimmen angenommen.} other {Antrag wurde mit {percentage}% der Stimmen abgelehnt.}}",
+    "nonAttached": "Fraktionslose",
+    "selectParty": "Wähle eine Partei",
+    "members": "Mitglieder"
+  },
+  "votingBehavior": {
+    "showVotes": "Abstimmungen anzeigen",
+    "detailTitle": "Wahlverhalten",
+    "detailDescription": "Diese Nachricht enthält weitere Informationen zum Wahlverhalten der Partei.",
+    "description": "Beschreibung",
+    "toSource": "Zur Quelle",
+    "furtherLinks": "Weitere Links",
+    "loading": {
+      "motions": "Durchsuche Bundestags-Anträge...",
+      "protocols": "Durchsuche Abstimmungsprotokolle...",
+      "submitters": "Analysiere Antragsteller-Informationen...",
+      "compare": "Vergleiche Informationen...",
+      "summarize": "Ergebnisse zusammenfassen..."
+    },
+    "referenceName": "Abst. {id}",
+    "collapsedHint": "Diese Nachricht enthält weitere Informationen zum <bold>Abstimmungsverhalten</bold> der Partei.",
+    "hide": "Verbergen",
+    "show": "Anzeigen",
+    "submittingParties": "{count, plural, one {Einreichende Partei} other {Einreichende Parteien}}",
+    "buttonTooltip": "Analysiere das Abstimmungsverhalten der Partei",
+    "button": "Abstimmungsverhalten"
+  },
+  "copy": {
+    "copied": "Text in die Zwischenablage kopiert",
+    "label": "Kopieren"
+  },
+  "newChat": {
+    "tooltip": "Erstelle einen neuen Chat",
+    "title": "Neuer Chat",
+    "description": "Erstelle einen neuen Chat."
+  },
+  "partyDetails": {
+    "candidate": "Spitzenkandidat*in: <bold>{name}</bold>",
+    "website": "Lerne mehr über die Partei auf <link>{url}</link>",
+    "manifesto": "Oder lese das <link>Wahlprogramm</link>"
+  },
+  "theme": {
+    "toggle": "Farbschema wechseln",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System"
+  },
+  "thinking": {
+    "findSources": "Relevante Quellen ermitteln...",
+    "analyseSources": "Quellen analysieren...",
+    "processData": "Daten verarbeiten...",
+    "generateResults": "Ergebnisse generieren...",
+    "finish": "Abschließen..."
+  },
+  "survey": {
+    "title": "👆🏼 Hilf uns, wahl.chat zu verbessern!",
+    "description": "Wir würden uns sehr freuen, wenn du uns dein Feedback zu diesem Chat und unserer Plattform teilst.",
+    "close": "Schließen",
+    "start": "Umfrage starten"
+  },
+  "sidebar": {
+    "mobileDescription": "Starte einen neuen Chat oder wähle eine vorherige Konversation aus.",
+    "home": "Startseite",
+    "newChat": "Neuer Chat",
+    "support": "Unterstütze wahl.chat",
+    "login": "Anmelden",
+    "account": "Account",
+    "donate": "Spenden",
+    "feedback": "Feedback",
+    "loadingHistory": "Lade Historie...",
+    "information": "Informationen",
+    "about": "Über wahl.chat",
+    "howTo": "Wie funktioniert wahl.chat?",
+    "sources": "Quellen",
+    "imprint": "Impressum",
+    "privacy": "Datenschutz",
+    "history": "Historie",
+    "compareParties": "Parteien vergleichen",
+    "swiperTeaser": {
+      "description": "Finde jetzt die passende Partei.",
+      "cta": "Wahl Swiper"
+    },
+    "tvTeaser": {
+      "missed": "Beim Quadrell nicht dabei gewesen?",
+      "compare": "Vergleiche die Themen bei uns.",
+      "cta": "Aktuelle Themen"
+    }
+  },
+  "iframe": {
+    "title": "Berechtigung zur Einbindung benötigt",
+    "description": "Um wahl.chat in einem iFrame zu verwenden, nimm bitte Kontakt zu uns über die E-Mail-Adresse <email>info@wahl.chat</email> auf.",
+    "close": "Schließen",
+    "contact": "Kontaktiere uns"
+  },
+  "stickyInput": {
+    "placeholder": "Frage die Parteien...",
+    "submit": "Frage senden"
+  },
+  "partyCards": {
+    "selected": "{name} (ausgewählt)",
+    "startChatWith": "Chat mit {name} starten",
+    "selectable": "Parteien zur Auswahl",
+    "available": "Verfügbare Parteien",
+    "showFewer": "Weniger Parteien anzeigen",
+    "showMore": "Mehr Parteien anzeigen",
+    "fewerParties": "Weniger Parteien",
+    "moreParties": "Mehr Parteien",
+    "furtherParties": "Weitere Parteien"
+  },
+  "metadata": {
+    "partyTitle": "Chat mit {party} – {election}",
+    "title": "Chat – {election}",
+    "partyDescription": "Frage {party} zu Positionen und Themen der {election}. Quellengestützte Antworten bei wahl.chat.",
+    "description": "Vergleiche Parteipositionen über die {election} im Chat. Quellengestützte Antworten bei wahl.chat."
+  },
+  "error": {
+    "oops": "Oops!",
+    "title": "Etwas ist schief gelaufen.",
+    "retry": "Versuche es erneut"
+  },
+  "store": {
+    "proConFailed": "Fehler beim Laden der Pro/Contra-Perspektive.",
+    "waitForAnswer": "Bitte warte, bis die aktuelle Antwort abgeschlossen ist.",
+    "sessionOutOfSync": "Chat nicht synchron",
+    "chatNotReady": "Der Chat ist noch nicht bereit. Bitte lade die Seite neu.",
+    "answerFailed": "Die Antwort konnte nicht geladen werden. Bitte versuche es erneut.",
+    "timeout": "Zeitüberschreitung — die Antwort wurde abgebrochen.",
+    "streamFailed": "Eine Antwort konnte nicht geladen werden.",
+    "sessionLoading": "Chat wird geladen …",
+    "sessionLoaded": "Chat geladen!",
+    "sessionLoadFailed": "Chat konnte nicht geladen werden",
+    "votingBehaviorFailed": "Fehler beim Laden des Abstimmungsverhaltens."
+  }
+}

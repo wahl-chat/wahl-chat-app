@@ -1,0 +1,50 @@
+{
+  "economy_finance": {
+    "title": "Economy and finance",
+    "short": "Economy"
+  },
+  "social_labor": {
+    "title": "Social affairs and labour",
+    "short": "Social"
+  },
+  "education_research": {
+    "title": "Education and research",
+    "short": "Education"
+  },
+  "climate_environment": {
+    "title": "Climate and environment",
+    "short": "Climate"
+  },
+  "health_care": {
+    "title": "Health and care",
+    "short": "Health"
+  },
+  "digitalization_tech": {
+    "title": "Digital and technology",
+    "short": "Digital"
+  },
+  "migration_integration": {
+    "title": "Migration and integration",
+    "short": "Migration"
+  },
+  "security_justice": {
+    "title": "Security and justice",
+    "short": "Security"
+  },
+  "foreign_policy_europe": {
+    "title": "Foreign policy and Europe",
+    "short": "Foreign policy"
+  },
+  "transport_infrastructure": {
+    "title": "Transport and infrastructure",
+    "short": "Transport"
+  },
+  "housing_rent": {
+    "title": "Housing and rent",
+    "short": "Housing"
+  },
+  "other": {
+    "title": "Other topics",
+    "short": "Other"
+  }
+}

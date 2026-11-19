@@ -1,6 +1,7 @@
 'use client';
 
 import DynamicRateLimitStickyInput from '@/components/dynamic-rate-limit-sticky-input';
+import { useRouter } from '@/i18n/navigation';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import type {
   LlmSystemStatus,
@@ -8,7 +9,6 @@ import type {
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { track } from '@vercel/analytics/react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 type Props = {

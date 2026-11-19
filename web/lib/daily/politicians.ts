@@ -1,9 +1,75 @@
 import type {
   DigestPartyPosition,
+  FeedLocale,
   Politician,
   PoliticianMembership,
   PoliticianMembershipLevel,
 } from '@/lib/firebase/firebase.types';
+
+/** The labels around a record's own texts, in the reader's language. */
+export type PoliticianWords = {
+  /** "2021 · 2 Wahlperioden" */
+  tenure: (since: number, terms: number) => string;
+  /** "Direkt gewählt · Wahlkreis 092 – Köln I" */
+  direct: (number: string, name: string) => string;
+  /** "Landesliste Nordrhein-Westfalen" */
+  list: (land: string) => string;
+  /** "Fraktion SPD" */
+  fraktion: (name: string) => string;
+};
+
+/**
+ * The record with its texts in `locale` where the feed job has translated
+ * them. Each text is looked up on its own, so one still waiting for its
+ * translation stays German while the rest are already in English.
+ */
+export function localizedPolitician(
+  politician: Politician,
+  locale: FeedLocale,
+): Politician {
+  if (locale === 'de') {
+    return politician;
+  }
+  const texts = new Map(
+    (politician.translations?.[locale]?.texts ?? []).map((t) => [
+      t.source,
+      t.text,
+    ]),
+  );
+  if (texts.size === 0) {
+    return politician;
+  }
+  const tr = (text: string) => texts.get(text) ?? text;
+  const trOrNull = (text: string | null) => (text === null ? null : tr(text));
+  const { disclosures } = politician;
+  return {
+    ...politician,
+    beruf: trOrNull(politician.beruf),
+    offices: politician.offices.map((office) => ({
+      ...office,
+      function: tr(office.function),
+      institution: tr(office.institution),
+    })),
+    memberships: politician.memberships.map((membership) => ({
+      ...membership,
+      gremium: tr(membership.gremium),
+      role: tr(membership.role),
+    })),
+    votes: politician.votes?.map((vote) => ({
+      ...vote,
+      title: tr(vote.title),
+    })),
+    disclosures: disclosures && {
+      ...disclosures,
+      note: trOrNull(disclosures.note),
+      link_phrase: trOrNull(disclosures.link_phrase),
+      sections: disclosures.sections.map((section) => ({
+        ...section,
+        heading: trOrNull(section.heading),
+      })),
+    },
+  };
+}
 
 const SENIORITY: PoliticianMembershipLevel[] = [
   'chair',
@@ -58,39 +124,47 @@ export function gremienOf(
 
 /** "2021 · 2 Wahlperioden", under "Im Bundestag seit"; null without any
  * term. */
-export function tenureLabel(politician: Politician): string | null {
+export function tenureLabel(
+  politician: Politician,
+  words: PoliticianWords,
+): string | null {
   const years = politician.terms
     .map((t) => Number.parseInt(t.start.slice(0, 4), 10))
     .filter(Number.isFinite);
   if (years.length === 0) {
     return null;
   }
-  const count = politician.terms.length;
-  return `${Math.min(...years)} · ${count} ${count === 1 ? 'Wahlperiode' : 'Wahlperioden'}`;
+  return words.tenure(Math.min(...years), politician.terms.length);
 }
 
 /** How the member holds the seat: their Wahlkreis when won directly, else
  * the Land's list. */
-export function mandateLabel(politician: Politician): string | null {
+export function mandateLabel(
+  politician: Politician,
+  words: PoliticianWords,
+): string | null {
   const { wahlkreis, elected, land } = politician;
   if (elected === 'direkt' && wahlkreis) {
-    return `Direkt gewählt · Wahlkreis ${wahlkreis.number} – ${wahlkreis.name}`;
+    return words.direct(wahlkreis.number, wahlkreis.name);
   }
   if (elected === 'Landesliste' && land) {
-    return `Landesliste ${land}`;
+    return words.list(land);
   }
   return null;
 }
 
 /** The offices under the name: "Bundesministerin · Bundesministerium für
  * …", "Parlamentarischer Geschäftsführer · Fraktion SPD". */
-export function officeLines(politician: Politician): string[] {
+export function officeLines(
+  politician: Politician,
+  words: PoliticianWords,
+): string[] {
   return politician.offices.map((office) => {
     if (office.kind === 'government') {
       return `${office.function} · ${office.institution}`;
     }
     if (office.kind === 'fraktion' && politician.fraktion) {
-      return `${office.function} · Fraktion ${politician.fraktion}`;
+      return `${office.function} · ${words.fraktion(politician.fraktion)}`;
     }
     return office.function;
   });

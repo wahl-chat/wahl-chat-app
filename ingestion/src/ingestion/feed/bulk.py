@@ -13,9 +13,9 @@ speech and vote jobs, several times in a row: ``--time-budget`` stops it
 starting new items before the job's time cap, and the next run picks up what
 is still missing.
 
-Each built day is published before the next one starts: translated, indexed
-in the feed collection in Qdrant, then written to Firestore ``feed_items`` and
-``feed_editions``. Qdrant goes first, so a crash leaves at worst an indexed item
+Each built day is published before the next one starts: translated, its
+terms explained (in every language), indexed in the feed collection in
+Qdrant, then written to Firestore ``feed_items`` and ``feed_editions``. Qdrant goes first, so a crash leaves at worst an indexed item
 Firestore does not have yet; the next run rewrites both.
 
 Usage (local):
@@ -80,6 +80,7 @@ from ingestion.feed.politicians import (
     speaker_ids,
     speaker_names,
     speakers_without_id,
+    translate_stored_politicians,
 )
 from ingestion.feed.posters import (
     PosterMaker,
@@ -93,6 +94,7 @@ from ingestion.feed.glossary import (
     GlossaryReport,
     annotate_terms,
     needs_terms,
+    needs_translated_terms,
     read_glossary,
     write_glossary,
 )
@@ -192,11 +194,7 @@ class Published:
         self.index.unchanged += other.index.unchanged
         self.index.deleted += other.index.deleted
         self.translations_kept += other.translations_kept
-        self.glossary.items_annotated += other.glossary.items_annotated
-        self.glossary.items_failed += other.glossary.items_failed
-        self.glossary.forms_rejected += other.glossary.forms_rejected
-        self.glossary.defined += other.glossary.defined
-        self.glossary.rejected += other.glossary.rejected
+        self.glossary.add(other.glossary)
 
 
 def parliament_window(
@@ -443,7 +441,10 @@ def plan_day(
             if i.id in built or stored.get(i.id) is None or stored[i.id].rank != i.rank
         }
     )
-    untranslated = any(needs_translation(i, "en") or needs_terms(i) for i in ranked)
+    untranslated = any(
+        needs_translation(i, "en") or needs_terms(i) or needs_translated_terms(i, "en")
+        for i in ranked
+    )
     if (
         not changed
         and not retracted
@@ -560,26 +561,51 @@ def publish(
     return out
 
 
+@dataclass
+class BackfillReport:
+    translation: TranslationReport = field(default_factory=TranslationReport)
+    glossary: GlossaryReport = field(default_factory=GlossaryReport)
+    politicians: list[str] = field(default_factory=list)
+
+
 def backfill_translations(
     db: Any,
     qdrant: QdrantClient,
     builder: FeedBuilder,
     parliaments: list[Parliament],
     days: int,
-) -> TranslationReport:
-    """Translate stored items whose translation is missing or stale."""
-    total = TranslationReport()
+    *,
+    out_of_time: Callable[[], bool] = lambda: False,
+) -> BackfillReport:
+    """Bring every stored text in the window up to what a run writes in each
+    language: item translations (speakers' offices included), the glossary
+    and its translations, the terms of each translation, and the records of
+    the window's Bundestag speakers."""
+    total = BackfillReport()
+    glossary = read_glossary(db)
     for parliament in parliaments:
         window = parliament_window(qdrant, parliament, days)
         if window is None:
             continue
         items = read_items_since(db, parliament.id, window[0])
         report = translate_items(items, builder)
-        total.translated += report.translated
-        total.failed += report.failed
-        total.dropped_stale += report.dropped_stale
-        if report.translated or report.dropped_stale:
+        total.translation.translated += report.translated
+        total.translation.failed += report.failed
+        total.translation.dropped_stale += report.dropped_stale
+        changed = report.translated or report.dropped_stale
+        annotated, entries, terms = annotate_terms(
+            [i for i in items if i.status == "published"], builder, glossary
+        )
+        total.glossary.add(terms)
+        # Before the items, so an item never refers to an entry not there yet.
+        if entries:
+            write_glossary(db, entries)
+        if changed or annotated:
             write_feed(db, [], items)
+        if parliament.id == "bundestag":
+            total.politicians += translate_stored_politicians(
+                db, speaker_ids(items), builder, out_of_time=out_of_time
+            )
     return total
 
 
@@ -669,10 +695,13 @@ def refresh_calendar(db: Any, now: Optional[datetime] = None) -> None:
 
 
 def refresh_speakers(
-    db: Any, since: date, out_of_time: Callable[[], bool] = lambda: False
+    db: Any,
+    since: date,
+    out_of_time: Callable[[], bool] = lambda: False,
+    builder: Optional[FeedBuilder] = None,
 ) -> RefreshReport:
     """Store the record of everyone who spoke in the Bundestag debates stored
-    since ``since`` (see ``politicians``).
+    since ``since`` (see ``politicians``), translated with ``builder``.
 
     Never fails the run: a speaker whose profile could not be read is tried
     again next run, and the web shows the speech instead until then.
@@ -680,7 +709,11 @@ def refresh_speakers(
     try:
         items = read_items_since(db, "bundestag", since)
         report = refresh_politicians(
-            db, speaker_ids(items), out_of_time=out_of_time, names=speaker_names(items)
+            db,
+            speaker_ids(items),
+            out_of_time=out_of_time,
+            names=speaker_names(items),
+            builder=builder,
         )
     except Exception as exc:  # noqa: BLE001 — the feed stands without them
         logger.warning("Politicians not refreshed: %s", exc)
@@ -745,7 +778,11 @@ def _summary_line(run: ParliamentRun, published: Published) -> str:
         f"terms_annotated={published.glossary.items_annotated} "
         f"terms_defined={published.glossary.defined} "
         f"terms_rejected={published.glossary.rejected} "
-        f"term_forms_rejected={published.glossary.forms_rejected}"
+        f"term_forms_rejected={published.glossary.forms_rejected} "
+        f"terms_translated={published.glossary.entries_translated} "
+        f"term_translations_failed={published.glossary.entries_translation_failed} "
+        f"translated_terms_mapped={published.glossary.items_mapped} "
+        f"translated_terms_failed={published.glossary.items_map_failed}"
         + ("  stopped: time budget spent" if run.out_of_time else "")
     )
 
@@ -876,7 +913,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument(
         "--translate-backfill",
         action="store_true",
-        help="Only translate stored items in the window whose translation is missing or stale",
+        help=(
+            "Only bring stored texts in the window up to date in every language: "
+            "item translations, glossary entries, the terms of each translation "
+            "and the speakers' records"
+        ),
     )
     parser.add_argument(
         "--allow-remote",
@@ -937,10 +978,18 @@ def main(argv: Optional[list[str]] = None) -> int:
                     file=sys.stderr,
                 )
                 return 2
-            report = backfill_translations(db, qdrant, builder, parliaments, args.days)
+            report = backfill_translations(
+                db, qdrant, builder, parliaments, args.days, out_of_time=out_of_time
+            )
+            t, g = report.translation, report.glossary
             print(
-                f"translated={report.translated} failed={report.failed} "
-                f"dropped_stale={report.dropped_stale}"
+                f"translated={t.translated} failed={t.failed} "
+                f"dropped_stale={t.dropped_stale} "
+                f"terms_translated={g.entries_translated} "
+                f"term_translations_failed={g.entries_translation_failed} "
+                f"translated_terms_mapped={g.items_mapped} "
+                f"translated_terms_failed={g.items_map_failed} "
+                f"politicians_translated={len(report.politicians)}"
             )
             return 0
 
@@ -956,80 +1005,85 @@ def main(argv: Optional[list[str]] = None) -> int:
             index=not (args.dry_run or args.skip_index),
             out_of_time=out_of_time,
         )
-    finally:
-        builder.close()
 
-    in_bundestag = "bundestag" in {p.id for p in parliaments}
-    if in_bundestag:
-        refresh_calendar(db)
+        in_bundestag = "bundestag" in {p.id for p in parliaments}
+        if in_bundestag:
+            refresh_calendar(db)
 
-    if args.out:
-        args.out.write_text(
-            json.dumps(
-                {
-                    "editions": [
-                        e.model_dump(mode="json") for _, p in runs for e in p.editions
-                    ],
-                    "items": [
-                        i.model_dump(mode="json") for _, p in runs for i in p.items
-                    ],
-                },
-                ensure_ascii=False,
-                indent=2,
+        if args.out:
+            args.out.write_text(
+                json.dumps(
+                    {
+                        "editions": [
+                            e.model_dump(mode="json")
+                            for _, p in runs
+                            for e in p.editions
+                        ],
+                        "items": [
+                            i.model_dump(mode="json") for _, p in runs for i in p.items
+                        ],
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
             )
-            + "\n",
-            encoding="utf-8",
-        )
-        print(f"wrote {args.out}")
+            print(f"wrote {args.out}")
 
-    # Only a run that wrote something has anything to show; the later runs of
-    # a morning usually find every day unchanged.
-    if db is not None and args.revalidate and any(p.wrote for _, p in runs):
-        post_revalidate(env)
+        # Only a run that wrote something has anything to show; the later runs of
+        # a morning usually find every day unchanged.
+        if db is not None and args.revalidate and any(p.wrote for _, p in runs):
+            post_revalidate(env)
 
-    # After the feed's own cache bust, so neither a slow video host nor a slow
-    # bundestag.de holds back what this run published. Posters are cut and
-    # profiles fetched one by one; they get what is left of the grace the
-    # model calls had, never the whole job's cap.
-    def out_of_grace() -> bool:
-        return (
-            args.time_budget is not None
-            and time.monotonic() - started >= args.time_budget + _CALL_GRACE_S
-        )
+        # After the feed's own cache bust, so neither a slow video host nor a slow
+        # bundestag.de holds back what this run published. Posters are cut and
+        # profiles fetched one by one; they get what is left of the grace the
+        # model calls had, never the whole job's cap.
+        def out_of_grace() -> bool:
+            return (
+                args.time_budget is not None
+                and time.monotonic() - started >= args.time_budget + _CALL_GRACE_S
+            )
 
-    wrote_late = False
-    if db is not None:
-        windows = [
-            (run.parliament.id, run.window[0])
-            for run, _ in runs
-            if run.window is not None
-        ]
-        posters = refresh_posters(
-            db, windows, card_posters(env, skip=args.skip_posters), out_of_grace
+        wrote_late = False
+        if db is not None:
+            windows = [
+                (run.parliament.id, run.window[0])
+                for run, _ in runs
+                if run.window is not None
+            ]
+            posters = refresh_posters(
+                db, windows, card_posters(env, skip=args.skip_posters), out_of_grace
+            )
+            wrote_late = bool(posters.written)
+        window = next(
+            (run.window for run, _ in runs if run.parliament.id == "bundestag"), None
         )
-        wrote_late = bool(posters.written)
-    window = next(
-        (run.window for run, _ in runs if run.parliament.id == "bundestag"), None
-    )
-    if db is not None and in_bundestag and window is not None:
-        speakers = refresh_speakers(db, window[0], out_of_grace)
-        wrote_late = wrote_late or bool(speakers.written)
-    if args.revalidate and wrote_late:
-        post_revalidate(env)
+        if db is not None and in_bundestag and window is not None:
+            speakers = refresh_speakers(db, window[0], out_of_grace, builder)
+            wrote_late = wrote_late or bool(speakers.written)
+        if args.revalidate and wrote_late:
+            post_revalidate(env)
 
-    if runs and all(run.window is None for run, _ in runs):
-        print("No corpus data in any selected parliament.", file=sys.stderr)
-        return 1
-    failed = [what for run, _ in runs for what in run.failed]
-    if failed:
-        # Everything else is published by now; a non-zero exit is what makes a
-        # failing model or roster visible in the job's history.
-        print(
-            f"{len(failed)} item(s) not generated: {', '.join(failed)}",
-            file=sys.stderr,
-        )
-        return 1
-    return 0
+        if runs and all(run.window is None for run, _ in runs):
+            print("No corpus data in any selected parliament.", file=sys.stderr)
+            return 1
+        failed = [what for run, _ in runs for what in run.failed]
+        if failed:
+            # Everything else is published by now; a non-zero exit is what makes a
+            # failing model or roster visible in the job's history.
+            print(
+                f"{len(failed)} item(s) not generated: {', '.join(failed)}",
+                file=sys.stderr,
+            )
+            return 1
+        return 0
+
+    finally:
+        # Open until the speakers are refreshed: their records are
+        # translated with it.
+        builder.close()
 
 
 if __name__ == "__main__":

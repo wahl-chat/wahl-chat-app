@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { ThumbsDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import {
   ResponsiveDialog,
@@ -23,6 +24,7 @@ function ChatDislikeFeedbackButton({
   onDislikeFeedback,
   feedbackDetail,
 }: Props) {
+  const t = useTranslations('chat.dislikeFeedback');
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -50,20 +52,20 @@ function ChatDislikeFeedbackButton({
       </ResponsiveDialogTrigger>
       <ResponsiveDialogContent className="px-4">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Feedback abgeben</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Was gefällt dir nicht an dieser Antwort?
+            {t('description')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <form onSubmit={handleSubmit}>
           <Textarea
-            placeholder="Bitte gib hier dein Feedback ein. (optional)"
+            placeholder={t('placeholder')}
             className="w-full"
             name="details"
             defaultValue={feedbackDetail}
           />
           <Button className="my-4 w-full md:mb-0" type="submit">
-            Feedback abgeben
+            {t('submit')}
           </Button>
         </form>
       </ResponsiveDialogContent>

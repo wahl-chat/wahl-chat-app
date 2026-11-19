@@ -6,6 +6,7 @@ import type {
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { ArrowUpRightIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 
 type Majority = 'yes' | 'no' | 'abstain';
@@ -22,12 +23,6 @@ export function majority(party: DigestVoteParty): Majority | null {
   );
   return count > 0 ? label : null;
 }
-
-const MAJORITY_LABEL: Record<Majority, string> = {
-  yes: 'Ja',
-  no: 'Nein',
-  abstain: 'Enthalten',
-};
 
 const MAJORITY_CLASS: Record<Majority, string> = {
   yes: 'text-[var(--daily-yes)]',
@@ -52,6 +47,7 @@ export function PartyVoteTable({
   /** The breakdown panel the rows open. */
   breakdownId: string;
 }) {
+  const t = useTranslations('feed');
   return (
     <ul className="grid grid-cols-2 gap-x-8">
       {sortBySeating(vote.parties)
@@ -81,7 +77,7 @@ export function PartyVoteTable({
                     verdict && MAJORITY_CLASS[verdict],
                   )}
                 >
-                  {verdict ? MAJORITY_LABEL[verdict] : '–'}
+                  {verdict ? t(`seat.${verdict}`) : '–'}
                 </span>
               </button>
             </li>

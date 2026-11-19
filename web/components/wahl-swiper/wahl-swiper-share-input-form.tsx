@@ -7,6 +7,7 @@ import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { setWahlSwiperResultToPublic } from '@/lib/firebase/firebase';
 import { track } from '@vercel/analytics/react';
 import { ShareIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -21,6 +22,8 @@ import {
 } from 'react-share';
 
 function WahlSwiperShareLinkInputForm() {
+  const t = useTranslations('swiper.share');
+  const shareTitle = t('shareTitle');
   const [isLoading, setIsLoading] = useState(false);
   const { contextId, resultId } = useParams();
 
@@ -56,7 +59,7 @@ function WahlSwiperShareLinkInputForm() {
 
     try {
       await navigator.share({
-        title: 'Wahl Swiper Ergebnis',
+        title: shareTitle,
         url: link,
       });
     } catch (error) {
@@ -69,7 +72,7 @@ function WahlSwiperShareLinkInputForm() {
       <div className="flex items-center space-x-2">
         <div className="grid flex-1 gap-2">
           <Label htmlFor="link" className="sr-only">
-            Link
+            {t('linkLabel')}
           </Label>
           <Input id="link" value={link} readOnly disabled={isLoading} />
         </div>
@@ -79,20 +82,20 @@ function WahlSwiperShareLinkInputForm() {
         <WhatsappShareButton
           className="aspect-square w-fit"
           url={link}
-          title="Wahl Swiper Ergebnis"
+          title={shareTitle}
           separator=" - "
         >
           <WhatsappIcon size={30} borderRadius={10} />
         </WhatsappShareButton>
         <TwitterShareButton
           url={link}
-          title="Wahl Swiper Ergebnis"
+          title={shareTitle}
           hashtags={['WahlChat', 'Wahl2025', 'Bundestagswahl']}
           via="WahlChat"
         >
           <XIcon size={30} borderRadius={10} />
         </TwitterShareButton>
-        <LinkedinShareButton url={link} title="Wahl Swiper Ergebnis">
+        <LinkedinShareButton url={link} title={shareTitle}>
           <LinkedinIcon size={30} borderRadius={10} />
         </LinkedinShareButton>
         <FacebookShareButton url={link} hashtag="#WahlChat">

@@ -40,15 +40,15 @@ export function isUpcomingElection(
 }
 
 /**
- * How assistive tech announces an election. A concluded election can still be
+ * Whether assistive tech announces an election as current or past. A concluded election can still be
  * the one a page is about (the default chat context stays put between
  * elections), so "current" must not be assumed.
  */
-export function electionStatusLabel(
+export function electionStatus(
   context: Context,
   now = new Date(),
-): string {
-  return isUpcomingElection(context, now) ? 'Aktuelle Wahl' : 'Vergangene Wahl';
+): 'current' | 'past' {
+  return isUpcomingElection(context, now) ? 'current' : 'past';
 }
 
 /**

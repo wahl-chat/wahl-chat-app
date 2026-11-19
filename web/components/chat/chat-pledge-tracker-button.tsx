@@ -11,6 +11,7 @@ import type { StreamingMessage } from '@/lib/socket.types';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { track } from '@vercel/analytics/react';
 import { ChevronRight, Target } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Props = {
@@ -40,6 +41,8 @@ function ChatPledgeTrackerButton({
   onToggle,
   isLastMessage,
 }: Props) {
+  const t = useTranslations('chat.pledgeTracker');
+  const locale = useLocale();
   const [neverOpened, setNeverOpened] = useState(false);
 
   // Only the newest answer glows, like the other action buttons: every pledge
@@ -58,18 +61,14 @@ function ChatPledgeTrackerButton({
   const timeline = visiblePledges[0]
     ? sortedRelevantEvents(visiblePledges[0])
     : [];
-  const latestDate = formatPledgeDate(timeline[0]?.date);
+  const latestDate = formatPledgeDate(timeline[0]?.date, locale);
   const otherPledges = pledges - 1;
-  const metaParts: string[] = [
-    `${timeline.length} ${timeline.length === 1 ? 'Beleg' : 'Belege'}`,
-  ];
+  const metaParts: string[] = [t('evidenceCount', { count: timeline.length })];
   if (latestDate) {
-    metaParts.push(`zuletzt ${latestDate}`);
+    metaParts.push(t('latest', { date: latestDate }));
   }
   if (otherPledges > 0) {
-    metaParts.push(
-      `+${otherPledges} ${otherPledges === 1 ? 'weiteres Ziel' : 'weitere Ziele'}`,
-    );
+    metaParts.push(t('otherPledges', { count: otherPledges }));
   }
 
   useEffect(() => {
@@ -180,7 +179,7 @@ function ChatPledgeTrackerButton({
             <span className="min-w-0 truncate text-xs font-medium text-emerald-600 dark:text-emerald-400">
               PledgeTracker
               <span className="font-normal text-muted-foreground">
-                {' · Ziele im Verlauf'}
+                {` · ${t('buttonSubtitle')}`}
               </span>
             </span>
           </span>
@@ -189,7 +188,7 @@ function ChatPledgeTrackerButton({
               spans the full card width because the CTA sits below it, so no
               line is cut short by a neighbouring element. */}
           <span className="line-clamp-2 text-[15px] font-semibold leading-snug text-foreground">
-            {claim ? `„${claim}“` : 'Passende Ziele der Partei'}
+            {claim ? t('quotedClaim', { claim }) : t('fallbackTitle')}
           </span>
 
           <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -203,7 +202,7 @@ function ChatPledgeTrackerButton({
             {/* CTA affordance: looks like a button, but the whole card is the
                 real <button> — a nested interactive element would be invalid. */}
             <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground shadow-sm group-hover:bg-accent">
-              Umsetzung ansehen
+              {t('cta')}
               <ChevronRight aria-hidden className="size-3.5" />
             </span>
           </span>

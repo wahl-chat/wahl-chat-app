@@ -376,7 +376,15 @@ export type GlossaryEntry = {
   /** The official pages the definition was checked against; the first is
    * linked. */
   sources: GlossarySource[];
+  /** The term and its definition in other languages, translated from the
+   * verified German; absent until the feed job has translated it. */
+  translations?: Partial<
+    Record<Exclude<FeedLocale, 'de'>, { term: string; definition: string }>
+  >;
 };
+
+/** A German text as stored, and its translation. */
+export type TranslatedText = { source: string; text: string };
 
 export type LocalizedContent = {
   headline: string;
@@ -387,9 +395,12 @@ export type LocalizedContent = {
   /** Other locales only: the verbatim German quote stays in `debate`. */
   quote_translation: string | null;
   origin: 'generated' | 'translated';
-  /** Expert terms the glossary explains; German only, absent until the
-   * feed job has looked. */
+  /** Expert terms the glossary explains, as this locale's text writes
+   * them; absent until the feed job has looked. */
   terms?: TermRef[];
+  /** Other locales only: the speakers' offices (`DigestSpeaker.role`, which
+   * stays German in `debate`), translated. */
+  speaker_roles?: TranslatedText[];
 };
 
 export type DebateFacts = {
@@ -547,6 +558,12 @@ export type Politician = {
   /** "roster" for a speaker from outside the Bundestag: only party and
    * office, kept by hand. Absent on records written before. */
   source?: 'bundestag' | 'roster';
+  /** The record's German texts (offices, Gremien and roles, Beruf, vote
+   * titles, disclosure headings) translated; names stay as published. A
+   * text without a pair is shown in German. */
+  translations?: Partial<
+    Record<Exclude<FeedLocale, 'de'>, { texts: TranslatedText[] }>
+  >;
 };
 
 /** One parliament's recent editions and their items. */

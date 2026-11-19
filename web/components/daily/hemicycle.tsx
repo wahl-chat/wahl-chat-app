@@ -3,8 +3,8 @@
 import {
   ABSENT_RING,
   type PartyArc,
+  SEAT_VOTES,
   type SeatVote,
-  VOTE_LABELS,
   coord,
   isUnaffiliated,
   layoutHemicycle,
@@ -16,6 +16,7 @@ import {
 import { SEAT_FILLS } from '@/lib/daily/palette';
 import type { DigestVoteParty } from '@/lib/firebase/firebase.types';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
 // Other Fraktionen fade back while one is selected.
@@ -106,14 +107,15 @@ type Props = {
  * Nein, Nicht beteiligt, left to right): the split is exact, the seat is not.
  */
 export function Hemicycle({ parties, className, selected, onSelect }: Props) {
+  const t = useTranslations('feed');
   const layout = useMemo(() => layoutHemicycle(parties), [parties]);
   const totals = useMemo(() => voteTotals(parties), [parties]);
   const r = layout.seatRadius;
 
   const dimmed = (partyId: string) => Boolean(selected) && partyId !== selected;
 
-  const label = `Abstimmungsergebnis: ${totals.yes} Ja, ${totals.no} Nein, ${totals.abstain} Enthaltungen, ${totals.absent} nicht beteiligt. ${layout.arcs
-    .map((a) => `${a.name}: ${a.seats} Sitze`)
+  const label = `${t('voteResult', totals)} ${layout.arcs
+    .map((a) => t('seats', { name: a.name, seats: a.seats }))
     .join(', ')}.`;
 
   return (
@@ -158,7 +160,7 @@ export function Hemicycle({ parties, className, selected, onSelect }: Props) {
           fontSize={SCORE_SUB_FONT}
           style={{ fill: 'var(--daily-muted)' }}
         >
-          Ja : Nein
+          {t('yesNo')}
         </text>
       </g>
     </svg>
@@ -173,6 +175,7 @@ export function SeatLegend({
   parties: DigestVoteParty[];
   className?: string;
 }) {
+  const t = useTranslations('feed');
   const totals = voteTotals(parties);
   return (
     <ul
@@ -181,10 +184,10 @@ export function SeatLegend({
         className,
       )}
     >
-      {(Object.keys(VOTE_LABELS) as SeatVote[]).map((vote) => (
+      {SEAT_VOTES.map((vote) => (
         <li key={vote} className="flex items-center gap-1.5">
           <VoteSwatch vote={vote} />
-          {totals[vote]} {VOTE_LABELS[vote]}
+          {totals[vote]} {t(`seat.${vote}`)}
         </li>
       ))}
     </ul>
@@ -214,6 +217,7 @@ export function PartyVoteBreakdown({
   party: DigestVoteParty;
   id?: string;
 }) {
+  const t = useTranslations('feed');
   const shares = voteBreakdown(party);
   const total = shares.reduce((sum, s) => sum + s.count, 0);
   return (
@@ -223,10 +227,10 @@ export function PartyVoteBreakdown({
       className="flex flex-col gap-2 rounded-xl bg-[var(--daily-surface)] p-4"
     >
       <h4 className="text-[15px] font-semibold">
-        So hat {party.name} gestimmt
+        {t('partyVoted', { name: party.name })}
         <span className="font-normal text-[var(--daily-muted)]">
           {' '}
-          · {total} Abgeordnete
+          · {t('members', { count: total })}
         </span>
       </h4>
       {total > 0 && (
@@ -251,7 +255,7 @@ export function PartyVoteBreakdown({
         {shares.map((s) => (
           <li key={s.vote} className="flex items-center gap-1.5">
             <VoteSwatch vote={s.vote} />
-            {s.count} {s.label}
+            {s.count} {t(`seat.${s.vote}`)}
           </li>
         ))}
       </ul>
@@ -270,13 +274,14 @@ export function CommunityHemicycle({
   reject: number;
   className?: string;
 }) {
+  const t = useTranslations('feed');
   const layout = useMemo(() => layoutShare(accept, reject), [accept, reject]);
   return (
     <svg
       viewBox="-1.05 -1.05 2.1 1.1"
       className={cn('w-full', className)}
       role="img"
-      aria-label={`Community: ${accept} annehmen, ${reject} ablehnen`}
+      aria-label={t('communityResult', { accept, reject })}
     >
       {layout.seats.map((seat, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: stable per layout

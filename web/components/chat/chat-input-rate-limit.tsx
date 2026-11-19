@@ -5,10 +5,12 @@ import LoginButton from '@/components/auth/login-button';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
 
 function ChatInputRateLimit() {
+  const t = useTranslations('chat.rateLimit');
   const { user } = useAnonymousAuth();
   const input = useChatStore((state) => state.input);
   const addUserMessage = useChatStore((state) => state.addUserMessage);
@@ -76,17 +78,17 @@ function ChatInputRateLimit() {
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-yellow-400 opacity-75" />
             <span className="relative inline-flex size-2 rounded-full bg-yellow-500" />
           </span>
-          <h2 className="font-bold">Server derzeit ausgelastet!</h2>
+          <h2 className="font-bold">{t('title')}</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Chatte mit den vorgeschlagenen Fragen weiter oder{' '}
-          <span className="font-bold">melde dich an</span>, um eigene Fragen zu
-          stellen.
+          {t.rich('description', {
+            bold: (chunks) => <span className="font-bold">{chunks}</span>,
+          })}
         </p>
         <LoginButton
           noUserChildren={
             <Button size="sm" className="mt-2">
-              Anmelden
+              {t('login')}
             </Button>
           }
         />

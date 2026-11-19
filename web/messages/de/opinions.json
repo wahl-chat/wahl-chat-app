@@ -1,0 +1,33 @@
+{
+  "consent": {
+    "title": "Deine Meinung speichern?",
+    "description": "Nur mit deiner Einwilligung",
+    "opinion": "Wie du abgestimmt hättest und welchen Positionen du zustimmst, zeigt deine politische Meinung. Das sind besonders geschützte Daten. Wir speichern sie nur, wenn du einwilligst.",
+    "storage": "Wir speichern deine Bewertungen mit deinem Konto oder deiner anonymen Nutzer-ID, auf Servern in der EU. Deine persönlichen Angaben geben wir nicht weiter. Andere sehen nur die anonyme Summe aller Bewertungen, und erst ab 10 Antworten. Diese Summen nutzen wir auch, um zu zeigen, wie unsere Nutzerinnen und Nutzer Abstimmungen und Positionen insgesamt sehen.",
+    "withdraw": "Du kannst deine Einwilligung jederzeit widerrufen: im Menü unter „Meine Bewertungen löschen“ oder in der Datenschutzerklärung. Unter einer anonymen ID löschen wir sie nach sechs Monaten ohne Besuch. Mehr in der <link>Datenschutzerklärung</link>.",
+    "no": "Nein",
+    "yes": "Ja, speichern"
+  },
+  "delete": {
+    "button": "Meine Bewertungen löschen",
+    "title": "Meine Bewertungen löschen?",
+    "description": "Wir löschen alle deine Bewertungen von Positionen und Abstimmungen und nehmen sie aus den Gesamtergebnissen. Deine Einwilligung ist damit widerrufen.",
+    "cancel": "Abbrechen",
+    "confirm": "Löschen",
+    "done": "Deine Bewertungen wurden gelöscht.",
+    "failed": "Das Löschen hat nicht geklappt. Bitte versuch es erneut."
+  },
+  "saveFailed": "Deine Bewertung konnte nicht gespeichert werden.",
+  "vote": {
+    "question": "Wie hättest du abgestimmt?",
+    "accept": "Annehmen",
+    "reject": "Ablehnen",
+    "tooFew": "Noch zu wenige Stimmen für ein Ergebnis"
+  },
+  "position": {
+    "rate": "Position von {party} bewerten",
+    "question": "Unterstützt du das?",
+    "agree": "Stimme zu",
+    "disagree": "Stimme nicht zu"
+  }
+}

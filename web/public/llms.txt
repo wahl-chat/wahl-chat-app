@@ -11,6 +11,13 @@ Die Zusammenfassungen entstehen einmal je Debatte aus den Plenarprotokollen des 
 - [So funktioniert wahl.chat](https://wahl.chat/how-to): wie Antworten, Quellen und die Hitzigkeit im Feed entstehen
 - [Über uns](https://wahl.chat/about-us): wer hinter wahl.chat steht
 
+## English
+
+The site is also available in English under https://wahl.chat/en: the feed's summaries are translated from the German ones, while chat answers are still in German.
+
+- [wahl.chat News (English)](https://wahl.chat/en): debates and votes in the Bundestag, by sitting day and topic
+- [How wahl.chat works](https://wahl.chat/en/how-to): how answers, sources and the feed's heat come about
+
 ## Optional
 
 - [Sitemap](https://wahl.chat/sitemap.xml): alle indexierbaren Seiten, einschließlich jeder Wahl

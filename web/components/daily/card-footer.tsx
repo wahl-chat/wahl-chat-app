@@ -5,6 +5,7 @@ import { shareItem } from '@/lib/daily/share';
 import type { TermRef } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { ArrowRightIcon, Share2Icon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   ABOVE_CARD_LINK,
   CARD_ACTION,
@@ -28,6 +29,7 @@ export function ItemTeaser({
   label: string;
   onOpen: () => void;
 }) {
+  const t = useTranslations('feed');
   return (
     <div className="flex flex-col items-start gap-3">
       {text && (
@@ -38,10 +40,10 @@ export function ItemTeaser({
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`Mehr anzeigen: ${label}`}
+        aria-label={t('moreAbout', { title: label })}
         className={cn(FOCUS_RING, ABOVE_CARD_LINK, CARD_ACTION)}
       >
-        Mehr anzeigen
+        {t('more')}
         <ArrowRightIcon className="size-4" aria-hidden />
       </button>
     </div>
@@ -50,13 +52,14 @@ export function ItemTeaser({
 
 /** "Interessant für dich?" bottom left, share bottom right. */
 export function CardFooter({ item }: { item: DetailItem }) {
+  const t = useTranslations('feed');
   return (
     <div className="mt-auto flex items-end justify-between gap-3">
       <InterestFeedback itemKey={item.key} className={ABOVE_CARD_LINK} />
       <button
         type="button"
-        aria-label="Teilen"
-        onClick={() => shareItem(item)}
+        aria-label={t('share')}
+        onClick={() => shareItem(item, t('linkCopied'))}
         className={cn(
           FOCUS_RING,
           ABOVE_CARD_LINK,

@@ -11,23 +11,26 @@ import {
 import { Button } from '@/components/ui/button';
 import {} from '@/components/ui/tooltip';
 import { ShareIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import WahlSwiperShareLinkInputForm from './wahl-swiper-share-input-form';
 
 function WahlSwiperShareButton() {
+  const t = useTranslations('swiper.share');
+
   return (
     <ResponsiveDialog>
       <ResponsiveDialogTrigger asChild>
         <Button variant="secondary">
           <ShareIcon />
-          Teilen
+          {t('button')}
         </Button>
       </ResponsiveDialogTrigger>
 
       <ResponsiveDialogContent className="sm:max-w-md">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Swiper Ergebnis teilen</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Jeder, der diesen Link hat, kann dieses Ergebnis sehen.
+            {t('description')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 

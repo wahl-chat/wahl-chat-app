@@ -1,7 +1,6 @@
 import type { DigestParliamentId } from '@/lib/firebase/firebase.types';
 
 type DailyState = {
-  name: string;
   /** Only Länder whose Landtag the feed covers have one. None does yet:
    * abgeordnetenwatch publishes Landtag votes one to five months late, so a
    * Landtag's days would stay incomplete for months. The list stays, to show
@@ -11,39 +10,35 @@ type DailyState = {
   sigil?: string;
 };
 
-/** All Bundesländer, keyed by ISO 3166-2 subdivision code without `DE-`. */
+/** All Bundesländer, keyed by ISO 3166-2 subdivision code without `DE-`.
+ * Their names are in the `feed.parliaments` messages. */
 export const DAILY_STATES: Record<string, DailyState> = {
   BW: {
-    name: 'Baden-Württemberg',
     sigil: '/images/landtagswahl-baden-wuerttemberg-2026.webp',
   },
-  BY: { name: 'Bayern' },
+  BY: {},
   BE: {
-    name: 'Berlin (Abgeordnetenhaus)',
     sigil: '/images/abgeordnetenhauswahl-berlin-2026.webp',
   },
-  BB: { name: 'Brandenburg' },
-  HB: { name: 'Bremen (Bürgerschaft)' },
-  HH: { name: 'Hamburg (Bürgerschaft)' },
-  HE: { name: 'Hessen' },
+  BB: {},
+  HB: {},
+  HH: {},
+  HE: {},
   MV: {
-    name: 'Mecklenburg-Vorpommern',
     sigil: '/images/landtagswahl-mecklenburg-vorpommern-2026.webp',
   },
-  NI: { name: 'Niedersachsen' },
-  NW: { name: 'Nordrhein-Westfalen' },
+  NI: {},
+  NW: {},
   RP: {
-    name: 'Rheinland-Pfalz',
     sigil: '/images/landtagswahl-rheinland-pfalz-2026.webp',
   },
-  SL: { name: 'Saarland' },
-  SN: { name: 'Sachsen' },
+  SL: {},
+  SN: {},
   ST: {
-    name: 'Sachsen-Anhalt',
     sigil: '/images/landtagswahl-sachsen-anhalt-2026.webp',
   },
-  SH: { name: 'Schleswig-Holstein' },
-  TH: { name: 'Thüringen' },
+  SH: {},
+  TH: {},
 };
 
 export const BUNDESTAG_SIGIL = '/images/bundestagswahl-2025.webp';
@@ -95,8 +90,4 @@ export function parliamentsFor(
 /** Coat of arms for a selected code. */
 export function sigilFor(code: string): string | undefined {
   return code === BUNDESTAG ? BUNDESTAG_SIGIL : DAILY_STATES[code]?.sigil;
-}
-
-export function selectionName(code: string): string {
-  return code === BUNDESTAG ? 'Bundestag' : (DAILY_STATES[code]?.name ?? code);
 }

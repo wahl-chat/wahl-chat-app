@@ -2,8 +2,8 @@ import LoginButton from '@/components/auth/login-button';
 import UserAvatar from '@/components/auth/user-avatar';
 import Logo from '@/components/chat/logo';
 import MobileNavbar from '@/components/navbar/mobile-navbar';
+import { Link } from '@/i18n/navigation';
 import { IS_EMBEDDED, cn } from '@/lib/utils';
-import Link from 'next/link';
 import { FOCUS_RING } from './card-styles';
 import WeeklySignupButton from './weekly-signup-button';
 
@@ -11,8 +11,9 @@ import WeeklySignupButton from './weekly-signup-button';
  * The site header on the feed's column width, so the logo and the login
  * button line up with the cards: "wahl.chat / News", the product's name next
  * to the brand. "Meine Woche" asks readers to sign up for the weekly digest.
- * The rest (Chat, Anleitung, Spenden, Feedback) sits in the menu, which the
- * feed shows at every width since its column reads as the phone layout.
+ * The rest (Chat, Anleitung, Spenden, Feedback, theme and language) sits in
+ * the menu, which the feed shows at every width since its column reads as
+ * the phone layout.
  */
 function DailyHeader() {
   return (

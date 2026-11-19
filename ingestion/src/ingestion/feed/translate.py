@@ -12,6 +12,11 @@ accepted only when it keeps the German text's structure and every number in
 it; otherwise the locale stays empty and the reader sees the German text, and
 the next run tries again. A translation whose German source has changed since
 is dropped rather than shown.
+
+The offices government speakers spoke in are German in ``facts`` too; they
+travel as segments of their item and come back as ``speaker_roles`` pairs.
+The segment machinery and the checks below also serve the glossary
+(``glossary``) and the politicians' display texts (``politicians``).
 """
 
 from __future__ import annotations
@@ -20,15 +25,17 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Literal, Optional, Sequence
 
 from ingestion.feed.builder import FeedBuilder, strip_refs
+from ingestion.feed.items import item_roles, translation_source_hash
 from ingestion.feed.models import (
     CANONICAL_LOCALE,
     FeedItem,
     Locale,
     LocalizedContent,
     LocalizedPosition,
+    TranslatedText,
 )
 from ingestion.feed.prompts import (
     TRANSLATION_PROMPT_VERSION,
@@ -49,7 +56,7 @@ _RUNAWAY_RE = re.compile(r"deepl|translated with|\n\s*\n\s*\n", re.IGNORECASE)
 _QUOTE_MARKS = " \"'„“”‚‘’»«"
 
 SegmentField = Literal[
-    "headline", "teaser", "key_point", "position", "question", "quote"
+    "headline", "teaser", "key_point", "position", "question", "quote", "role"
 ]
 
 
@@ -69,11 +76,10 @@ class TranslationReport:
 
 
 def needs_translation(item: FeedItem, locale: Locale) -> bool:
-    canonical = item.content[CANONICAL_LOCALE]
     current = item.content.get(locale)
     return (
         current is None
-        or current.source_hash != canonical.source_hash
+        or current.source_hash != translation_source_hash(item)
         or current.prompt_version != TRANSLATION_PROMPT_VERSION
     )
 
@@ -93,12 +99,49 @@ def item_segments(item: FeedItem) -> list[Segment]:
     segments += [Segment("question", "", q) for q in source.suggested_questions]
     if quote := _quote(item):
         segments.append(Segment("quote", "", quote))
+    segments += [Segment("role", "", r) for r in item_roles(item)]
     return segments
 
 
+def segment_line(ref: str, text: str, *, quoted: bool = False) -> str:
+    """One numbered segment as the prompts show it, on a single line."""
+    text = " ".join(text.split())
+    return f"[{ref}] „{text}“" if quoted else f"[{ref}] {text}"
+
+
 def _segment_line(ref: str, segment: Segment) -> str:
-    text = " ".join(segment.text.split())
-    return f"[{ref}] „{text}“" if segment.field == "quote" else f"[{ref}] {text}"
+    return segment_line(ref, segment.text, quoted=segment.field == "quote")
+
+
+def request_segments(
+    builder: FeedBuilder, prompt: str, what: str
+) -> tuple[dict[str, str], Optional[str]]:
+    """Ref -> translated text, and the model that wrote them. A call that
+    fails answers nothing, which every caller reads as "not translated yet",
+    never as a rejection."""
+    try:
+        result, model = builder.call(prompt, TranslationBatch)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Translation failed for %s: %s", what, exc)
+        return {}, None
+    return {
+        s.ref.strip().strip("[]").upper(): strip_refs(s.text, "S").strip()
+        for s in result.segments
+    }, model
+
+
+def text_problems(name: str, german: str, translated: str) -> list[str]:
+    """What makes one translated text unfit to publish next to its German."""
+    if not translated.strip():
+        return [f"empty {name}"]
+    problems: list[str] = []
+    if _RUNAWAY_RE.search(translated) or len(translated) > 2 * len(german) + 80:
+        problems.append(f"runaway text in {name}")
+    # Per text, so a number dropped from one text is not excused by the same
+    # number appearing in another.
+    if missing := set(_DIGITS_RE.findall(german)) - set(_DIGITS_RE.findall(translated)):
+        problems.append(f"numbers lost in {name}: {sorted(missing)}")
+    return problems
 
 
 def assemble(
@@ -133,8 +176,12 @@ def assemble(
         ],
         suggested_questions=[text for _, text in texts("question")],
         quote_translation=quote.strip(_QUOTE_MARKS) if quote else None,
+        speaker_roles=[
+            TranslatedText(source=segment.text, text=text)
+            for segment, text in texts("role")
+        ],
         origin="translated",
-        source_hash=item.content[CANONICAL_LOCALE].source_hash,
+        source_hash=translation_source_hash(item),
         prompt_version=TRANSLATION_PROMPT_VERSION,
         generated_by=generated_by,
         generated_at=now,
@@ -167,6 +214,10 @@ def _field_pairs(
             zip(source.suggested_questions, translated.suggested_questions)
         )
     ]
+    pairs += [
+        (f"speaker_roles[{n}]", role.source, role.text)
+        for n, role in enumerate(translated.speaker_roles)
+    ]
     return pairs
 
 
@@ -174,6 +225,7 @@ def translation_problems(
     source: LocalizedContent,
     source_quote: Optional[str],
     translated: LocalizedContent,
+    source_roles: Sequence[str] = (),
 ) -> list[str]:
     """What makes a translation unfit to publish; empty when it is fit."""
     problems: list[str] = []
@@ -193,15 +245,14 @@ def translation_problems(
         problems.append("question count differs")
     if bool(source_quote) != bool(translated.quote_translation):
         problems.append("quote added or missing")
+    if [r.source for r in translated.speaker_roles] != list(source_roles):
+        problems.append("speaker roles differ")
     if problems:
         return problems
     for name, de, en in _field_pairs(source, source_quote, translated):
-        if _RUNAWAY_RE.search(en) or len(en) > 2 * len(de) + 80:
-            problems.append(f"runaway text in {name}")
-        # Per field, so a number dropped from one text is not excused by the
-        # same number appearing in another.
-        if missing := set(_DIGITS_RE.findall(de)) - set(_DIGITS_RE.findall(en)):
-            problems.append(f"numbers lost in {name}: {sorted(missing)}")
+        # An optional text both sides leave out is not a problem.
+        if de or en:
+            problems += text_problems(name, de, en)
     return problems
 
 
@@ -220,15 +271,11 @@ def _translate_batch(
             ref = f"S{len(refs) + 1}"
             refs[ref] = (n, segment)
             lines.append(_segment_line(ref, segment))
-    try:
-        result, model = builder.call(
-            format_translation_prompt(parliament_name, "\n".join(lines)),
-            TranslationBatch,
-        )
-        answers = {s.ref.strip(): s.text for s in result.segments}
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Translation failed for %d items: %s", len(batch), exc)
-        answers, model = {}, None
+    answers, model = request_segments(
+        builder,
+        format_translation_prompt(parliament_name, "\n".join(lines)),
+        f"{len(batch)} items",
+    )
 
     for n, item in enumerate(batch):
         translated = [
@@ -238,7 +285,7 @@ def _translate_batch(
         ]
         content = assemble(item, translated, generated_by=model, now=now)
         problems = translation_problems(
-            item.content[CANONICAL_LOCALE], _quote(item), content
+            item.content[CANONICAL_LOCALE], _quote(item), content, item_roles(item)
         )
         if not problems:
             item.content[locale] = content

@@ -7,8 +7,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useTranslations } from 'next-intl';
 
 export default function AgentHeader() {
+  const t = useTranslations('agent.header');
+
   return (
     <header className="relative z-10 flex h-[65px] shrink-0 w-full items-center gap-2 border-b border-b-muted bg-background px-4">
       {/* Sidebar trigger */}
@@ -16,12 +19,12 @@ export default function AgentHeader() {
         <TooltipTrigger asChild>
           <SidebarTrigger />
         </TooltipTrigger>
-        <TooltipContent>Menü öffnen</TooltipContent>
+        <TooltipContent>{t('openMenu')}</TooltipContent>
       </Tooltip>
 
       {/* Title */}
       <div className="hidden md:flex items-center gap-2">
-        <span className="text-lg font-semibold">Wahl Agent</span>
+        <span className="text-lg font-semibold">{t('title')}</span>
       </div>
 
       {/* Progress indicator */}

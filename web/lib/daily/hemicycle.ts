@@ -255,14 +255,15 @@ export function seatShape(seat: Seat, seatRadius: number): SeatShape {
   return { ...position, r: coord(seatRadius), fill: SEAT_FILLS[seat.vote] };
 }
 
-/** abgeordnetenwatch's "Nicht beteiligt" for a member who cast no vote; it
- * covers being away as well as staying out of the vote. */
-export const VOTE_LABELS: Record<SeatVote, string> = {
-  yes: 'Ja',
-  no: 'Nein',
-  abstain: 'Enthalten',
-  absent: 'Nicht beteiligt',
-};
+/** The order every legend reads. `absent` is abgeordnetenwatch's "Nicht
+ * beteiligt" for a member who cast no vote; it covers being away as well as
+ * staying out of the vote. */
+export const SEAT_VOTES: readonly SeatVote[] = [
+  'yes',
+  'no',
+  'abstain',
+  'absent',
+];
 
 export type VoteTotals = Record<SeatVote, number> & { total: number };
 
@@ -285,14 +286,10 @@ export function isUnaffiliated(partyId: string): boolean {
   return UNAFFILIATED.has(partyId);
 }
 
-export type VoteShare = { vote: SeatVote; label: string; count: number };
+export type VoteShare = { vote: SeatVote; count: number };
 
 /** How one Fraktion's members voted, in the order the legend reads. */
 export function voteBreakdown(party: DigestVoteParty): VoteShare[] {
   const totals = voteTotals([party]);
-  return (['yes', 'no', 'abstain', 'absent'] as const).map((vote) => ({
-    vote,
-    label: VOTE_LABELS[vote],
-    count: totals[vote],
-  }));
+  return SEAT_VOTES.map((vote) => ({ vote, count: totals[vote] }));
 }

@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { ArrowUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import Logo from './chat/logo';
 import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
@@ -19,9 +20,11 @@ function StickyInput({
   isLoading,
   onSubmit,
   quickReplies,
-  placeholder = 'Frage die Parteien...',
+  placeholder: placeholderProp,
   className,
 }: Props) {
+  const t = useTranslations('chat.stickyInput');
+  const placeholder = placeholderProp ?? t('placeholder');
   const [input, setInput] = useState('');
   const [isSticky, setIsSticky] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
@@ -109,7 +112,7 @@ function StickyInput({
             'absolute right-2 bottom-2 translate-y-0 flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/80 disabled:bg-foreground/20 disabled:text-muted',
           )}
           disabled={!input.length || isLoading}
-          aria-label="Frage senden"
+          aria-label={t('submit')}
         >
           <ArrowUp className="size-4 font-bold" />
         </Button>

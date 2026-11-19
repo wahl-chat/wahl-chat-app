@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import ChatGroupPartySelectContent from './chat-group-party-select-content';
 import {
   ResponsiveDialog,
@@ -23,16 +24,15 @@ function ChatGroupPartySelect({
   addPartiesToChat,
   contextId,
 }: Props) {
+  const t = useTranslations('chat.partySelect');
   return (
     <ResponsiveDialog>
       <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader className="text-left">
-          <ResponsiveDialogTitle>Parteiauswahl</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{t('title')}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {addPartiesToChat
-              ? 'Ändere die ausgewählten Parteien.'
-              : 'Wähle bis zu sieben Parteien, mit denen du den Chat starten möchtest.'}
+            {addPartiesToChat ? t('descriptionChange') : t('descriptionStart')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <ChatGroupPartySelectContent

@@ -1,9 +1,11 @@
 import LoginButton from '@/components/auth/login-button';
 import UserAvatar from '@/components/auth/user-avatar';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
+import { LocaleSwitcher } from '@/components/locale/locale-switcher';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type UserDetails, cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import type { NavbarItemDetails } from './navbar-item';
 import NavbarItem from './navbar-item';
 
@@ -21,18 +23,19 @@ function MobileNavbarItems({
   onFeedback,
   onDeleteOpinions,
 }: Props) {
+  const t = useTranslations('nav');
   const tabs: NavbarItemDetails[] = [
     // The start page is the parliament feed, wahl.chat's News.
     {
-      label: 'News',
+      label: t('news'),
       href: '/',
     },
     {
-      label: 'Anleitung',
+      label: t('howTo'),
       href: '/how-to',
     },
     {
-      label: 'Chat',
+      label: t('chat'),
       href: '/election-chat',
     },
     // {
@@ -42,11 +45,11 @@ function MobileNavbarItems({
     //   icon: <SparklesIcon className="size-3" />,
     // },
     {
-      label: 'Unterstütze uns',
+      label: t('supportUs'),
       href: '/donate',
     },
     {
-      label: 'Über uns',
+      label: t('aboutUs'),
       href: '/about-us',
     },
   ];
@@ -61,7 +64,7 @@ function MobileNavbarItems({
         onClick={onFeedback}
         className="relative flex items-center gap-1 rounded-md p-2 text-sm text-primary/50 hover:text-primary/70"
       >
-        Feedback
+        {t('feedback')}
       </button>
       {onDeleteOpinions && (
         <button
@@ -69,7 +72,7 @@ function MobileNavbarItems({
           onClick={onDeleteOpinions}
           className="relative flex items-center gap-1 rounded-md p-2 text-sm text-primary/50 hover:text-primary/70"
         >
-          Meine Bewertungen löschen
+          {t('deleteOpinions')}
         </button>
       )}
 
@@ -78,7 +81,7 @@ function MobileNavbarItems({
         userDetails={userDetails}
         noUserChildren={
           <Button variant="default" size="sm">
-            Anmelden
+            {t('login')}
           </Button>
         }
         userChildren={<UserAvatar details={userDetails} />}
@@ -86,6 +89,12 @@ function MobileNavbarItems({
       {/* The feed shows this menu on desktop too, where the toggle would
           otherwise align its dropdown to the start. */}
       <ThemeModeToggle align="center" />
+      {/* Sized like the theme toggle above, so the two read as a pair. */}
+      <LocaleSwitcher
+        align="center"
+        chevron={false}
+        className="size-8 justify-center border-0 px-0 hover:bg-muted"
+      />
     </nav>
   );
 }

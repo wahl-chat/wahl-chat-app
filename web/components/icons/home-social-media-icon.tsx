@@ -1,7 +1,7 @@
+import { Link } from '@/i18n/navigation';
 import { socialMediaConfig } from '@/lib/contact-config';
 import { cn } from '@/lib/utils';
 import { MailIcon } from 'lucide-react';
-import Link from 'next/link';
 import InstagramIcon from './instagram-icon';
 import LinkedInIcon from './linkedin-icon';
 import XIcon from './x-icon';

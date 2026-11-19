@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/locales';
 import { LOGO_IMAGE_URL } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { type DetailItem, itemTeaser, itemTitle } from './items';
@@ -7,8 +8,10 @@ const MAX_DESCRIPTION = 300;
 
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
 
-export function voteImagePath(itemKey: string): string {
-  return `/api/og/feed/${encodeURIComponent(itemKey)}`;
+/** The chamber image, labelled in the language the link was shared in. */
+export function voteImagePath(itemKey: string, locale: Locale): string {
+  const path = `/api/og/feed/${encodeURIComponent(itemKey)}`;
+  return locale === DEFAULT_LOCALE ? path : `${path}?locale=${locale}`;
 }
 
 function truncate(text: string, max: number): string {
@@ -21,10 +24,10 @@ function truncate(text: string, max: number): string {
 }
 
 /** A vote shows its chamber, a debate the frame its card video opens on. */
-function previewImage(item: DetailItem, origin: string) {
+function previewImage(item: DetailItem, origin: string, locale: Locale) {
   if (item.kind === 'vote') {
     return {
-      url: `${origin}${voteImagePath(item.key)}`,
+      url: `${origin}${voteImagePath(item.key, locale)}`,
       ...OG_IMAGE_SIZE,
       alt: itemTitle(item),
     };
@@ -44,13 +47,14 @@ export function itemShareMetadata(
   item: DetailItem,
   origin: string,
   fallbackDescription: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Metadata {
   const title = itemTitle(item);
   const teaser = itemTeaser(item);
   const description = teaser
     ? truncate(teaser, MAX_DESCRIPTION)
     : fallbackDescription;
-  const image = previewImage(item, origin);
+  const image = previewImage(item, origin, locale);
   return {
     openGraph: {
       // Absolute, or the root layout's template appends the brand.

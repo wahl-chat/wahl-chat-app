@@ -21,6 +21,7 @@ import type { StreamingMessage } from '@/lib/socket.types';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { cn } from '@/lib/utils';
 import { Eye, EyeClosed, SparkleIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import AnimatedMessageSequence from './animated-message-sequence';
 import ChatGroupVotingBehaviorEmblaReinit from './chat-group-voting-behavior-embla-reinit';
@@ -33,6 +34,7 @@ type Props = {
 };
 
 function ChatVotingBehaviorExpandable({ message, isGroupChat }: Props) {
+  const t = useTranslations('chat.votingBehavior');
   const [isExpanded, setIsExpanded] = useState(!message.voting_behavior);
   const isLoadingVotingBehaviorSummary = useChatStore(
     (state) => state.loading.votingBehaviorSummary === message.id,
@@ -103,11 +105,11 @@ function ChatVotingBehaviorExpandable({ message, isGroupChat }: Props) {
           <AnimatedMessageSequence
             className="text-muted-foreground"
             messages={[
-              'Durchsuche Bundestags-Anträge...',
-              'Durchsuche Abstimmungsprotokolle...',
-              'Analysiere Antragsteller-Informationen...',
-              'Vergleiche Informationen...',
-              'Ergebnisse zusammenfassen...',
+              t('loading.motions'),
+              t('loading.protocols'),
+              t('loading.submitters'),
+              t('loading.compare'),
+              t('loading.summarize'),
             ]}
           />
         </div>
@@ -129,7 +131,7 @@ function ChatVotingBehaviorExpandable({ message, isGroupChat }: Props) {
   };
 
   const getReferenceName = (voteId: number) => {
-    return `Abst. ${voteId}`;
+    return t('referenceName', { id: voteId });
   };
 
   return (
@@ -153,9 +155,9 @@ function ChatVotingBehaviorExpandable({ message, isGroupChat }: Props) {
         >
           {!isExpanded ? (
             <p className="text-xs text-muted-foreground">
-              Diese Nachricht enthält weitere Informationen zum{' '}
-              <span className="font-bold">Abstimmungsverhalten</span> der
-              Partei.
+              {t.rich('collapsedHint', {
+                bold: (chunks) => <span className="font-bold">{chunks}</span>,
+              })}
             </p>
           ) : message.voting_behavior ? (
             <ChatVotingBehaviorDetailButton
@@ -175,7 +177,7 @@ function ChatVotingBehaviorExpandable({ message, isGroupChat }: Props) {
               </TooltipTrigger>
             </CollapsibleTrigger>
             <TooltipContent>
-              {isExpanded ? 'Verbergen' : 'Anzeigen'}
+              {isExpanded ? t('hide') : t('show')}
             </TooltipContent>
           </Tooltip>
         </div>

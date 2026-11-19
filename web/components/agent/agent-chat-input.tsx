@@ -5,6 +5,7 @@ import { useAgentStore } from '@/components/providers/agent-store-provider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ArrowUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 
@@ -15,6 +16,7 @@ interface Props {
 const MAX_ROWS = 5;
 
 export default function AgentChatInput({ onSubmit }: Props) {
+  const t = useTranslations('agent.chat');
   const input = useAgentStore((state) => state.input);
   const setInput = useAgentStore((state) => state.setInput);
   const isStreaming = useAgentStore((state) => state.isStreaming);
@@ -85,7 +87,7 @@ export default function AgentChatInput({ onSubmit }: Props) {
           minRows={1}
           maxRows={MAX_ROWS}
           onHeightChange={handleHeightChange}
-          placeholder="Gib hier deine Nachricht ein..."
+          placeholder={t('inputPlaceholder')}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           value={input}

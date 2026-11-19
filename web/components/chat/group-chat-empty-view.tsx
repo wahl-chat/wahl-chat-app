@@ -5,6 +5,7 @@ import { useChatStore } from '@/components/providers/chat-store-provider';
 import type { ProposedQuestion } from '@/lib/firebase/firebase.types';
 import type { PartyDetails } from '@/lib/party-details';
 import { buildPartyImageUrl } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import InitialSuggestionBubble from './initial-suggestion-bubble';
 
@@ -14,6 +15,7 @@ type Props = {
 };
 
 function GroupChatEmptyView({ parties, proposedQuestions }: Props) {
+  const t = useTranslations('chat.emptyView');
   const { user } = useAnonymousAuth();
   const addUserMessage = useChatStore((state) => state.addUserMessage);
 
@@ -51,7 +53,7 @@ function GroupChatEmptyView({ parties, proposedQuestions }: Props) {
           ))}
         </div>
         <p className="text-center">
-          Starte deinen Vergleichschat mit folgenden Parteien:
+          {t('groupIntro')}
           <br />
           {parties?.map((party, index) => (
             <span key={party.party_id} className="font-semibold">

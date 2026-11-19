@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "title": "Wahl Agent",
+    "description": "Dein persönlicher Begleiter zur politischen Meinungsbildung. Diskutiere politische Themen mit dem Wahl Agent."
+  },
+  "header": {
+    "openMenu": "Menü öffnen",
+    "title": "Wahl Agent"
+  },
+  "sidebar": {
+    "title": "Wahl Agent",
+    "description": "Einstellungen und Informationen zum Wahl Agent.",
+    "home": "Startseite",
+    "conversationId": "Conversation ID",
+    "conversationIdHint": "Speichere diese ID, um die Konversation auf einem anderen Gerät oder zu einem späteren Zeitpunkt fortzusetzen.",
+    "copied": "Kopiert!",
+    "copyId": "ID kopieren",
+    "information": "Informationen",
+    "about": "Über wahl.chat",
+    "imprint": "Impressum",
+    "privacy": "Datenschutz"
+  },
+  "progress": {
+    "label": "Fortschritt",
+    "stageStatus": "{stage} - {status}",
+    "statusCompleted": "abgeschlossen",
+    "statusCurrent": "aktuell",
+    "statusUpcoming": "bevorstehend",
+    "stages": {
+      "start": "Start",
+      "activeListening": "Aktives Zuhören",
+      "partyPositioning": "Partei-Positionierung",
+      "perspectiveTaking": "Perspektivwechsel",
+      "deliberation": "Deliberation",
+      "partyMatching": "Partei-Matching",
+      "end": "Abschluss"
+    }
+  },
+  "consent": {
+    "title": "Willkommen zum Wahl Agent",
+    "subtitle": "Dein persönlicher Begleiter zur politischen Meinungsbildung",
+    "infoTitle": "Wichtige Informationen vor Beginn",
+    "contribution": "Mit der Teilnahme an dieser Forschungsstudie trägst du deinen Teil zu einer gesunden Demokratie in Deutschland bei. <strong>Vielen Dank dafür!</strong>",
+    "purpose": "Politik ist ein komplexes und häufig emotionales Thema. Gerade deshalb ist es wichtig, sich eine fundierte Meinung zu bilden. Der Wahl Agent wird dich in dem folgenden Gespräch dabei unterstützen, deine Sorgen zu schildern und deine persönliche Ideallösung zu formulieren, um die Partei zu finden, die am besten zu dir passt.",
+    "privacyTitle": "Datenschutz & Anonymisierung",
+    "privacyAnonymised": "Alle Antworten werden anonymisiert",
+    "privacyResearchOnly": "Deine Informationen werden ausschließlich für wissenschaftliche Forschungszwecke verwendet",
+    "privacyConfidential": "Die Konversation ist vertraulich und wird nicht an Dritte weitergegeben",
+    "notice": "Durch Klicken auf \"Ich stimme zu\" bestätigst du, dass du damit einverstanden bist, an dieser Forschungsstudie teilzunehmen.",
+    "agree": "Ich stimme zu"
+  },
+  "choice": {
+    "title": "Wie möchtest du fortfahren?",
+    "newTitle": "Neue Konversation starten",
+    "newDescription": "Lerne den Wahl Agent kennen",
+    "resumeTitle": "Konversation fortsetzen",
+    "resumeDescription": "Bestehendes Gespräch mit Conversation ID fortsetzen",
+    "back": "Zurück",
+    "resumeSubtitle": "Gib deine Conversation ID ein, um fortzufahren.",
+    "conversationIdLabel": "Conversation ID",
+    "conversationIdPlaceholder": "z.B. abc123-def456-...",
+    "notFound": "Konversation konnte nicht gefunden werden. Bitte überprüfe die ID.",
+    "loading": "Laden...",
+    "resume": "Fortsetzen",
+    "whereToFindId": "Du findest deine Conversation ID in der Seitenleiste während eines aktiven Gesprächs."
+  },
+  "resumePrompt": {
+    "title": "Du hast eine laufende Unterhaltung",
+    "subtitle": "Möchtest du diese fortsetzen oder eine neue starten?",
+    "continueTitle": "Fortfahren",
+    "continueDescription": "Setze deine bestehende Unterhaltung fort",
+    "newTitle": "Neue Unterhaltung starten",
+    "newDescription": "Beginne ein neues Gespräch mit dem Wahl Agent"
+  },
+  "topicSelection": {
+    "title": "Bereichsauswahl",
+    "subtitle": "Wähle, worüber du mit dem Wahl-Agent sprechen möchtest",
+    "info": "Für diese Studie haben wir einige Bereiche vorbereitet, die im politischen Diskurs besonders häufig vorkommen.",
+    "listLabel": "Wähle deinen Bereich:",
+    "selected": "Ausgewählter Bereich: <strong>{topic}</strong>",
+    "pleaseSelect": "Bitte wähle einen Bereich aus, um fortzufahren.",
+    "continue": "Weiter zur Diskussion",
+    "topics": {
+      "migration": {
+        "label": "Migration",
+        "description": "Asylpolitik, Integration, Einwanderung und gesellschaftlicher Zusammenhalt"
+      },
+      "economy": {
+        "label": "Wirtschaft",
+        "description": "Steuern, Arbeitsmarkt, Unternehmensförderung und wirtschaftliche Stabilität"
+      },
+      "environment": {
+        "label": "Umwelt und Klima",
+        "description": "Klimaschutz, erneuerbare Energien, Nachhaltigkeit und Umweltpolitik"
+      }
+    }
+  },
+  "chat": {
+    "firstMessageLoading": "Der Assistent formuliert die erste Nachricht...",
+    "thinking": "Der Wahl Agent denkt nach",
+    "complete": "Gespräch abschließen",
+    "streamError": "Es tut mir leid, es ist ein Fehler aufgetreten. Bitte versuche es erneut.",
+    "startError": "Es tut mir leid, die Konversation konnte nicht gestartet werden. Bitte lade die Seite neu.",
+    "inputPlaceholder": "Gib hier deine Nachricht ein...",
+    "sources": "Quellen",
+    "referenceTooltip": "{source} - Seite: {page}",
+    "loadingConversation": "Unterhaltung wird geladen...",
+    "redirecting": "Weiterleitung..."
+  },
+  "completion": {
+    "title": "Vielen Dank für deine Teilnahme!",
+    "thanks": "Vielen Dank, dass du dir die Zeit genommen hast, an diesem Dialog teilzunehmen!",
+    "research": "Deine Beiträge sind wertvoll für unsere Forschung zum Verständnis politischer Diskussionen und Meinungsbildung.",
+    "confidential": "Alle deine Antworten werden vertraulich behandelt und nur für wissenschaftliche Zwecke verwendet.",
+    "closeWindow": "Du kannst dieses Fenster jetzt schließen.",
+    "appreciation": "Dein Beitrag macht einen Unterschied für die Demokratie"
+  }
+}

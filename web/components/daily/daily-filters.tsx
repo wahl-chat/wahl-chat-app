@@ -19,7 +19,6 @@ import {
   DAILY_STATES,
   DEFAULT_SELECTION,
   type StateSelection,
-  selectionName,
   sigilFor,
 } from '@/lib/daily/region';
 import {
@@ -29,7 +28,7 @@ import {
   sittingStatus,
   waitingDays,
 } from '@/lib/daily/sitting-calendar';
-import { DAILY_TOPIC_KEYS, topicShortTitle } from '@/lib/daily/topics';
+import { DAILY_TOPIC_KEYS, topicKey } from '@/lib/daily/topics';
 import type { SittingCalendar } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import {
@@ -40,6 +39,7 @@ import {
   MessageCircleIcon,
   VoteIcon,
 } from 'lucide-react';
+import { type Messages, useTranslations } from 'next-intl';
 import Image from 'next/image';
 import {
   type ReactNode,
@@ -51,13 +51,26 @@ import {
   useState,
 } from 'react';
 import { FOCUS_RING, MUTED_TEXT, PILL, PILL_ACTIVE } from './card-styles';
-import { SittingCalendarPanel, SittingStatusLine } from './sitting-calendar';
+import {
+  SittingCalendarPanel,
+  SittingStatusLine,
+  useCalendarFormat,
+  useStatusWords,
+} from './sitting-calendar';
 import TopicChip from './topic-chip';
 
 const CHECKBOX =
   'size-5 rounded-[4px] border-zinc-400 data-[state=checked]:border-zinc-900 data-[state=checked]:bg-zinc-900 data-[state=checked]:text-white';
 
 const ROW = 'flex min-h-11 items-center gap-4 px-4';
+
+type ParliamentCode = keyof Messages['feed']['parliaments'];
+
+/** The name of a selection code: the Bundestag's or a Land's. */
+function useParliamentName(): (code: string) => string {
+  const t = useTranslations('feed.parliaments');
+  return (code) => t(code as ParliamentCode);
+}
 
 /** Dims the feed behind an open filter panel while leaving it visible. */
 function PanelBackdrop() {
@@ -80,6 +93,7 @@ function PanelFooter({
   onDone: () => void;
   hint: string | null;
 }) {
+  const t = useTranslations('feed');
   return (
     <div className="flex items-center justify-between border-t border-[var(--daily-border)] p-3">
       <button
@@ -91,7 +105,7 @@ function PanelFooter({
           MUTED_TEXT,
         )}
       >
-        Zurücksetzen
+        {t('reset')}
       </button>
       {hint && <span className={cn('text-[13px]', MUTED_TEXT)}>{hint}</span>}
       <button
@@ -103,7 +117,7 @@ function PanelFooter({
           'min-h-11 rounded-lg bg-[var(--daily-ink)] px-5 text-[15px] font-semibold text-[var(--daily-canvas)] disabled:opacity-40',
         )}
       >
-        Fertig
+        {t('done')}
       </button>
     </div>
   );
@@ -116,11 +130,12 @@ function inListOrder(codes: StateSelection): StateSelection {
 }
 
 function Sigil({ code, label }: { code: string; label?: boolean }) {
+  const parliamentName = useParliamentName();
   const src = sigilFor(code);
   return src ? (
     <Image
       src={src}
-      alt={label ? selectionName(code) : ''}
+      alt={label ? parliamentName(code) : ''}
       width={24}
       height={24}
       className="size-6 object-contain"
@@ -138,6 +153,7 @@ function SelectionSummary({
   states: StateSelection;
   status: SittingStatus | null;
 }) {
+  const parliamentName = useParliamentName();
   const line = status && <SittingStatusLine status={status} />;
   if (states.length === 1) {
     return (
@@ -145,7 +161,7 @@ function SelectionSummary({
         <Sigil code={states[0]} />
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-[17px] font-semibold leading-tight">
-            {selectionName(states[0])}
+            {parliamentName(states[0])}
           </span>
           {line}
         </span>
@@ -173,12 +189,14 @@ function LandtageList({
   draft: StateSelection;
   onToggle: (code: string, checked: boolean) => void;
 }) {
+  const t = useTranslations('feed');
+  const parliamentName = useParliamentName();
   const states = Object.entries(DAILY_STATES);
   const anyCovered = states.some(([, state]) => state.parliament !== undefined);
   const [expanded, setExpanded] = useState(anyCovered);
   return (
     <fieldset className="py-2">
-      <legend className="sr-only">Landtage</legend>
+      <legend className="sr-only">{t('landtage')}</legend>
       <button
         type="button"
         aria-expanded={expanded}
@@ -186,7 +204,7 @@ function LandtageList({
         onClick={() => setExpanded((open) => !open)}
         className={cn(FOCUS_RING, ROW, 'w-full text-left text-[15px]')}
       >
-        <span className="flex-1 font-semibold">Landtage</span>
+        <span className="flex-1 font-semibold">{t('landtage')}</span>
         {!anyCovered && (
           <span
             className={cn(
@@ -194,7 +212,7 @@ function LandtageList({
               MUTED_TEXT,
             )}
           >
-            kommt bald
+            {t('comingSoon')}
           </span>
         )}
         <ChevronDownIcon
@@ -224,7 +242,7 @@ function LandtageList({
                   !covered && cn('cursor-not-allowed', MUTED_TEXT),
                 )}
               >
-                {state.name}
+                {parliamentName(code)}
               </label>
             </div>
           );
@@ -261,14 +279,18 @@ export function ParliamentSelector({
   /** The panel opened or closed. */
   onOpenChange?: (open: boolean) => void;
 }) {
+  const t = useTranslations('feed');
+  const parliamentName = useParliamentName();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(states);
+  const statusWords = useStatusWords();
+  const calendarFormat = useCalendarFormat();
   const [today] = useState(berlinToday);
   // Closing for a jump into the feed: focus goes to the day, not back here.
   const jumping = useRef(false);
   const waiting = waitingDays(calendar, editionDates, waitingEditions, today);
   const status = states.includes(BUNDESTAG)
-    ? sittingStatus(calendar, today, waiting)
+    ? sittingStatus(calendar, today, waiting, statusWords, calendarFormat)
     : null;
 
   const openChange = (next: boolean) => {
@@ -287,7 +309,9 @@ export function ParliamentSelector({
     <Popover open={open} onOpenChange={openChange}>
       {open && <PanelBackdrop />}
       <PopoverTrigger
-        aria-label={`Parlament wählen, gewählt: ${states.map(selectionName).join(', ')}`}
+        aria-label={t('chooseParliamentChosen', {
+          names: states.map(parliamentName).join(', '),
+        })}
         className={cn(
           FOCUS_RING,
           'relative z-[25] flex min-h-14 w-full items-center gap-3 rounded-[10px] border bg-[var(--daily-canvas)] px-4 py-2 text-left',
@@ -304,7 +328,9 @@ export function ParliamentSelector({
             MUTED_TEXT,
           )}
         >
-          {open ? `${draft.length} gewählt` : 'Parlament wählen'}
+          {open
+            ? t('chosenCount', { count: draft.length })
+            : t('chooseParliament')}
         </span>
         <ChevronDownIcon
           aria-hidden
@@ -340,10 +366,10 @@ export function ParliamentSelector({
             htmlFor="parliament-bundestag"
             className="flex-1 text-[17px] font-semibold"
           >
-            Bundestag
+            {parliamentName(BUNDESTAG)}
           </label>
           <span className="rounded-full bg-[var(--daily-surface)] px-2.5 py-0.5 text-[13px]">
-            Standard
+            {t('defaultChoice')}
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -364,7 +390,7 @@ export function ParliamentSelector({
         </div>
         <PanelFooter
           onReset={() => setDraft(DEFAULT_SELECTION)}
-          hint={draft.length === 0 ? 'Mindestens eins wählen' : null}
+          hint={draft.length === 0 ? t('pickOne') : null}
           onDone={() => {
             onChange(draft);
             openChange(false);
@@ -443,23 +469,24 @@ function useScrollingDown(): [boolean, () => void] {
   return [down, () => setDown(false)];
 }
 
-const KIND_LABELS: Record<FeedKind, string> = {
-  debate: 'Debatten',
-  vote: 'Abstimmungen',
-};
-
 const KIND_ICONS: Record<FeedKind, LucideIcon> = {
   debate: MessageCircleIcon,
   vote: VoteIcon,
 };
 
 /** "Gesundheit, Klima, nur Abstimmungen", for the button's accessible name. */
-function filterSummary(filter: FeedFilter): string {
-  const parts = filter.topics.map(topicShortTitle);
-  if (filter.kinds.length === 1) {
-    parts.push(`nur ${KIND_LABELS[filter.kinds[0]]}`);
-  }
-  return parts.join(', ');
+function useFilterSummary(): (filter: FeedFilter) => string {
+  const t = useTranslations('feed');
+  const tTopics = useTranslations('topics');
+  return (filter) => {
+    const parts = filter.topics.map((topic) =>
+      tTopics(`${topicKey(topic)}.short`),
+    );
+    if (filter.kinds.length === 1) {
+      parts.push(t(`kinds.only.${filter.kinds[0]}`));
+    }
+    return parts.join(', ');
+  };
 }
 
 function FilterSection({
@@ -497,6 +524,8 @@ export function FeedFilters({
   onChange: (filter: FeedFilter) => void;
   onOpenChange?: (open: boolean) => void;
 }) {
+  const t = useTranslations('feed');
+  const filterSummary = useFilterSummary();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(filter);
   const count = activeFilterCount(filter);
@@ -527,8 +556,8 @@ export function FeedFilters({
       <PopoverTrigger
         aria-label={
           count > 0
-            ? `Alle Filter, gewählt: ${filterSummary(filter)}`
-            : 'Alle Filter'
+            ? t('allFiltersChosen', { summary: filterSummary(filter) })
+            : t('allFilters')
         }
         className={cn(
           FOCUS_RING,
@@ -537,7 +566,7 @@ export function FeedFilters({
         )}
       >
         <ListFilterIcon aria-hidden className="size-4 shrink-0" />
-        Alle Filter
+        {t('allFilters')}
         {count > 0 && (
           <span
             aria-hidden
@@ -563,7 +592,7 @@ export function FeedFilters({
         )}
       >
         <div className="min-h-0 flex-1 divide-y divide-[var(--daily-border)] overflow-y-auto">
-          <FilterSection label="Themen">
+          <FilterSection label={t('topics')}>
             <button
               type="button"
               aria-pressed={draft.topics.length === 0}
@@ -576,7 +605,7 @@ export function FeedFilters({
                 draft.topics.length === 0 && PILL_ACTIVE,
               )}
             >
-              Alle Themen
+              {t('allTopics')}
               {draft.topics.length === 0 && (
                 <CheckIcon aria-hidden className="size-3.5" />
               )}
@@ -590,7 +619,7 @@ export function FeedFilters({
               />
             ))}
           </FilterSection>
-          <FilterSection label="Inhalte">
+          <FilterSection label={t('contents')}>
             {FEED_KINDS.map((kind) => {
               const Icon = KIND_ICONS[kind];
               const active = draft.kinds.includes(kind);
@@ -603,7 +632,7 @@ export function FeedFilters({
                   className={cn(PILL, FOCUS_RING, active && PILL_ACTIVE)}
                 >
                   <Icon aria-hidden className="size-4" />
-                  {KIND_LABELS[kind]}
+                  {t(`kinds.${kind}`)}
                   {active && <CheckIcon aria-hidden className="size-3.5" />}
                 </button>
               );
@@ -612,7 +641,7 @@ export function FeedFilters({
         </div>
         <PanelFooter
           onReset={() => setDraft(DEFAULT_FILTER)}
-          hint={draft.kinds.length === 0 ? 'Mindestens eins wählen' : null}
+          hint={draft.kinds.length === 0 ? t('pickOne') : null}
           onDone={() => {
             onChange(draft);
             openChange(false);

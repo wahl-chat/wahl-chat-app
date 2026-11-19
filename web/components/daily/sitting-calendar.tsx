@@ -1,27 +1,49 @@
 'use client';
 
+import { LOCALE_INFO } from '@/i18n/locales';
 import {
   AGENDA_URL,
+  type CalendarFormat,
   type DayCell,
   type SittingStatus,
+  type StatusWords,
   berlinToday,
+  calendarFormat,
   calendarMonths,
   monthCells,
-  monthLabel,
   monthOf,
-  shortDay,
 } from '@/lib/daily/sitting-calendar';
 import type { SittingCalendar } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from 'lucide-react';
-import { type TouchEvent, useRef, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { type TouchEvent, useMemo, useRef, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 
 // Written out, not interpolated: Tailwind only builds classes it reads in full.
 const LIVE_DOT = 'bg-[#E53935]';
-const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 // A sideways swipe this long turns the month; shorter ones are taps.
 const SWIPE_PX = 40;
+
+/** The calendar's dates in the reader's language. */
+export function useCalendarFormat(): CalendarFormat {
+  const intl = LOCALE_INFO[useLocale()].intl;
+  return useMemo(() => calendarFormat(intl), [intl]);
+}
+
+/** The status line's sentences in the reader's language. */
+export function useStatusWords(): StatusWords {
+  const t = useTranslations('feed.calendar');
+  return {
+    sitsToday: t('sitsToday'),
+    sitsTodayThenNext: (when) => t('sitsTodayThenNext', { when }),
+    inProgress: (dates) => t('inProgress', { dates }),
+    nextDay: (date) => t('nextDay', { date }),
+    nextWeek: (range) => t('nextWeek', { range }),
+    nextDayAlone: (date) => t('nextDayAlone', { date }),
+    nextWeekAlone: (range) => t('nextWeekAlone', { range }),
+  };
+}
 
 /** A quarter-drawn ring: work under way, not a loading spinner. */
 function ProgressRing() {
@@ -90,14 +112,6 @@ const DOT_STYLE: Record<DayCell['status'], string> = {
   none: '',
 };
 
-const CELL_LABEL: Record<DayCell['status'], string> = {
-  online: 'Sitzungstag, Inhalte online',
-  today: 'Sitzungstag heute',
-  pending: 'Sitzungstag, Inhalte noch nicht online',
-  upcoming: 'Sitzungstag geplant',
-  none: '',
-};
-
 /** What a tapped day without content to jump to says. */
 function DayNote({
   cell,
@@ -106,7 +120,8 @@ function DayNote({
   cell: DayCell;
   onClose: () => void;
 }) {
-  const day = shortDay(cell.date);
+  const t = useTranslations('feed.calendar');
+  const day = useCalendarFormat().shortDay(cell.date);
   return (
     <div
       role="status"
@@ -115,28 +130,28 @@ function DayNote({
       <p className="flex-1">
         {cell.status === 'upcoming' ? (
           <>
-            Sitzung am {day} geplant.{' '}
+            {t('plannedOn', { day })}{' '}
             <a
               href={AGENDA_URL}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(FOCUS_RING, 'rounded underline underline-offset-2')}
             >
-              Tagesordnung
+              {t('agenda')}
             </a>
           </>
         ) : (
           <>
             {cell.status === 'today'
-              ? 'Der Bundestag tagt heute.'
-              : `Sitzung am ${day}:`}{' '}
-            Die Inhalte erscheinen hier, sobald das Plenarprotokoll online ist.
+              ? t('sitsTodayNote')
+              : t('sittingOn', { day })}{' '}
+            {t('contentFollows')}
           </>
         )}
       </p>
       <button
         type="button"
-        aria-label="Hinweis schließen"
+        aria-label={t('closeNote')}
         onClick={onClose}
         className={cn(
           FOCUS_RING,
@@ -150,13 +165,15 @@ function DayNote({
   );
 }
 
+const LEGEND: Exclude<DayCell['status'], 'none'>[] = [
+  'online',
+  'today',
+  'pending',
+  'upcoming',
+];
+
 function Legend() {
-  const items: [DayCell['status'], string][] = [
-    ['online', 'online'],
-    ['today', 'heute'],
-    ['pending', 'folgt'],
-    ['upcoming', 'geplant'],
-  ];
+  const t = useTranslations('feed.calendar.legend');
   return (
     <ul
       className={cn(
@@ -164,13 +181,13 @@ function Legend() {
         MUTED_TEXT,
       )}
     >
-      {items.map(([status, label]) => (
+      {LEGEND.map((status) => (
         <li key={status} className="flex items-center gap-1.5">
           <span
             aria-hidden
             className={cn('size-3.5 rounded-[4px]', CELL_STYLE[status])}
           />
-          {label}
+          {t(status)}
         </li>
       ))}
     </ul>
@@ -192,6 +209,8 @@ export function SittingCalendarPanel({
   /** A day whose content is online: show it in the feed. */
   onJumpToDay: (date: string) => void;
 }) {
+  const t = useTranslations('feed.calendar');
+  const format = useCalendarFormat();
   const [today] = useState(berlinToday);
   const months = calendarMonths(calendar, today);
   const [month, setMonth] = useState(() => monthOf(today));
@@ -231,7 +250,7 @@ export function SittingCalendarPanel({
 
   return (
     <section
-      aria-label="Sitzungstage des Bundestages"
+      aria-label={t('label')}
       className="flex flex-col gap-3"
       suppressHydrationWarning
     >
@@ -239,7 +258,7 @@ export function SittingCalendarPanel({
         <div className="flex items-center justify-between">
           <button
             type="button"
-            aria-label="Vorheriger Monat"
+            aria-label={t('previousMonth')}
             disabled={index <= 0}
             onClick={() => turn(-1)}
             className={cn(
@@ -250,11 +269,11 @@ export function SittingCalendarPanel({
             <ChevronLeftIcon className="size-4" aria-hidden />
           </button>
           <span className={cn('text-[12px] font-semibold', MUTED_TEXT)}>
-            {monthLabel(month)}
+            {format.monthLabel(month)}
           </span>
           <button
             type="button"
-            aria-label="Nächster Monat"
+            aria-label={t('nextMonth')}
             disabled={index >= months.length - 1}
             onClick={() => turn(1)}
             className={cn(
@@ -267,12 +286,12 @@ export function SittingCalendarPanel({
         </div>
         <div
           role="grid"
-          aria-label={`Sitzungstage ${monthLabel(month)}`}
+          aria-label={t('monthLabel', { month: format.monthLabel(month) })}
           onTouchStart={swipeStart}
           onTouchEnd={swipeEnd}
           className="grid touch-pan-y grid-cols-7 gap-x-1 gap-y-0.5"
         >
-          {WEEKDAYS.map((day) => (
+          {format.weekdays.map((day) => (
             <span
               key={day}
               className={cn('text-center text-[10px]', MUTED_TEXT)}
@@ -299,7 +318,7 @@ export function SittingCalendarPanel({
               <button
                 key={cell.date}
                 type="button"
-                aria-label={`${shortDay(cell.date)}: ${CELL_LABEL[cell.status]}`}
+                aria-label={`${format.shortDay(cell.date)}: ${t(`cell.${cell.status}`)}`}
                 aria-pressed={note?.date === cell.date}
                 onClick={() => tap(cell)}
                 className={cn(

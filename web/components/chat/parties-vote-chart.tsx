@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Vote } from '@/lib/socket.types';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import VoteChart from './vote-chart';
 
@@ -17,6 +18,7 @@ type Props = {
 };
 
 function PartiesVoteChart({ vote }: Props) {
+  const t = useTranslations('chat.votes');
   const { selectedPartyId, setSelectedPartyId } = useChatVotingDetails();
 
   const parties = useContextParties();
@@ -27,11 +29,11 @@ function PartiesVoteChart({ vote }: Props) {
       key: party.party,
       name:
         party.party === 'fraktionslose'
-          ? 'Fraktionslose'
+          ? t('nonAttached')
           : (parties?.find((p) => p.party_id === party.party)?.name ??
             party.party),
     }));
-  }, [byParty, parties]);
+  }, [byParty, parties, t]);
 
   const selectedPartyData = useMemo(() => {
     return byParty.find((party) => party.party === selectedPartyId);
@@ -55,7 +57,7 @@ function PartiesVoteChart({ vote }: Props) {
           onValueChange={setSelectedPartyId}
         >
           <SelectTrigger className="h-8 w-[130px] rounded-lg">
-            <SelectValue placeholder="Wähle eine Partei" />
+            <SelectValue placeholder={t('selectParty')} />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>

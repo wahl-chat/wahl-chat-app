@@ -2,6 +2,8 @@
 
 import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import StickyInput from '@/components/sticky-input';
+import { LOCALE_INFO } from '@/i18n/locales';
+import { useRouter } from '@/i18n/navigation';
 import { FEED_CHAT_ENABLED, feedChatHref } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import {
@@ -28,7 +30,7 @@ import type {
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useId, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { GlossaryText } from './glossary-text';
@@ -49,23 +51,19 @@ import { OutcomeBadge } from './vote-card';
 import { VoteOpinion } from './vote-opinion';
 import { PartyVoteTable, SourceLink } from './vote-panels';
 
-const longDayFormat = new Intl.DateTimeFormat('de-DE', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
+function longDayFormat(intl: string) {
+  return new Intl.DateTimeFormat(intl, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
 
 const ICON_BUTTON = cn(
   FOCUS_RING,
   'flex size-11 items-center justify-center rounded-full hover:bg-[var(--daily-surface)]',
 );
-
-function placeholderFor(item: DetailItem): string {
-  return item.kind === 'vote'
-    ? 'Frag zu dieser Abstimmung …'
-    : 'Frag zu dieser Debatte …';
-}
 
 /**
  * "Mehr wissen? Frag nach.": suggested questions and a free input, both
@@ -80,6 +78,7 @@ export function AskPanel({
   withSuggestions?: boolean;
   className?: string;
 }) {
+  const t = useTranslations('feed');
   const router = useRouter();
   const ask = (question: string) => {
     if (question.trim()) {
@@ -91,14 +90,14 @@ export function AskPanel({
     <div className={className}>
       {suggestions.length > 0 && (
         <p className="px-4 pb-2 pt-3 text-[15px] font-semibold">
-          Mehr wissen? Frag nach.
+          {t('askMore')}
         </p>
       )}
       <StickyInput
         isLoading={false}
         onSubmit={ask}
         quickReplies={suggestions}
-        placeholder={placeholderFor(item)}
+        placeholder={item.kind === 'vote' ? t('askVote') : t('askDebate')}
         className="static mx-2 pb-3 md:pb-3"
       />
     </div>
@@ -119,6 +118,7 @@ function SectionDetail({
   /** Unset where readers cannot rate; see `DailyDetailDialog`. */
   askConsent: AskConsent | undefined;
 }) {
+  const t = useTranslations('feed');
   const { section, digest } = item;
   // Local previews have no stored item to attach opinions to.
   const rateable = Boolean(section.item_id) && askConsent !== undefined;
@@ -127,7 +127,9 @@ function SectionDetail({
     askConsent,
   );
   const hasSpeakers = section.positions?.some((p) => p.speakers.length > 0);
-  const media = sectionMedia(section);
+  const media = sectionMedia(section, (speaker, time) =>
+    t('startsAt', { speaker, time }),
+  );
   const protocol = digest.session?.protocols[0];
   const points = section.key_points ?? [];
   const openedBy = openingParty(section);
@@ -156,7 +158,7 @@ function SectionDetail({
         )}
         {points.length > 0 && (
           <section className="flex flex-col gap-1.5">
-            <h3 className={SECTION_LABEL}>Kernpunkte</h3>
+            <h3 className={SECTION_LABEL}>{t('keyPoints')}</h3>
             <ul className="list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed">
               {points.map((point, i) => (
                 <li key={`${i}-${point}`}>
@@ -173,10 +175,10 @@ function SectionDetail({
         {section.positions && section.positions.length > 0 && (
           <section className="flex flex-col gap-1.5">
             <div className="flex items-baseline justify-between gap-3">
-              <h3 className={SECTION_LABEL}>Wer sagt was</h3>
+              <h3 className={SECTION_LABEL}>{t('whoSaysWhat')}</h3>
               {!rateable && hasSpeakers && (
                 <span className={cn('text-[13px] md:hidden', MUTED_TEXT)}>
-                  Tippe auf eine Person für mehr
+                  {t('tapPerson')}
                 </span>
               )}
             </div>
@@ -210,7 +212,7 @@ function SectionDetail({
             />
             {rateable && hasSpeakers && (
               <p className={cn('text-[13px] md:hidden', MUTED_TEXT)}>
-                Tippe auf eine Person für mehr
+                {t('tapPerson')}
               </p>
             )}
           </section>
@@ -218,11 +220,11 @@ function SectionDetail({
         {protocol &&
           (protocol.pdf_url ? (
             <SourceLink href={protocol.pdf_url}>
-              Quelle: Plenarprotokoll {protocolLabel(digest)}
+              {t('source', { id: protocolLabel(digest) ?? '' })}
             </SourceLink>
           ) : (
             <p className={cn('text-[15px]', MUTED_TEXT)}>
-              Quelle: Plenarprotokoll {protocolLabel(digest)}
+              {t('source', { id: protocolLabel(digest) ?? '' })}
             </p>
           ))}
       </div>
@@ -237,6 +239,7 @@ function VoteDetail({
   item: VoteItem;
   askConsent: AskConsent | undefined;
 }) {
+  const t = useTranslations('feed');
   const { vote, digest } = item;
   const rateable = Boolean(vote.item_id) && askConsent !== undefined;
   const opinions = useFeedOpinions(
@@ -257,7 +260,7 @@ function VoteDetail({
       <div className="flex items-center justify-between gap-3">
         <TopicMeta
           topics={vote.topics}
-          suffix={protocol ? `Protokoll ${protocol}` : null}
+          suffix={protocol ? t('protocol', { id: protocol }) : null}
         />
         <OutcomeBadge outcome={vote.outcome} />
       </div>
@@ -276,7 +279,7 @@ function VoteDetail({
       )}
       {about && (
         <section className="rounded-xl bg-[var(--daily-surface)] p-4">
-          <h3 className={SECTION_LABEL}>Worum ging es?</h3>
+          <h3 className={SECTION_LABEL}>{t('whatAbout')}</h3>
           <p className="mt-1 text-[15px] leading-relaxed">
             <GlossaryText text={about} terms={vote.terms} />
           </p>
@@ -284,7 +287,7 @@ function VoteDetail({
       )}
       {rateable && <VoteOpinion opinions={opinions} />}
       <section className="flex flex-col gap-1">
-        <h3 className={SECTION_LABEL}>So haben die Fraktionen gestimmt</h3>
+        <h3 className={SECTION_LABEL}>{t('howGroupsVoted')}</h3>
         <PartyVoteTable
           vote={vote}
           selected={selected}
@@ -293,12 +296,10 @@ function VoteDetail({
         />
       </section>
       <p className={cn('text-[13px]', MUTED_TEXT)}>
-        Originaltitel: {vote.title}
+        {t('originalTitle', { title: vote.title })}
       </p>
       {vote.citation_url && (
-        <SourceLink href={vote.citation_url}>
-          Abstimmung auf abgeordnetenwatch.de
-        </SourceLink>
+        <SourceLink href={vote.citation_url}>{t('voteOnAw')}</SourceLink>
       )}
     </div>
   );
@@ -334,6 +335,8 @@ export function DailyDetailDialog({
   onClose,
   opinionsEnabled = true,
 }: Props) {
+  const t = useTranslations('feed');
+  const intl = LOCALE_INFO[useLocale()].intl;
   // The speaker sheet belongs to the item it was opened from, so another
   // item never opens with it.
   const [opened, setOpened] = useState<{
@@ -393,7 +396,7 @@ export function DailyDetailDialog({
     }
   };
   const context = item
-    ? `${item.kind === 'vote' ? 'Abstimmung' : 'Plenarsitzung'} · ${longDayFormat.format(new Date(`${item.digest.date}T00:00:00Z`))}`
+    ? `${item.kind === 'vote' ? t('vote') : t('plenarySitting')} · ${longDayFormat(intl).format(new Date(`${item.digest.date}T00:00:00Z`))}`
     : '';
 
   return (
@@ -426,7 +429,7 @@ export function DailyDetailDialog({
             <>
               <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--daily-border)] px-2 py-1.5">
                 <DialogPrimitive.Close
-                  aria-label="Zurück zum Feed"
+                  aria-label={t('backToFeed')}
                   className={ICON_BUTTON}
                 >
                   <ChevronLeftIcon className="size-6" />
@@ -438,8 +441,8 @@ export function DailyDetailDialog({
                 </DialogPrimitive.Description>
                 <button
                   type="button"
-                  aria-label="Teilen"
-                  onClick={() => shareItem(item)}
+                  aria-label={t('share')}
+                  onClick={() => shareItem(item, t('linkCopied'))}
                   className={ICON_BUTTON}
                 >
                   <ShareIcon className="size-5" />

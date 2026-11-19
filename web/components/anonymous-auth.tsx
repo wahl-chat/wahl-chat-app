@@ -11,6 +11,7 @@ import {
   signInAnonymously,
 } from 'firebase/auth';
 import type { Timestamp } from 'firebase/firestore';
+import { useTranslations } from 'next-intl';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -74,6 +75,7 @@ export function AnonymousAuthProvider({
   children: React.ReactNode;
   user: FullUser | null;
 }) {
+  const t = useTranslations('errors');
   const [user, setUser] = useState<FullUser | null>(initialUser);
   const [loading, setLoading] = useState(true);
 
@@ -134,9 +136,7 @@ export function AnonymousAuthProvider({
     } catch (error) {
       console.error(error);
 
-      toast.error(
-        'Es ist ein Fehler aufgetreten. Bitte lade die Seite erneut.',
-      );
+      toast.error(t('reloadPage'));
     }
   }
 

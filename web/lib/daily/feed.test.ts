@@ -9,7 +9,7 @@ import {
   buildFeed,
   dayHeat,
   feedLists,
-  heatExplanation,
+  heatRating,
   isPendingDay,
   isWaitingDigest,
   rankFeed,
@@ -459,17 +459,10 @@ describe('isPendingDay', () => {
   });
 });
 
-describe('heatExplanation', () => {
-  it('says what is counted, then where the debate stands that day', () => {
-    expect(heatExplanation(5)).toEqual([
-      'Die Flammen zählen Zwischenrufe, Widerspruch, Gelächter und Unruhe.',
-      'die hitzigste Debatte dieses Sitzungstags',
-    ]);
-    expect(heatExplanation(1)[1]).toBe(
-      'die ruhigste Debatte dieses Sitzungstags',
-    );
-    expect(heatExplanation(3)[1]).toBe(
-      'verglichen mit den anderen Debatten dieses Sitzungstags',
-    );
+describe('heatRating', () => {
+  it('says where the debate stands that day', () => {
+    expect(heatRating(5)).toBe('hottest');
+    expect(heatRating(1)).toBe('quietest');
+    expect(heatRating(3)).toBe('compared');
   });
 });

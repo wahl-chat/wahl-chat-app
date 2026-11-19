@@ -3195,7 +3195,8 @@
               "term_id": "aktuelle-stunde",
               "surface": "Aktuellen Stunde"
             }
-          ]
+          ],
+          "terms_hash": "7ca2ecbbae5edb1b3e23638eae5cb1be2eaa025af469da32772067b91a3baf0b"
         },
         "en": {
           "headline": "Debate on requirement to present a medical certificate from the first day of illness",
@@ -3237,7 +3238,14 @@
           "source_hash": "ae45ad7be4b710f56d206c8af667aeea2c411b5dda18753924c2eca599ec984c",
           "prompt_version": "1",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:07:42.523888Z"
+          "generated_at": "2026-11-05T11:07:42.523888Z",
+          "terms": [
+            {
+              "term_id": "aktuelle-stunde",
+              "surface": "Aktuelle Stunde"
+            }
+          ],
+          "terms_hash": "55822afbf15e0a46f42c864010c304239555b7eb2e77eacc42b4de0c746f593a"
         }
       },
       "input_hash": "babde2bf52d00b657b15dcb26409efdf56aa435ca5e1a8a1798b41da42858b42",
@@ -7993,7 +8001,8 @@
               "term_id": "beschlussempfehlung",
               "surface": "Beschlussempfehlungen"
             }
-          ]
+          ],
+          "terms_hash": "388e0966c64973f817af99c33cce0e059c7a2bc1f5a2f898458b8488da644ff3"
         },
         "en": {
           "headline": "Bundestag debates railway policy and speed limits on Autobahnen",
@@ -8031,7 +8040,14 @@
           "source_hash": "ad8a3af166367c126b6843e2eff4329484e7fa8b105bdc59b93ee971963c5134",
           "prompt_version": "1",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:12:04.042082Z"
+          "generated_at": "2026-11-05T11:12:04.042082Z",
+          "terms": [
+            {
+              "term_id": "beschlussempfehlung",
+              "surface": "recommendations for resolution"
+            }
+          ],
+          "terms_hash": "f5b466dc444178dc8de6671116df5d5c44adb06066a5817d262167530f7ce2e4"
         }
       },
       "input_hash": "8e359c3061e9fd001bf484d585d8d28d6eae1cf67edb8884d5ac0fbd98082994",
@@ -8105,7 +8121,8 @@
                 "video_url": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655560/7655560_h264_1280_720_3000kb_baseline_de_3000.mp4",
                 "video_link": "https://cldf-od.r53.cdn.tv1.eu/1000153copo/ondemand/app144277506/145293313/7655560/7655560_h264_1280_720_3000kb_baseline_de_3000.mp4#t=1.0",
                 "mdb_id": "11003514",
-                "duration": null
+                "duration": null,
+                "role": "Parlamentarische Staatssekretärin bei der Bundesministerin für Wirtschaft und Energie"
               },
               {
                 "name": "Tilman Kuban",
@@ -8477,7 +8494,8 @@
               "term_id": "aktuelle-stunde",
               "surface": "Aktuellen Stunde"
             }
-          ]
+          ],
+          "terms_hash": "26220cacab1373afaef172a4ce190be4b1ae370f69a9b650bec2087f5a0b167c"
         },
         "en": {
           "headline": "Debate on topical issues on the future of the German automotive industry",
@@ -8516,10 +8534,23 @@
           ],
           "quote_translation": "Germany is a car country, and we want to remain one!",
           "origin": "translated",
-          "source_hash": "286657bc75b90cbef860177dac7f882e03d956cdae6a0ed2f1f7a587b5134d2b",
+          "source_hash": "2ef8f6b15dd371e2b36dcbe53ee179249bbad60872d75a8713a995638b49aa2f",
           "prompt_version": "1",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:12:04.042082Z"
+          "generated_at": "2026-11-05T11:12:04.042082Z",
+          "speaker_roles": [
+            {
+              "source": "Parlamentarische Staatssekretärin bei der Bundesministerin für Wirtschaft und Energie",
+              "text": "Parliamentary State Secretary to the Federal Minister for Economic Affairs and Energy"
+            }
+          ],
+          "terms": [
+            {
+              "term_id": "aktuelle-stunde",
+              "surface": "debate on topical issues"
+            }
+          ],
+          "terms_hash": "05830c6d5eb40c2bb32cc547d9c38f5a1edeec3a84f3a6c4b92020a616ebb8bf"
         }
       },
       "input_hash": "a61390462ce6c5e63f7dd273a90a0bf21b84ba15c6f062af864af060b4dba146",
@@ -10040,7 +10071,8 @@
                 "video_url": null,
                 "video_link": null,
                 "mdb_id": "11003218",
-                "duration": null
+                "duration": null,
+                "role": "Bundesminister für Umwelt, Klimaschutz, Naturschutz und nukleare Sicherheit"
               },
               {
                 "name": "Carmen Wegge",
@@ -10586,7 +10618,8 @@
               "term_id": "regierungsbefragung",
               "surface": "Regierungsbefragung"
             }
-          ]
+          ],
+          "terms_hash": "92fab73a22276a217fe2395d82b51756f5a9f0ddea570accfc2a184367c00068"
         },
         "en": {
           "headline": "Government questioning on the environment, climate protection and justice in the Bundestag",
@@ -10629,10 +10662,23 @@
           ],
           "quote_translation": "Mr. Deputy, we work together very trustfully in the Federal Government.",
           "origin": "translated",
-          "source_hash": "ec20456bde79886230de208e111ce030ca814e18ba6aae2492102805a56c7b8d",
+          "source_hash": "92ac5c7162615df2fb606ed570e232b1106f156a27639ed454002515e9ad11d5",
           "prompt_version": "1",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:17:04.690787Z"
+          "generated_at": "2026-11-05T11:17:04.690787Z",
+          "speaker_roles": [
+            {
+              "source": "Bundesminister für Umwelt, Klimaschutz, Naturschutz und nukleare Sicherheit",
+              "text": "Federal Minister for the Environment, Climate Action, Nature Conservation and Nuclear Safety"
+            }
+          ],
+          "terms": [
+            {
+              "term_id": "regierungsbefragung",
+              "surface": "government questioning"
+            }
+          ],
+          "terms_hash": "29322b96d6c88c73169ef89de817890d5ed6cba10d0c788f15878004ee07583a"
         }
       },
       "input_hash": "c910a04bfcf007ca9c3622c4f822e373e107d0c062b313cb55a99f4b1ace9c9c",
@@ -12366,7 +12412,8 @@
               "term_id": "aktuelle-stunde",
               "surface": "Aktuellen Stunde"
             }
-          ]
+          ],
+          "terms_hash": "75fdbd389632ce107e3ff00d5cb51b300fec7154daa44355e5650a90c0837b5b"
         },
         "en": {
           "headline": "Debate on attacks on journalists in Erfurt",
@@ -12408,7 +12455,14 @@
           "source_hash": "f15feadecdd4dd85626118b0446436b23714d7e4003940563be7b25ad86e1a81",
           "prompt_version": "1",
           "generated_by": "vertex-gemini-3.6-flash-high",
-          "generated_at": "2026-11-05T11:17:04.690787Z"
+          "generated_at": "2026-11-05T11:17:04.690787Z",
+          "terms": [
+            {
+              "term_id": "aktuelle-stunde",
+              "surface": "debate of topical attention"
+            }
+          ],
+          "terms_hash": "2a569cc3c650b5923e8b863517488a033c48012b412d294ca1fbd8444f37d6c1"
         }
       },
       "input_hash": "90c322dce0c2d13c7a7c08d67ca6935dc950ee4c46746a479e73bc09976df726",

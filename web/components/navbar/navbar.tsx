@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
 import { IS_EMBEDDED, cn, getUserDetailsFromUser } from '@/lib/utils';
+import { getTranslations } from 'next-intl/server';
 import type { NavbarItemDetails } from './navbar-item';
 import NavbarItem from './navbar-item';
 
@@ -12,10 +13,11 @@ type Props = {
 };
 
 export default async function NavBar({ className }: Props) {
+  const t = await getTranslations('nav');
   const tabs: NavbarItemDetails[] = [
     // The start page is the parliament feed, wahl.chat's News.
     {
-      label: 'News',
+      label: t('news'),
       href: '/',
     },
     // {
@@ -25,11 +27,11 @@ export default async function NavBar({ className }: Props) {
     //   icon: <SparklesIcon className="size-3" />,
     // },
     {
-      label: 'Anleitung',
+      label: t('howTo'),
       href: '/how-to',
     },
     {
-      label: 'Chat',
+      label: t('chat'),
       href: '/election-chat',
     },
   ];
@@ -54,7 +56,7 @@ export default async function NavBar({ className }: Props) {
             userDetails={userDetails}
             noUserChildren={
               <Button variant="default" size="sm">
-                Anmelden
+                {t('login')}
               </Button>
             }
             userChildren={<UserAvatar details={userDetails} />}

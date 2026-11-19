@@ -2,6 +2,8 @@ import { describe, expect, it } from 'bun:test';
 import type { DigestSessionSection } from '@/lib/firebase/firebase.types';
 import { sectionMedia } from './speech-videos';
 
+const caption = (speaker: string, time: string) => `${speaker} · ab ${time}`;
+
 const SECTION: DigestSessionSection = {
   topic: 'wirtschaft',
   headline: 'Wohnungsbau',
@@ -13,49 +15,58 @@ const SECTION: DigestSessionSection = {
 
 describe('sectionMedia', () => {
   it('plays from the second the poster shows', () => {
-    const media = sectionMedia({
-      ...SECTION,
-      card_video: {
-        video_url: 'https://video/a.mp4',
-        start: 83.5,
-        poster_url: 'https://posters/a.webp',
-        speaker: 'Anna',
-        party_name: 'SPD',
+    const media = sectionMedia(
+      {
+        ...SECTION,
+        card_video: {
+          video_url: 'https://video/a.mp4',
+          start: 83.5,
+          poster_url: 'https://posters/a.webp',
+          speaker: 'Anna',
+          party_name: 'SPD',
+        },
       },
-    });
+      caption,
+    );
     expect(media?.src).toBe('https://video/a.mp4#t=83.5');
     expect(media?.poster).toBe('https://posters/a.webp');
     expect(media?.caption).toBe('Anna (SPD) · ab 1:23');
   });
 
   it('names the speaker without a start time near the beginning', () => {
-    const media = sectionMedia({
-      ...SECTION,
-      card_video: {
-        video_url: 'https://video/a.mp4',
-        start: 0.5,
-        poster_url: null,
-        speaker: 'Clara',
-        party_name: null,
+    const media = sectionMedia(
+      {
+        ...SECTION,
+        card_video: {
+          video_url: 'https://video/a.mp4',
+          start: 0.5,
+          poster_url: null,
+          speaker: 'Clara',
+          party_name: null,
+        },
       },
-    });
+      caption,
+    );
     expect(media?.caption).toBe('Clara');
     expect(media?.poster).toBeNull();
   });
 
   it('falls back to the agenda video without a poster or a choice of its own', () => {
-    const media = sectionMedia(SECTION);
+    const media = sectionMedia(SECTION, caption);
     expect(media?.src).toBe('https://video/agenda.mp4#t=0.5');
     expect(media?.poster).toBeNull();
     expect(media?.caption).toBeNull();
-    expect(sectionMedia({ ...SECTION, video_url: null })).toBeNull();
+    expect(sectionMedia({ ...SECTION, video_url: null }, caption)).toBeNull();
   });
 
   it('keeps a local preview audio summary', () => {
-    const media = sectionMedia({
-      ...SECTION,
-      audio: { title: 'Kurz gehört', url: 'https://audio/a.mp3' },
-    });
+    const media = sectionMedia(
+      {
+        ...SECTION,
+        audio: { title: 'Kurz gehört', url: 'https://audio/a.mp3' },
+      },
+      caption,
+    );
     expect(media?.kind).toBe('audio');
     expect(media?.caption).toBe('Kurz gehört');
   });

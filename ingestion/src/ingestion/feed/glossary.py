@@ -29,6 +29,18 @@ The speakers' offices ("Bundesministerin für …") go into step 1 as well, so
 their terms get explained; the web matches offices against the stored forms
 rather than storing refs for them, since offices are a small closed
 vocabulary.
+
+Every other locale gets the same in the same run:
+
+3. **Translate.** An entry is translated, term and definition, in the pass
+   that verifies it, and again whenever its German changes or
+   ``GLOSSARY_TRANSLATION_PROMPT_VERSION`` does. A translation that loses a
+   number or runs on is not stored, and the reader sees the German entry.
+4. **Map.** Once an item's German terms are known and it has a translation,
+   one call per batch names, for each German ref, the words that render the
+   term in the translated text. Words the translated text does not contain as
+   whole words are dropped, like German forms, so the web never underlines
+   something that is not there.
 """
 
 from __future__ import annotations
@@ -56,19 +68,32 @@ from ingestion.feed.glossary_sources import (
     grounded_research,
     read_sources,
 )
-from ingestion.feed.models import CANONICAL_LOCALE, FeedItem, TermRef
+from ingestion.feed.items import item_roles
+from ingestion.feed.models import (
+    CANONICAL_LOCALE,
+    TRANSLATED_LOCALES,
+    FeedItem,
+    Locale,
+    TermRef,
+)
 from ingestion.feed.prompts import (
     GLOSSARY_PROMPT_VERSION,
+    GLOSSARY_TRANSLATION_PROMPT_VERSION,
+    TERM_MAPPING_PROMPT_VERSION,
     DefinitionCheckBatch,
     FormCheckBatch,
     TermDefinitionBatch,
     TermExtractionBatch,
+    TermSurfaceBatch,
     format_definition_check_prompt,
     format_definition_prompt,
     format_form_check_prompt,
+    format_glossary_translation_prompt,
+    format_term_mapping_prompt,
     format_terms_prompt,
 )
 from ingestion.feed.store import commit_writes
+from ingestion.feed.translate import request_segments, segment_line, text_problems
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +105,27 @@ HAND = "hand"
 _ITEM_BATCH = 6
 _TERM_BATCH = 12
 _TERMS_PER_ITEM = 4
+# Two segments per entry: the term and its definition.
+_TRANSLATION_BATCH = 20
+# A German base form has a few words; its English rendering a few more.
+_TERM_MAX_WORDS = 8
+_QUOTES = " \"'„“”‚‘’»«"
 
 GlossaryStatus = Literal["pending", "verified", "failed"]
+
+
+class GlossaryTranslation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # The base form in this locale: "topical hour".
+    term: str
+    definition: str
+    # Hash of the German term and definition it was made from, so a
+    # translation of an older definition is detectable without a diff.
+    source_hash: str
+    prompt_version: str
+    generated_by: Optional[str] = None
+    generated_at: datetime
 
 
 class GlossaryEntry(BaseModel):
@@ -105,6 +149,9 @@ class GlossaryEntry(BaseModel):
     generated_by: Optional[str] = None
     # The version it was last checked under; None until it is.
     prompt_version: Optional[str] = None
+    # Term and definition in every other locale; shown only while the entry
+    # is verified, and only while its ``source_hash`` matches the German.
+    translations: dict[Locale, GlossaryTranslation] = Field(default_factory=dict)
     updated_at: datetime
 
 
@@ -115,6 +162,16 @@ class GlossaryReport:
     forms_rejected: int = 0
     defined: int = 0
     rejected: int = 0
+    entries_translated: int = 0
+    entries_translation_failed: int = 0
+    # Items whose translations got their terms (step 4), or kept the old ones
+    # because the call failed.
+    items_mapped: int = 0
+    items_map_failed: int = 0
+
+    def add(self, other: GlossaryReport) -> None:
+        for name, value in vars(other).items():
+            setattr(self, name, getattr(self, name) + value)
 
 
 def term_id(term: str) -> str:
@@ -142,16 +199,6 @@ def item_texts(item: FeedItem) -> list[str]:
         )
         if text
     ]
-
-
-def item_roles(item: FeedItem) -> list[str]:
-    roles = (
-        s.role
-        for p in (item.debate.parties if item.debate else [])
-        for s in p.speakers
-        if s.role
-    )
-    return list(dict.fromkeys(roles))
 
 
 def terms_hash(item: FeedItem) -> str:
@@ -415,7 +462,8 @@ def define_terms(
     confirmed: Optional[set[tuple[str, str]]] = None,
 ) -> None:
     """Write, or check again, the explanation of every term that needs it,
-    in place. A call that fails, a source that cannot be read or a term an
+    in place, and translate every verified one whose translation is missing or
+    stale. A call that fails, a source that cannot be read or a term an
     answer leaves out changes nothing: "not checked" never reads as
     "rejected"."""
     contexts = contexts or {}
@@ -434,6 +482,9 @@ def define_terms(
         _define_batch(
             refs, builder, parliament_name, research, fetch, contexts, now, report
         )
+    # In the same pass, so an entry verified here is written with its
+    # translations unless they fail.
+    translate_entries(glossary, builder, parliament_name, now=now, report=report)
 
 
 def _recheck_forms(
@@ -671,6 +722,253 @@ def _reject(
     logger.info("Definition of %r rejected: %s", entry.term, why)
 
 
+# --- step 3: translate ------------------------------------------------------
+
+
+def entry_source_hash(entry: GlossaryEntry) -> str:
+    payload = {"term": entry.term, "definition": entry.definition}
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+
+
+def needs_entry_translation(entry: GlossaryEntry, locale: Locale) -> bool:
+    """Only a verified entry is translated: nothing else is shown."""
+    if entry.status != "verified" or not entry.definition:
+        return False
+    current = entry.translations.get(locale)
+    return (
+        current is None
+        or current.source_hash != entry_source_hash(entry)
+        or current.prompt_version != GLOSSARY_TRANSLATION_PROMPT_VERSION
+    )
+
+
+def entry_translation_problems(
+    entry: GlossaryEntry, term: str, definition: str
+) -> list[str]:
+    problems = text_problems("term", entry.term, term)
+    problems += text_problems("definition", entry.definition or "", definition)
+    if len(term.split()) > _TERM_MAX_WORDS:
+        problems.append("term too long")
+    return problems
+
+
+def translate_entries(
+    glossary: dict[str, GlossaryEntry],
+    builder: FeedBuilder,
+    parliament_name: str,
+    *,
+    now: datetime,
+    report: GlossaryReport,
+    locales: tuple[Locale, ...] = TRANSLATED_LOCALES,
+) -> None:
+    """Translate, in place, every verified entry whose translation is missing
+    or stale. One that fails its checks keeps no translation of an older
+    German text; one whose call failed keeps what it had and is tried again
+    next run."""
+    for locale in locales:
+        todo = [e for e in glossary.values() if needs_entry_translation(e, locale)]
+        for start in range(0, len(todo), _TRANSLATION_BATCH):
+            batch = todo[start : start + _TRANSLATION_BATCH]
+            lines = []
+            for i, entry in enumerate(batch):
+                lines.append(segment_line(f"S{2 * i + 1}", entry.term))
+                lines.append(segment_line(f"S{2 * i + 2}", entry.definition or ""))
+            answers, model = request_segments(
+                builder,
+                format_glossary_translation_prompt(parliament_name, "\n".join(lines)),
+                f"{len(batch)} glossary entries",
+            )
+            if not answers:
+                report.entries_translation_failed += len(batch)
+                continue
+            for i, entry in enumerate(batch):
+                term = answers.get(f"S{2 * i + 1}", "")
+                definition = " ".join(answers.get(f"S{2 * i + 2}", "").split())
+                problems = entry_translation_problems(entry, term, definition)
+                if not problems:
+                    entry.translations = {
+                        **entry.translations,
+                        locale: GlossaryTranslation(
+                            term=term,
+                            definition=definition,
+                            source_hash=entry_source_hash(entry),
+                            prompt_version=GLOSSARY_TRANSLATION_PROMPT_VERSION,
+                            generated_by=model,
+                            generated_at=now,
+                        ),
+                    }
+                    entry.updated_at = now
+                    report.entries_translated += 1
+                    continue
+                logger.warning(
+                    "Not storing %s translation of %r: %s", locale, entry.term, problems
+                )
+                report.entries_translation_failed += 1
+                stored = entry.translations.get(locale)
+                if stored is not None and stored.source_hash != entry_source_hash(
+                    entry
+                ):
+                    entry.translations = {
+                        k: v for k, v in entry.translations.items() if k != locale
+                    }
+                    entry.updated_at = now
+
+
+# --- step 4: map ------------------------------------------------------------
+
+
+def translated_texts(item: FeedItem, locale: Locale) -> list[str]:
+    """The texts of ``locale`` the web underlines terms in, as ``item_texts``
+    for German."""
+    content = item.content.get(locale)
+    if content is None:
+        return []
+    return [
+        text
+        for text in (
+            content.teaser,
+            *content.key_points,
+            *(p.text for p in content.positions),
+        )
+        if text
+    ]
+
+
+def translated_terms_hash(item: FeedItem, locale: Locale) -> str:
+    payload = {
+        "texts": translated_texts(item, locale),
+        "terms": [[r.term_id, r.surface] for r in item.content[CANONICAL_LOCALE].terms],
+        "prompt": TERM_MAPPING_PROMPT_VERSION,
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+
+
+def needs_translated_terms(item: FeedItem, locale: Locale) -> bool:
+    """A translation whose text or German terms changed since its terms were
+    mapped. Waits for the German terms: mapping refs that are about to change
+    would be spent."""
+    content = item.content.get(locale)
+    return (
+        item.status == "published"
+        and content is not None
+        and not needs_terms(item)
+        and content.terms_hash != translated_terms_hash(item, locale)
+    )
+
+
+def _mapping_block(
+    batch: list[FeedItem], locale: Locale, glossary: dict[str, GlossaryEntry]
+) -> tuple[str, dict[str, tuple[int, TermRef]]]:
+    """The prompt's texts, and each term's key -> its item and German ref."""
+    refs: dict[str, tuple[int, TermRef]] = {}
+    blocks = []
+    for n, item in enumerate(batch):
+        lines = [f"[T{n + 1}]", *translated_texts(item, locale), "Begriffe:"]
+        for ref in item.content[CANONICAL_LOCALE].terms:
+            key = f"M{len(refs) + 1}"
+            refs[key] = (n, ref)
+            entry = glossary.get(ref.term_id)
+            base = entry.term if entry is not None else ref.surface
+            lines.append(f"[{key}] „{ref.surface}“ (Grundform: {base})")
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks), refs
+
+
+def map_terms(
+    items: list[FeedItem],
+    builder: FeedBuilder,
+    glossary: dict[str, GlossaryEntry],
+    *,
+    report: GlossaryReport,
+    locales: tuple[Locale, ...] = TRANSLATED_LOCALES,
+) -> list[FeedItem]:
+    """Give each translation whose terms are missing or stale the words that
+    render its German terms, in place. Returns the items changed. An item
+    whose call failed, or whose answer left a term out, keeps what it had and
+    is tried again next run."""
+    changed: dict[str, FeedItem] = {}
+    for locale in locales:
+        pending: dict[str, list[FeedItem]] = {}
+        for item in items:
+            if not needs_translated_terms(item, locale):
+                continue
+            if not item.content[CANONICAL_LOCALE].terms:
+                _set_translated_terms(item, locale, [])
+                changed[item.id] = item
+                report.items_mapped += 1
+                continue
+            pending.setdefault(item.parliament_name, []).append(item)
+        for parliament_name, todo in pending.items():
+            for start in range(0, len(todo), _ITEM_BATCH):
+                batch = todo[start : start + _ITEM_BATCH]
+                for item in _map_batch(
+                    batch, builder, glossary, parliament_name, locale, report
+                ):
+                    changed[item.id] = item
+    return list(changed.values())
+
+
+def _map_batch(
+    batch: list[FeedItem],
+    builder: FeedBuilder,
+    glossary: dict[str, GlossaryEntry],
+    parliament_name: str,
+    locale: Locale,
+    report: GlossaryReport,
+) -> list[FeedItem]:
+    block, refs = _mapping_block(batch, locale, glossary)
+    try:
+        result, _ = builder.call(
+            format_term_mapping_prompt(parliament_name, block), TermSurfaceBatch
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Terms not mapped for %d items: %s", len(batch), exc)
+        report.items_map_failed += len(batch)
+        return []
+    answers: dict[str, str] = {}
+    for answer in result.surfaces:
+        key = answer.ref.strip().strip("[]").upper()
+        if key in refs:
+            answers[key] = answer.surface.strip().strip(_QUOTES).strip()
+    changed: list[FeedItem] = []
+    for n, item in enumerate(batch):
+        keys = [k for k, (owner, _) in refs.items() if owner == n]
+        if any(k not in answers for k in keys):
+            report.items_map_failed += 1
+            continue
+        texts = translated_texts(item, locale)
+        found: dict[tuple[str, str], TermRef] = {}
+        for key in keys:
+            surface, german = answers[key], refs[key][1]
+            if not surface or not any(has_word(t, surface) for t in texts):
+                logger.info(
+                    "No %s words for %r in %s: %r",
+                    locale,
+                    german.surface,
+                    item.id,
+                    surface,
+                )
+                continue
+            found.setdefault(
+                (german.term_id, surface),
+                TermRef(term_id=german.term_id, surface=surface),
+            )
+        _set_translated_terms(item, locale, list(found.values()))
+        changed.append(item)
+        report.items_mapped += 1
+    return changed
+
+
+def _set_translated_terms(item: FeedItem, locale: Locale, terms: list[TermRef]) -> None:
+    content = item.content[locale]
+    content.terms = terms
+    content.terms_hash = translated_terms_hash(item, locale)
+
+
 # --- the pass ---------------------------------------------------------------
 
 
@@ -683,8 +981,9 @@ def annotate_terms(
     research: ResearchFn = grounded_research,
     fetch: Fetch = fetch_page,
 ) -> tuple[list[FeedItem], list[GlossaryEntry], GlossaryReport]:
-    """Find the terms of every item that needs it, then explain the new
-    ones. Returns the items and glossary entries to write."""
+    """Find the terms of every item that needs it, explain and translate the
+    new ones, then find them in the items' translations. Returns the items
+    and glossary entries to write."""
     now = now or datetime.now(timezone.utc)
     report = GlossaryReport()
     before = {k: e.model_copy(deep=True) for k, e in glossary.items()}
@@ -711,8 +1010,10 @@ def annotate_terms(
         contexts=contexts,
         confirmed=confirmed,
     )
+    mapped = map_terms(items, builder, glossary, report=report)
+    changed = {i.id: i for i in [*changed_items, *mapped]}
     changed_entries = [e for k, e in glossary.items() if before.get(k) != e]
-    return changed_items, changed_entries, report
+    return list(changed.values()), changed_entries, report
 
 
 # --- store ------------------------------------------------------------------

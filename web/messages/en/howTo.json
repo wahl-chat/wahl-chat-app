@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "title": "How wahl.chat works",
+    "description": "Find out how to use wahl.chat – compare parties, ask questions and get answers backed by sources."
+  },
+  "heading": "What can I do with <underline>wahl.chat</underline>?",
+  "dialogDescription": "Tips and tricks for getting the most out of wahl.chat.",
+  "positionButton": {
+    "tooltip": "Assess the position's pros and cons",
+    "label": "Put position into context"
+  },
+  "votingBehaviorButton": {
+    "tooltip": "Analyse the party's voting behaviour",
+    "label": "Voting behaviour"
+  },
+  "exportPdf": {
+    "idle": "Export as PDF",
+    "busy": "Creating PDF..."
+  }
+}

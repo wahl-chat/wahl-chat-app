@@ -159,3 +159,53 @@ describe('the budget kill switch', () => {
     }
   });
 });
+
+describe('English pages', () => {
+  test('the chat landing page is served under its prefix', async () => {
+    const response = await middleware(
+      requestFrom('https://wahl.chat/en/election-chat'),
+    );
+
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  test('bare /chat keeps the language it was reached in', async () => {
+    const response = await middleware(requestFrom('https://wahl.chat/en/chat'));
+
+    expect(response.headers.get('location')).toBe(
+      'https://wahl.chat/en/election-chat',
+    );
+    expect(response.status).toBe(307);
+  });
+
+  test('legacy context-less URLs keep the language', async () => {
+    const response = await middleware(
+      requestFrom('https://wahl.chat/en/sources'),
+    );
+
+    expect(response.headers.get('location')).toBe(
+      `https://wahl.chat/en/${DEFAULT_CONTEXT_ID}/sources`,
+    );
+  });
+
+  test('unknown paths are left to the route, which 404s them', async () => {
+    for (const path of ['/en/foo', '/en/news']) {
+      const response = await middleware(
+        requestFrom(`https://wahl.chat${path}`),
+      );
+
+      expect(response.headers.get('location')).toBeNull();
+    }
+  });
+
+  test('a reader who chose English is sent there from prefix-less links', async () => {
+    const request = new NextRequest('https://wahl.chat/how-to?x=1', {
+      headers: { cookie: 'NEXT_LOCALE=en' },
+    });
+    const response = await middleware(request);
+
+    expect(response.headers.get('location')).toBe(
+      'https://wahl.chat/en/how-to?x=1',
+    );
+  });
+});
