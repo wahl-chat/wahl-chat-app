@@ -1,6 +1,6 @@
 import { berlinDate, nextPuzzleAt } from './berlin-time';
 import { PUZZLES, createSchedule } from './content';
-import { type Progress, getGame } from './progress';
+import { EMPTY_PROGRESS, type Progress, getGame } from './progress';
 import type { StorageLike } from './progress-store';
 import { getTodaysPuzzle } from './schedule';
 import { scorePuzzle } from './score';
@@ -65,6 +65,18 @@ export function feedEntry({
     endsAt: nextPuzzleAt(now),
     isNew: number <= NEW_FOR_DAYS && visitDays < NEW_FOR_VISITS,
   };
+}
+
+/**
+ * Whether the switch is on and a puzzle runs today, whatever this device has
+ * played. The server renders the feed card from this, so the card is not
+ * drawn before the launch or after the last puzzle only to vanish on mount.
+ */
+export function hasPuzzleToday(status: StimmtsStatus, now: Date): boolean {
+  return (
+    feedEntry({ status, now, progress: EMPTY_PROGRESS, visitDays: 0 }).kind !==
+    'hidden'
+  );
 }
 
 /**

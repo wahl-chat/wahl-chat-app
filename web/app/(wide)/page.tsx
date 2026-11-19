@@ -18,6 +18,8 @@ import {
   WEBSITE_ID,
   productionRobots,
 } from '@/lib/seo';
+import { hasPuzzleToday } from '@/lib/stimmts/feed-entry';
+import type { StimmtsStatus } from '@/lib/stimmts/status';
 import type { Metadata } from 'next';
 
 // The search terms lead the title, the product name closes it. A results
@@ -100,6 +102,15 @@ async function HomePage({ searchParams }: Props) {
     getEditionDates('bundestag'),
     getStimmtsStatus(),
   ]);
+  // The page renders per request, so it can tell whether a puzzle runs
+  // today. With none (before the launch, after the last puzzle) the server
+  // draws no card, rather than one the browser would then remove.
+  const stimmtsCardStatus: StimmtsStatus = hasPuzzleToday(
+    stimmtsStatus,
+    new Date(),
+  )
+    ? stimmtsStatus
+    : { enabled: false };
 
   return (
     <>
@@ -120,7 +131,7 @@ async function HomePage({ searchParams }: Props) {
         linkedDay={linkedDay}
         calendar={calendar}
         editionDates={editionDates}
-        stimmtsStatus={stimmtsStatus}
+        stimmtsStatus={stimmtsCardStatus}
       />
     </>
   );

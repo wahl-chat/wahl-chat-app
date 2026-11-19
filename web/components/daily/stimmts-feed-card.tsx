@@ -7,8 +7,8 @@ import {
   type FeedEntry,
   feedCardLabel,
   feedEntry,
+  hasPuzzleToday,
   recordFeedVisit,
-  remainingLabel,
 } from '@/lib/stimmts/feed-entry';
 import { browserStorage } from '@/lib/stimmts/progress-store';
 import type { StimmtsStatus } from '@/lib/stimmts/status';
@@ -21,6 +21,10 @@ import { useEffect, useState } from 'react';
 import { CARD_SURFACE, FOCUS_RING, MUTED_TEXT } from './card-styles';
 
 const SHINE_KEY = 'stimmts:shine-shown';
+
+// Before mount the card shows no name or countdown, and below 360 px its
+// button has no visible text; this keeps "Los geht’s" in the link's name.
+const STATIC_LABEL = 'Stimmt’s?: Jeden Tag ein neues Quiz. Los geht’s';
 
 type PlayEntry = Extract<FeedEntry, { kind: 'play' }>;
 
@@ -62,8 +66,9 @@ function useShine(active: boolean): boolean {
  * The invitation to today's Stimmt’s? above the Hot Topic: the whole card is
  * one link to the game.
  *
- * The feed page is cached and shared by every reader, so the server only
- * knows whether the game is on. It renders the card with empty slots for the
+ * The feed page is shared by every reader, so the server only knows whether
+ * a puzzle runs today (`initialStatus` is off when none does). It renders the
+ * card with empty slots for the
  * puzzle's name and the countdown, at their final size, and the browser fills
  * them after mount: the feed below never moves. Whether this device has
  * played today is device state too; the presence script in the root layout
@@ -97,25 +102,44 @@ function StimmtsFeedCard({ initialStatus }: { initialStatus: StimmtsStatus }) {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [hydrate, refresh]);
 
+  const ready = now !== null && hydrated;
+  const puzzleToday = ready && hasPuzzleToday(status, now);
+
+  // Visits count only on days with a puzzle, so a reader who came by before
+  // the launch still sees the card as new once it starts.
   useEffect(() => {
-    if (!status.enabled) {
+    if (puzzleToday && visitDays === null) {
+      setVisitDays(recordFeedVisit(browserStorage(), berlinDate(new Date())));
+    }
+  }, [puzzleToday, visitDays]);
+
+  const entry =
+    ready && (!puzzleToday || visitDays !== null)
+      ? feedEntry({ status, now, progress, visitDays: visitDays ?? 0 })
+      : null;
+  const kind = entry?.kind;
+  const shine = useShine(kind === 'play');
+
+  // The clock only matters while there is a countdown to show.
+  useEffect(() => {
+    if (kind !== 'play') {
       return;
     }
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
-  }, [status.enabled]);
+  }, [kind]);
 
-  // Visits count only while the game is on, so a reader who came by before
-  // the launch still sees the card as new once it starts.
+  // The presence mark is set once, before first paint. A tab left open past
+  // Berlin midnight, or a game finished in another tab, has to move it on,
+  // or the CSS rule keeps hiding a new day's card, or showing a played one.
   useEffect(() => {
-    if (status.enabled && visitDays === null) {
-      setVisitDays(recordFeedVisit(browserStorage(), berlinDate(new Date())));
+    const root = document.documentElement;
+    if (kind === 'play' && root.dataset.stimmts === 'today') {
+      root.dataset.stimmts = 'before';
+    } else if (kind === 'played') {
+      root.dataset.stimmts = 'today';
     }
-  }, [status.enabled, visitDays]);
-
-  const ready = now !== null && hydrated && visitDays !== null;
-  const entry = ready ? feedEntry({ status, now, progress, visitDays }) : null;
-  const shine = useShine(entry?.kind === 'play');
+  }, [kind]);
 
   if (!status.enabled) {
     return null;
@@ -147,7 +171,10 @@ function Card({
   return (
     <Link
       href="/stimmts"
-      aria-label={label ?? undefined}
+      // A promotion on the busiest page: the game loads when it is chosen,
+      // not for every reader who scrolls past.
+      prefetch={false}
+      aria-label={label ?? STATIC_LABEL}
       className={cn(
         'stimmts-feed-card flex flex-col gap-1.5 px-3.5 pb-3 pt-2.5 text-[var(--daily-ink)] no-underline',
         CARD_SURFACE,
@@ -171,13 +198,7 @@ function Card({
         {/* translate="no": a browser that auto-translates the page rewrites
             the text in place, which leaves the old time next to the new
             one. */}
-        <span
-          translate="no"
-          aria-label={
-            remaining === null ? undefined : `noch ${remainingLabel(remaining)}`
-          }
-          className="ml-auto flex-none tabular-nums"
-        >
+        <span translate="no" className="ml-auto flex-none tabular-nums">
           {remaining === null ? null : `noch ${formatCountdown(remaining)}`}
         </span>
       </span>

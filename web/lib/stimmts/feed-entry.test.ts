@@ -5,6 +5,7 @@ import {
   NEW_FOR_DAYS,
   feedCardLabel,
   feedEntry,
+  hasPuzzleToday,
   recordFeedVisit,
   remainingLabel,
 } from './feed-entry';
@@ -194,5 +195,28 @@ describe('feedCardLabel', () => {
     expect(
       feedCardLabel({ kind: 'played', number: 1, score: 4 }, now),
     ).toBeNull();
+  });
+});
+
+describe('hasPuzzleToday', () => {
+  it('is false while the switch is off', () => {
+    expect(hasPuzzleToday({ enabled: false }, day1)).toBe(false);
+  });
+
+  it('is false on the eve of the launch', () => {
+    expect(
+      hasPuzzleToday(
+        { enabled: true, launchDate: '2026-11-16' },
+        new Date('2026-11-15T12:00:00Z'),
+      ),
+    ).toBe(false);
+  });
+
+  it('is true on day 1', () => {
+    expect(hasPuzzleToday(on, new Date('2026-11-15T12:00:00Z'))).toBe(true);
+  });
+
+  it('is false once the last puzzle has run', () => {
+    expect(hasPuzzleToday(on, new Date('2030-01-01T12:00:00Z'))).toBe(false);
   });
 });
