@@ -483,6 +483,7 @@ function DailyFeed({
           item={openItem}
           heat={openHeat}
           onClose={() => open(null)}
+          onOpenItem={open}
           opinionsEnabled={opinionsEnabled}
         />
       </div>

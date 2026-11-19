@@ -8,6 +8,7 @@ import {
   type VoteItem,
   sectionItems,
   sectionTopics,
+  sharesDrucksache,
   voteItems,
 } from './items';
 import { matchesTopics } from './topics';
@@ -216,11 +217,11 @@ export function rankFeed(
     // A day with no counted debate has nothing to crown.
     const hot = ranked.find((s) => interjectionRate(s) !== null) ?? null;
 
-    const debated = new Set(hot?.section.drucksachen ?? []);
     const match =
-      day.digests
-        .flatMap(visibleVotes)
-        .find((v) => (v.vote.drucksachen ?? []).some((d) => debated.has(d))) ??
+      (hot &&
+        day.digests
+          .flatMap(visibleVotes)
+          .find((v) => sharesDrucksache(hot.section, v.vote))) ??
       null;
 
     const blocks = day.digests

@@ -39,6 +39,7 @@ function toSection(
     item_id: item.id,
     drucksachen: facts.drucksachen ?? [],
     interjections: facts.interjections ?? null,
+    op_url: facts.op_url ?? null,
     terms: content.terms ?? [],
   };
 }

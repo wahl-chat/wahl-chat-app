@@ -330,6 +330,9 @@ export type DigestSessionSection = {
   drucksachen?: string[];
   /** Conflict reactions during the debate; absent until counted. */
   interjections?: number | null;
+  /** The agenda item's recordings on openparliament.tv; absent until the
+   * feed job has looked it up. */
+  op_url?: string | null;
   /** Expert terms in the summary, bullets and positions. */
   terms?: TermRef[];
 };
@@ -416,6 +419,7 @@ export type DebateFacts = {
   interjections?: number | null;
   key_point_sources?: { sources: SpeechSource[] }[];
   card_video?: CardVideo | null;
+  op_url?: string | null;
 };
 
 export type VoteFacts = {

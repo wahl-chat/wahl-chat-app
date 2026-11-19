@@ -2,12 +2,18 @@
 
 import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import StickyInput from '@/components/sticky-input';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { FEED_CHAT_ENABLED, feedChatHref } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import {
   type DetailItem,
   type SectionItem,
   type VoteItem,
+  debateForVote,
   openingParty,
   protocolLabel,
   sectionTopics,
@@ -27,10 +33,20 @@ import type {
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ShareIcon,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useId, useState } from 'react';
-import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
+import {
+  CARD_ACTION,
+  FOCUS_RING,
+  MUTED_TEXT,
+  SECTION_LABEL,
+} from './card-styles';
 import { GlossaryText } from './glossary-text';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
 import { OpinionConsentSheet } from './opinion-consent-sheet';
@@ -215,27 +231,82 @@ function SectionDetail({
             )}
           </section>
         )}
-        {protocol &&
-          (protocol.pdf_url ? (
-            <SourceLink href={protocol.pdf_url}>
-              Quelle: Plenarprotokoll {protocolLabel(digest)}
+        <div className="flex flex-col items-start">
+          {protocol &&
+            (protocol.pdf_url ? (
+              <SourceLink href={protocol.pdf_url}>
+                Quelle: Plenarprotokoll {protocolLabel(digest)}
+              </SourceLink>
+            ) : (
+              <p className={cn('text-[15px]', MUTED_TEXT)}>
+                Quelle: Plenarprotokoll {protocolLabel(digest)}
+              </p>
+            ))}
+          {section.op_url && (
+            <SourceLink href={section.op_url}>
+              Video: Open Parliament TV
             </SourceLink>
-          ) : (
-            <p className={cn('text-[15px]', MUTED_TEXT)}>
-              Quelle: Plenarprotokoll {protocolLabel(digest)}
-            </p>
-          ))}
+          )}
+        </div>
       </div>
     </>
+  );
+}
+
+/**
+ * "Worum ging es?": the vote's own summary, with abgeordnetenwatch's full
+ * account of the motion one tap away. Without a summary the account is the
+ * text already, so there is nothing to unfold.
+ */
+function VoteAbout({ vote }: { vote: VoteItem['vote'] }) {
+  const [open, setOpen] = useState(false);
+  const about = vote.summary ?? vote.description;
+  if (!about) {
+    return null;
+  }
+  const more = vote.summary ? vote.description : null;
+  return (
+    <section className="rounded-xl bg-[var(--daily-surface)] p-4">
+      <h3 className={SECTION_LABEL}>Worum ging es?</h3>
+      <p className="mt-1 text-[15px] leading-relaxed">
+        <GlossaryText text={about} terms={vote.terms} />
+      </p>
+      {more && (
+        <Collapsible open={open} onOpenChange={setOpen}>
+          {/* The glossary's terms were found in the summary, not here. */}
+          <CollapsibleContent className="mt-3 text-[15px] leading-relaxed">
+            {more}
+          </CollapsibleContent>
+          <CollapsibleTrigger
+            className={cn(
+              FOCUS_RING,
+              'mt-1 inline-flex min-h-10 items-center gap-1 rounded-md text-[15px] font-semibold',
+            )}
+          >
+            {open ? 'Weniger anzeigen' : 'Mehr anzeigen'}
+            <ChevronDownIcon
+              aria-hidden
+              className={cn(
+                'size-4 transition-transform',
+                open && 'rotate-180',
+              )}
+            />
+          </CollapsibleTrigger>
+        </Collapsible>
+      )}
+    </section>
   );
 }
 
 function VoteDetail({
   item,
   askConsent,
+  onOpenItem,
 }: {
   item: VoteItem;
   askConsent: AskConsent | undefined;
+  /** Unset where the dialog cannot switch items; see `DailyDetailDialog`. */
+  onOpenItem: ((key: string) => void) | undefined;
 }) {
   const { vote, digest } = item;
   const rateable = Boolean(vote.item_id) && askConsent !== undefined;
@@ -244,7 +315,7 @@ function VoteDetail({
     askConsent,
   );
   const protocol = protocolLabel(digest);
-  const about = vote.summary ?? vote.description;
+  const debate = onOpenItem ? debateForVote(item) : null;
   // One Fraktion at a time, picked in the chart or the list; picking it again
   // closes it.
   const [selected, setSelected] = useState<string | null>(null);
@@ -274,13 +345,17 @@ function VoteDetail({
       {selectedParty && (
         <PartyVoteBreakdown party={selectedParty} id={breakdownId} />
       )}
-      {about && (
-        <section className="rounded-xl bg-[var(--daily-surface)] p-4">
-          <h3 className={SECTION_LABEL}>Worum ging es?</h3>
-          <p className="mt-1 text-[15px] leading-relaxed">
-            <GlossaryText text={about} terms={vote.terms} />
-          </p>
-        </section>
+      <VoteAbout vote={vote} />
+      {debate && (
+        <button
+          type="button"
+          onClick={() => onOpenItem?.(debate.key)}
+          aria-label={`Zur Debatte: ${debate.section.headline}`}
+          className={cn(FOCUS_RING, CARD_ACTION, 'self-start')}
+        >
+          Zur Debatte
+          <ArrowRightIcon className="size-4" aria-hidden />
+        </button>
       )}
       {rateable && <VoteOpinion opinions={opinions} />}
       <section className="flex flex-col gap-1">
@@ -309,6 +384,8 @@ type Props = {
   /** Day-relative heat of the item, see `dayHeat`. */
   heat: number | undefined;
   onClose: () => void;
+  /** Shows another item in this view: a vote leads to its debate. */
+  onOpenItem?: (key: string) => void;
   /** Off in embedded deployments: they have no menu to withdraw consent from,
    * so they must not ask for it. */
   opinionsEnabled?: boolean;
@@ -332,6 +409,7 @@ export function DailyDetailDialog({
   item,
   heat,
   onClose,
+  onOpenItem,
   opinionsEnabled = true,
 }: Props) {
   // The speaker sheet belongs to the item it was opened from, so another
@@ -445,17 +523,20 @@ export function DailyDetailDialog({
                   <ShareIcon className="size-5" />
                 </button>
               </header>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
-                {/* Keyed by item, so opinions never carry over to the next. */}
+              {/* Keyed by item, so opinions never carry over to the next and
+                  a vote's „Zur Debatte" opens the debate at its top. */}
+              <div
+                key={item.key}
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6"
+              >
                 {item.kind === 'vote' ? (
                   <VoteDetail
-                    key={item.key}
                     item={item}
                     askConsent={opinionsEnabled ? askConsent : undefined}
+                    onOpenItem={onOpenItem}
                   />
                 ) : (
                   <SectionDetail
-                    key={item.key}
                     item={item}
                     heat={heat}
                     photos={photos}
