@@ -17,18 +17,45 @@ const share = (guesses: Guesses) =>
   buildShareText({
     puzzleNumber: 47,
     score: scorePuzzle(puzzle, guesses),
+    title: puzzle.title,
     url: 'https://wahl.chat/stimmts',
   });
 
+const TANKRABATT = 'Tankrabatt für Benzin und Diesel';
+
 describe('buildShareText', () => {
-  it('shows the puzzle number, the score and an invitation with the link', () => {
-    const text = share({ ...RIGHT, spd: 'no', afd: 'yes' }); // 3 of 5 right
-    expect(text).toBe(
+  it('names the vote and the score, and challenges the friend', () => {
+    expect(
+      buildShareText({
+        puzzleNumber: 1,
+        score: { correct: 4, total: 5 },
+        title: TANKRABATT,
+        url: 'https://wahl.chat/stimmts?n=1&s=4&d=2026-11-15',
+      }),
+    ).toBe(
       [
-        "Stimmt's? #47 · 3/5 🟩🟩🟩⬜⬜",
+        "Stimmt's? #1 · 4/5 🟩🟩🟩🟩⬜",
         '',
-        'Schlag meinen Score im neuen Spiel von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
-        'https://wahl.chat/stimmts',
+        'Tankrabatt für Benzin und Diesel: Wie haben die Fraktionen abgestimmt? Ich hatte 4 von 5. Schaffst du mehr?',
+        'https://wahl.chat/stimmts?n=1&s=4&d=2026-11-15',
+      ].join('\n'),
+    );
+  });
+
+  it('asks for a match, not more, after a perfect score', () => {
+    expect(
+      buildShareText({
+        puzzleNumber: 1,
+        score: { correct: 5, total: 5 },
+        title: TANKRABATT,
+        url: 'https://wahl.chat/stimmts?n=1&s=5&d=2026-11-15',
+      }),
+    ).toBe(
+      [
+        "Stimmt's? #1 · 5/5 🟩🟩🟩🟩🟩",
+        '',
+        'Tankrabatt für Benzin und Diesel: Wie haben die Fraktionen abgestimmt? Ich hatte 5 von 5. Schaffst du das auch?',
+        'https://wahl.chat/stimmts?n=1&s=5&d=2026-11-15',
       ].join('\n'),
     );
   });
@@ -54,7 +81,9 @@ describe('buildShareText', () => {
   });
 
   it('never contains an answer or a party name', () => {
-    const text = share(RIGHT);
+    // The title is the vote's own and public on the start screen; everything
+    // around it must say nothing about how anyone voted.
+    const text = share(RIGHT).replace(puzzle.title, '');
     expect(text).not.toMatch(/\b(Ja|Nein|Enthaltung|yes|no|abstain)\b/);
     for (const party of ['Linke', 'SPD', 'Grünen', 'CDU', 'CSU', 'AfD']) {
       expect(text).not.toContain(party);

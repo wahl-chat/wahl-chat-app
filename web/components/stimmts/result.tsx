@@ -301,6 +301,7 @@ function Result({
         text={buildShareText({
           puzzleNumber: number,
           score,
+          title: puzzle.title,
           url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
         })}
         image={{

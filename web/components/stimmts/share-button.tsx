@@ -24,8 +24,9 @@ type Props = {
  */
 function ShareButton({ text, image: shareImage, onShared }: Props) {
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
-  // Unknown until mounted: guessing either way would flash the wrong label
-  // (and the save link) on the other kind of device.
+  // Unknown until mounted: guessing either way would flash the save link on
+  // the other kind of device. The label stays "teilen" on both: copying the
+  // text and the link is how a desktop shares.
   const [canShare, setCanShare] = useState<boolean | null>(null);
   const image = useRef<File | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -76,7 +77,7 @@ function ShareButton({ text, image: shareImage, onShared }: Props) {
         ) : (
           <>
             <Share aria-hidden strokeWidth={2.25} />
-            {canShare === false ? 'Ergebnis kopieren' : 'Ergebnis teilen'}
+            Ergebnis teilen
           </>
         )}
       </PillButton>

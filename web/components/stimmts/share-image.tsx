@@ -2,11 +2,8 @@
 // positioning, inline SVG and fixed colours work there, and every element
 // with more than one child needs `display: flex`.
 
-import {
-  CHECK_RED,
-  WORDMARK_PATHS,
-  WORDMARK_VIEWBOX,
-} from '@/components/chat/logo';
+import { CHECK_RED, LOGO_PATHS, LOGO_VIEWBOX } from '@/components/chat/logo';
+import { PUZZLES } from '@/lib/stimmts/content';
 import { WEEKDAYS, shortDay } from '@/lib/stimmts/labels';
 import {
   MARK_SEATS,
@@ -17,10 +14,14 @@ import {
   periodSeats,
 } from '@/lib/stimmts/logo';
 import { type DayRecord, PERIOD_LENGTH } from '@/lib/stimmts/period';
+import { shareInvitation } from '@/lib/stimmts/share';
 import {
   SHARE_COLORS as C,
   MAX_SCORE,
+  SHARE_TITLE_TRACKING,
+  SHARE_TITLE_WIDTH,
   type ShareImageData,
+  shareTitleSize,
 } from '@/lib/stimmts/share-image';
 
 /** The font families the route registers. */
@@ -43,30 +44,41 @@ const TIER_FILLS: Record<ScoreTier, string> = {
 // The mark's viewBox is 2.2 wide and 1.2 high.
 const markHeight = (width: number) => Math.round((width * 1.2) / 2.2);
 
+// The logo's viewBox is 368 wide and 201 high.
+const logoWidth = (height: number) => Math.round((height * 368) / 201);
+
 /**
- * Every character any image can show, to cut the fonts down to. The same for
- * every image (all weekdays, all digits), so one set of fonts serves them all.
+ * Every character any image can show, once each, to cut the fonts down to.
+ * The same for every image (all weekdays, all digits, every puzzle title), so
+ * one set of fonts serves them all.
  */
 export const SHARE_IMAGE_TEXT = [
-  "Stimmt's?’ STIMMKARTE Nr. von richtig getippt Abgestimmt Tag",
-  'Schaffst du mehr? Jeden Tag ein neues Quiz. wahl.chat/stimmts',
-  QUESTION,
-  WEEKDAYS.map((day) => day.slice(0, 2)).join(' '),
-  '0123456789 .',
-].join(' ');
+  ...new Set(
+    [
+      "Stimmt's?’ STIMMKARTE Nr. · von richtig getippt Abgestimmt Tag",
+      `${shareInvitation({ correct: 0, total: MAX_SCORE })} ${shareInvitation({ correct: MAX_SCORE, total: MAX_SCORE })}`,
+      'Jeden Tag ein neues Quiz. wahl.chat/stimmts',
+      QUESTION,
+      WEEKDAYS.map((day) => day.slice(0, 2)).join(' '),
+      '0123456789 .',
+      ...PUZZLES.map((puzzle) => puzzle.title),
+    ].join(''),
+  ),
+].join('');
 
 type Sizes = {
   padding: string;
+  /** Multiplies the title's board sizes (see shareTitleSize). */
+  titleScale: number;
+  logo: number;
   mark: number;
   word: number;
   cardPadding: string;
   cardGap: number;
-  wordmark: number;
+  label: number;
   score: number;
   right: number;
   square: number;
-  squareGap: number;
-  number: number;
   stamp: number;
   cta: number;
   url: number;
@@ -74,54 +86,67 @@ type Sizes = {
 
 const SIZES: Record<ShareImageData['format'], Sizes> = {
   square: {
-    padding: '72px 80px',
-    mark: 140,
-    word: 72,
-    cardPadding: '44px 52px',
-    cardGap: 24,
-    wordmark: 200,
-    score: 150,
+    padding: '64px 72px',
+    titleScale: 2.5,
+    logo: 92,
+    mark: 110,
+    word: 56,
+    cardPadding: '40px 56px 48px',
+    cardGap: 26,
+    label: 24,
+    score: 40,
     right: 34,
-    square: 52,
-    squareGap: 24,
-    number: 120,
-    stamp: 44,
-    cta: 52,
+    square: 44,
+    stamp: 40,
+    cta: 50,
     url: 32,
   },
   story: {
-    padding: '140px 88px',
-    mark: 380,
-    word: 132,
-    cardPadding: '44px 52px',
-    cardGap: 24,
-    wordmark: 220,
-    score: 170,
+    padding: '140px 72px',
+    titleScale: 2.5,
+    logo: 120,
+    mark: 140,
+    word: 70,
+    cardPadding: '40px 56px 48px',
+    cardGap: 26,
+    label: 24,
+    score: 40,
     right: 34,
-    square: 52,
-    squareGap: 24,
-    number: 120,
-    stamp: 44,
-    cta: 68,
+    square: 44,
+    stamp: 40,
+    cta: 64,
     url: 32,
   },
   link: {
-    padding: '52px 64px',
-    mark: 110,
-    word: 56,
-    cardPadding: '30px 44px',
-    cardGap: 14,
-    wordmark: 150,
-    score: 104,
-    right: 28,
-    square: 44,
-    squareGap: 14,
-    number: 92,
-    stamp: 36,
-    cta: 40,
+    padding: '40px 56px',
+    titleScale: 2,
+    logo: 64,
+    mark: 76,
+    word: 40,
+    cardPadding: '26px 40px 46px',
+    cardGap: 16,
+    label: 20,
+    score: 40,
+    right: 26,
+    square: 36,
+    stamp: 32,
+    cta: 38,
     url: 28,
   },
 };
+
+const DISPLAY = { fontFamily: SHARE_FONTS.display, fontWeight: 800 };
+
+/** The wahl.chat logo, the same artwork as in the site header. */
+function WahlChatLogo({ height }: { height: number }) {
+  return (
+    <svg width={logoWidth(height)} height={height} viewBox={LOGO_VIEWBOX}>
+      {LOGO_PATHS.map(({ d, check }) => (
+        <path key={d} d={d} fill={check ? CHECK_RED : C.ink} />
+      ))}
+    </svg>
+  );
+}
 
 function Mark({ width }: { width: number }) {
   return (
@@ -134,20 +159,6 @@ function Mark({ width }: { width: number }) {
           r={0.095}
           fill={MARK_FILLS[seat.tone]}
         />
-      ))}
-    </svg>
-  );
-}
-
-function Wordmark({ width, color }: { width: number; color: string }) {
-  return (
-    <svg
-      width={width}
-      height={Math.round((width * 114) / 880)}
-      viewBox={WORDMARK_VIEWBOX}
-    >
-      {WORDMARK_PATHS.map(({ d, check }) => (
-        <path key={d} d={d} fill={check ? CHECK_RED : color} />
       ))}
     </svg>
   );
@@ -195,266 +206,34 @@ function Period({ days, width }: { days: DayRecord[]; width: number }) {
 }
 
 /**
- * The image that travels with a shared result: the player's Stimmkarte with
- * an "Abgestimmt" sticker and, on the square and the story, their
- * Wahlperiode. Without a result it is the preview of the plain game link,
- * which asks the game's question and shows no day.
+ * The vote's title, at the largest size that keeps it to three lines. The
+ * box has the width shareTitleSize measured against, so the lines break
+ * where it expected.
  */
-function ShareImage({ format, result }: ShareImageData) {
-  const s = SIZES[format];
-  const story = format === 'story';
-  const days = format === 'link' ? undefined : result?.days;
-  const display = { fontFamily: SHARE_FONTS.display, fontWeight: 800 };
-
-  const brand = (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: story ? 'column' : 'row',
-        alignItems: 'center',
-        gap: story ? 12 : 18,
-      }}
-    >
-      <Mark width={s.mark} />
-      <span
-        style={{
-          ...display,
-          fontSize: s.word,
-          lineHeight: 1,
-          letterSpacing: story ? -5 : -3,
-        }}
-      >
-        Stimmt’s?
-      </span>
-    </div>
-  );
-
-  const card = (
-    <div
-      style={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: s.cardGap,
-        padding: s.cardPadding,
-        borderRadius: 28,
-        background: C.ink,
-        color: C.paper,
-        // The story's card tilts a little.
-        ...(story ? { transform: 'rotate(-2deg)' } : {}),
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          top: 14,
-          right: 14,
-          bottom: 14,
-          left: 14,
-          border: `2px solid ${C.muted}`,
-          borderRadius: 18,
-        }}
-      />
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Wordmark width={s.wordmark} color={C.paper} />
-        <span
-          style={{
-            fontSize: format === 'link' ? 20 : 24,
-            fontWeight: 700,
-            letterSpacing: 4,
-            color: C.muted,
-          }}
-        >
-          STIMMKARTE
-        </span>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: format === 'link' ? 'center' : 'stretch',
-          gap: 40,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flex: 1,
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}
-        >
-          {result ? (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span
-                style={{
-                  ...display,
-                  fontSize: s.score,
-                  lineHeight: 1,
-                  letterSpacing: -5,
-                }}
-              >
-                {result.score} von {MAX_SCORE}
-              </span>
-              <span
-                style={{
-                  fontSize: s.right,
-                  lineHeight: 1.3,
-                  fontWeight: 700,
-                  color: C.muted,
-                }}
-              >
-                richtig getippt
-              </span>
-              <Squares score={result.score} size={s.square} top={s.squareGap} />
-            </div>
-          ) : (
-            <span
-              style={{
-                ...display,
-                fontSize: 50,
-                lineHeight: 1.12,
-                letterSpacing: -1.5,
-              }}
-            >
-              {QUESTION}
-            </span>
-          )}
-        </div>
-        {result && (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingLeft: 40,
-              borderLeft: `3px solid ${C.muted}`,
-            }}
-          >
-            <span style={{ fontSize: 28, color: C.muted }}>Nr.</span>
-            <span
-              style={{
-                ...display,
-                fontSize: s.number,
-                lineHeight: 1,
-                letterSpacing: -3,
-              }}
-            >
-              {result.number}
-            </span>
-            <span style={{ fontSize: 28, color: C.muted }}>
-              {shortDay(result.playDate)}
-            </span>
-          </div>
-        )}
-      </div>
-      {result && (
-        <span
-          style={{
-            ...display,
-            position: 'absolute',
-            bottom: format === 'link' ? -22 : -30,
-            right: 44,
-            padding: '4px 18px',
-            border: `6px solid ${C.brandRed}`,
-            borderRadius: 12,
-            transform: 'rotate(6deg)',
-            background: C.paper,
-            color: C.brandRed,
-            fontSize: s.stamp,
-            lineHeight: 1.2,
-          }}
-        >
-          Abgestimmt
-        </span>
-      )}
-    </div>
-  );
-
+function Title({ title, scale }: { title: string; scale: number }) {
+  const fontSize = shareTitleSize(title) * scale;
   return (
-    <div
+    <span
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: story ? 'center' : 'space-between',
-        gap: story ? 100 : 0,
-        width: '100%',
-        height: '100%',
-        padding: s.padding,
-        background: C.paper,
-        color: C.ink,
-        fontFamily: SHARE_FONTS.sans,
+        ...DISPLAY,
+        width: SHARE_TITLE_WIDTH * scale,
+        fontSize,
+        lineHeight: 1.1,
+        letterSpacing: SHARE_TITLE_TRACKING * fontSize,
+        // Only a title longer than any so far needs this, rather than
+        // running off the card.
+        wordBreak: 'break-word',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: story ? 'center' : 'flex-start',
-        }}
-      >
-        {brand}
-      </div>
-      {card}
-      {days && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: story ? 'column' : 'row',
-            alignItems: 'center',
-            gap: story ? 24 : 40,
-          }}
-        >
-          <Period days={days} width={story ? 520 : 360} />
-          <span
-            style={{
-              ...display,
-              fontSize: 56,
-              lineHeight: 1.07,
-              letterSpacing: -1.5,
-            }}
-          >
-            Tag {days.length} von {PERIOD_LENGTH}
-          </span>
-        </div>
-      )}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: story ? 'column' : 'row',
-          justifyContent: 'space-between',
-          alignItems: story ? 'center' : 'baseline',
-          gap: story ? 8 : 32,
-        }}
-      >
-        <span style={{ ...display, fontSize: s.cta, letterSpacing: -1.5 }}>
-          {result ? 'Schaffst du mehr?' : 'Jeden Tag ein neues Quiz.'}
-        </span>
-        <span style={{ fontSize: s.url, color: C.muted }}>
-          wahl.chat/stimmts
-        </span>
-      </div>
-    </div>
+      {title}
+    </span>
   );
 }
 
 /** The score as squares, right answers first, so no party order shows. */
-function Squares({
-  score,
-  size,
-  top,
-}: {
-  score: number;
-  size: number;
-  top: number;
-}) {
+function Squares({ score, size }: { score: number; size: number }) {
   return (
-    <div style={{ display: 'flex', gap: 12, marginTop: top }}>
+    <div style={{ display: 'flex', gap: Math.round(size / 4) }}>
       {Array.from({ length: MAX_SCORE }, (_, i) => (
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed positions.
@@ -465,7 +244,7 @@ function Squares({
             justifyContent: 'center',
             width: size,
             height: size,
-            borderRadius: 10,
+            borderRadius: Math.round(size / 5),
             ...(i < score
               ? { background: C.correct }
               : { border: `4px solid ${C.muted}` }),
@@ -486,6 +265,243 @@ function Squares({
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+type Result = NonNullable<ShareImageData['result']>;
+
+/** Square and story: the score in one line under the title. */
+function ScoreLine({ result, s }: { result: Result; s: Sizes }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+      <Squares score={result.score} size={s.square} />
+      <span style={{ fontSize: s.score, fontWeight: 700 }}>
+        {result.score} von {MAX_SCORE}
+      </span>
+      <span style={{ fontSize: s.right, color: C.muted }}>richtig getippt</span>
+    </div>
+  );
+}
+
+/**
+ * The link preview is wide and low: the score stands beside the title, in
+ * the plain face and smaller, so the title stays the main text. The squares
+ * come first, keeping them clear of the stamp at the card's lower edge.
+ */
+function ScoreColumn({ result, s }: { result: Result; s: Sizes }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 12,
+        paddingLeft: 36,
+        borderLeft: `3px solid ${C.muted}`,
+      }}
+    >
+      <Squares score={result.score} size={s.square} />
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: s.score, fontWeight: 700, lineHeight: 1.1 }}>
+          {result.score} von {MAX_SCORE}
+        </span>
+        <span style={{ fontSize: s.right, color: C.muted }}>
+          richtig getippt
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Card({ format, result }: Pick<ShareImageData, 'format' | 'result'>) {
+  const s = SIZES[format];
+  const link = format === 'link';
+  return (
+    <div
+      style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: s.cardGap,
+        padding: s.cardPadding,
+        borderRadius: 28,
+        background: C.ink,
+        color: C.paper,
+        // The story's card tilts a little.
+        ...(format === 'story' ? { transform: 'rotate(-2deg)' } : {}),
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          top: 14,
+          right: 14,
+          bottom: 14,
+          left: 14,
+          border: `2px solid ${C.muted}`,
+          borderRadius: 18,
+        }}
+      />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: s.label,
+          fontWeight: 700,
+          letterSpacing: 4,
+          color: C.muted,
+        }}
+      >
+        <span>STIMMKARTE</span>
+        {result && (
+          <span style={{ letterSpacing: 0 }}>
+            Nr. {result.number} · {shortDay(result.playDate)}
+          </span>
+        )}
+      </div>
+      {result ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: link ? 'row' : 'column',
+            alignItems: link ? 'center' : 'flex-start',
+            gap: link ? 36 : 32,
+          }}
+        >
+          <Title title={result.title ?? QUESTION} scale={s.titleScale} />
+          {link ? (
+            <ScoreColumn result={result} s={s} />
+          ) : (
+            <ScoreLine result={result} s={s} />
+          )}
+        </div>
+      ) : (
+        <span
+          style={{
+            ...DISPLAY,
+            fontSize: 50,
+            lineHeight: 1.12,
+            letterSpacing: -1.5,
+          }}
+        >
+          {QUESTION}
+        </span>
+      )}
+      {result && (
+        <span
+          style={{
+            ...DISPLAY,
+            position: 'absolute',
+            bottom: link ? -20 : -28,
+            right: 44,
+            padding: '4px 18px',
+            border: `6px solid ${C.brandRed}`,
+            borderRadius: 12,
+            transform: 'rotate(6deg)',
+            background: C.paper,
+            color: C.brandRed,
+            fontSize: s.stamp,
+            lineHeight: 1.2,
+          }}
+        >
+          Abgestimmt
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The image that travels with a shared result: the wahl.chat logo, the
+ * player's Stimmkarte naming the day's vote, with their score and an
+ * "Abgestimmt" sticker and, on the square and the story, their Wahlperiode.
+ * Without a result it is the preview of the plain game link, which asks the
+ * game's question and shows no day.
+ */
+function ShareImage({ format, result }: ShareImageData) {
+  const s = SIZES[format];
+  const story = format === 'story';
+  const days = format === 'link' ? undefined : result?.days;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: story ? 'center' : 'space-between',
+        gap: story ? 100 : 0,
+        width: '100%',
+        height: '100%',
+        padding: s.padding,
+        background: C.paper,
+        color: C.ink,
+        fontFamily: SHARE_FONTS.sans,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <WahlChatLogo height={s.logo} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <Mark width={s.mark} />
+          <span
+            style={{
+              ...DISPLAY,
+              fontSize: s.word,
+              lineHeight: 1,
+              letterSpacing: -2,
+            }}
+          >
+            Stimmt’s?
+          </span>
+        </div>
+      </div>
+      <Card format={format} result={result} />
+      {days && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: story ? 'column' : 'row',
+            alignItems: 'center',
+            gap: story ? 24 : 40,
+          }}
+        >
+          <Period days={days} width={story ? 480 : 280} />
+          <span
+            style={{
+              ...DISPLAY,
+              fontSize: 48,
+              lineHeight: 1.07,
+              letterSpacing: -1.5,
+            }}
+          >
+            Tag {days.length} von {PERIOD_LENGTH}
+          </span>
+        </div>
+      )}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: story ? 'column' : 'row',
+          justifyContent: 'space-between',
+          alignItems: story ? 'center' : 'baseline',
+          gap: story ? 8 : 32,
+        }}
+      >
+        <span style={{ ...DISPLAY, fontSize: s.cta, letterSpacing: -1.5 }}>
+          {result
+            ? shareInvitation({ correct: result.score, total: MAX_SCORE })
+            : 'Jeden Tag ein neues Quiz.'}
+        </span>
+        <span style={{ fontSize: s.url, color: C.muted }}>
+          wahl.chat/stimmts
+        </span>
+      </div>
     </div>
   );
 }

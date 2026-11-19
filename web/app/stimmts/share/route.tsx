@@ -4,7 +4,7 @@ import ShareImage, {
 } from '@/components/stimmts/share-image';
 import { loadGoogleFont } from '@/lib/og/google-font';
 import { berlinDate } from '@/lib/stimmts/berlin-time';
-import { PUZZLE_COUNT } from '@/lib/stimmts/content';
+import { PUZZLE_COUNT, puzzleTitle } from '@/lib/stimmts/content';
 import { createLoadOnce } from '@/lib/stimmts/load-once';
 import {
   SHARE_FORMATS,
@@ -37,8 +37,9 @@ const loadFonts = createLoadOnce(async () => {
 
 /**
  * The Stimmt's? share image, for the share sheet and for link previews. Its
- * parameters say everything it shows (number, score, day, the player's
- * period), so nothing is stored on a server.
+ * parameters and the committed puzzles say everything it shows (number and
+ * its vote's title, score, day, the player's period), so nothing is stored on
+ * a server.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -55,18 +56,28 @@ export async function GET(request: Request) {
     return Response.redirect(new URL(canonical, url), 308);
   }
 
+  // The title comes from the number, never from the URL, so nobody can put
+  // their own words on an image that carries the site's logo.
+  const result = data.result && {
+    ...data.result,
+    title: puzzleTitle(data.result.number) ?? undefined,
+  };
+
   // Without the fonts the image still draws, in next/og's own face, and is
   // not cached, so the next request tries the fonts again.
   const fonts = await loadFonts();
   const { width, height } = SHARE_FORMATS[data.format];
-  return new ImageResponse(<ShareImage {...data} />, {
-    width,
-    height,
-    // Left out, not empty: an empty list leaves next/og no font at all.
-    ...(fonts && { fonts }),
-    headers: {
-      'Cache-Control': fonts ? CACHE_CONTROL : 'no-store',
-      'X-Robots-Tag': 'noindex',
+  return new ImageResponse(
+    <ShareImage format={data.format} result={result} />,
+    {
+      width,
+      height,
+      // Left out, not empty: an empty list leaves next/og no font at all.
+      ...(fonts && { fonts }),
+      headers: {
+        'Cache-Control': fonts ? CACHE_CONTROL : 'no-store',
+        'X-Robots-Tag': 'noindex',
+      },
     },
-  });
+  );
 }
