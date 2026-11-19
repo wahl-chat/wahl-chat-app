@@ -1,15 +1,10 @@
 import { MAX_SCORE } from '@/lib/stimmts/share-image';
 
-/** The shared score ("4/5") in the challenge text, so the dots match it. */
-const FRACTION = new RegExp(`(\\d)/${MAX_SCORE}`);
-
 /**
  * The challenge a friend sees when they open a shared result: one line above
- * the game, with the shared score as dots. The text comes from
- * `shareChallenge`; the dots are read back from it so the two cannot differ.
+ * the game, with the shared score as dots. Both come from `shareChallenge`.
  */
-function ShareBanner({ text }: { text: string }) {
-  const [before, score = '0', after = ''] = text.split(FRACTION);
+function ShareBanner({ score, text }: { score: number; text: string }) {
   return (
     <p
       role="status"
@@ -22,20 +17,14 @@ function ShareBanner({ text }: { text: string }) {
             // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length row
             key={index}
             className={
-              index < Number(score)
+              index < score
                 ? 'size-2 rounded-[2px] bg-[var(--daily-yes)]'
                 : 'box-border size-2 rounded-[2px] border border-[var(--daily-muted)]'
             }
           />
         ))}
       </span>
-      <span>
-        {before}
-        <b>
-          {score}/{MAX_SCORE}
-        </b>
-        {after}
-      </span>
+      <span>{text}</span>
     </p>
   );
 }

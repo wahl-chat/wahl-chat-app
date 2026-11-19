@@ -7,16 +7,21 @@ const challenge = (search: string, playedToday = false) =>
 
 describe('shareChallenge', () => {
   it('challenges the friend to beat the shared score', () => {
-    expect(challenge('?n=5&s=4&d=2026-11-19')).toBe(
-      'Schaffst du mehr als 4/5?',
-    );
-    expect(challenge('?n=5&s=0&d=2026-11-19')).toBe(
-      'Schaffst du mehr als 0/5?',
-    );
+    expect(challenge('?n=5&s=4&d=2026-11-19')).toEqual({
+      score: 4,
+      text: 'Schaffst du mehr als 4/5?',
+    });
+    expect(challenge('?n=5&s=0&d=2026-11-19')).toEqual({
+      score: 0,
+      text: 'Schaffst du mehr als 0/5?',
+    });
   });
 
   it('asks to match a perfect score, which cannot be beaten', () => {
-    expect(challenge('?n=5&s=5&d=2026-11-19')).toBe('Schaffst du auch 5/5?');
+    expect(challenge('?n=5&s=5&d=2026-11-19')).toEqual({
+      score: 5,
+      text: 'Schaffst du auch 5/5?',
+    });
   });
 
   it('stays quiet for another day, which is a different puzzle', () => {

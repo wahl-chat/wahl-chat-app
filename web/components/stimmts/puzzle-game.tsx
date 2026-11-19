@@ -42,7 +42,7 @@ type Props = {
   /** Today's Berlin date: the puzzle's day, and the day answers are saved on. */
   today: string;
   /** The challenge from a shared link, shown above the start screen. */
-  challenge?: string | null;
+  challenge?: { score: number; text: string } | null;
   onOpenDay: (number: number) => void;
 };
 
@@ -214,7 +214,7 @@ function PuzzleGame({
           number={number}
           playDate={today}
           puzzle={puzzle}
-          banner={challenge ? <ShareBanner text={challenge} /> : undefined}
+          banner={challenge ? <ShareBanner {...challenge} /> : undefined}
           onStart={() => {
             // A double tap lands before the screen is gone; count one start.
             if (startCounted.current) {

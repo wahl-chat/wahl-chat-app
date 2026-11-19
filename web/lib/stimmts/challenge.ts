@@ -16,7 +16,7 @@ export function shareChallenge({
   search: string;
   today: string;
   playedToday: boolean;
-}): string | null {
+}): { score: number; text: string } | null {
   if (playedToday) {
     return null;
   }
@@ -28,8 +28,13 @@ export function shareChallenge({
   if (!shared || shared.playDate !== today) {
     return null;
   }
+  const { score } = shared;
   // A perfect score cannot be beaten, only matched.
-  return shared.score === MAX_SCORE
-    ? `Schaffst du auch ${shared.score}/${MAX_SCORE}?`
-    : `Schaffst du mehr als ${shared.score}/${MAX_SCORE}?`;
+  return {
+    score,
+    text:
+      score === MAX_SCORE
+        ? `Schaffst du auch ${score}/${MAX_SCORE}?`
+        : `Schaffst du mehr als ${score}/${MAX_SCORE}?`,
+  };
 }
