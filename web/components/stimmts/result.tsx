@@ -79,11 +79,11 @@ type Props = {
 };
 
 /**
- * The end of the day's puzzle, read top to bottom: when the next one opens,
- * the score and sharing it, how the Bundestag actually voted, and last the
- * stamped Stimmkarte for the player to cast into the urn, with the
- * Wahlperiode the urn fills. Once cast, the card is gone and the urn rises
- * into its place.
+ * The end of the day's puzzle, read top to bottom: the stamped Stimmkarte
+ * for the player to cast into the urn, sharing, how the Bundestag actually
+ * voted, and the Wahlperiode the urn fills. The card leads, so it is on
+ * screen the moment the result opens. Once cast, it is gone, the urn rises
+ * into its place, and the countdown and a score card take over from it.
  */
 function Result({
   number,
@@ -174,79 +174,7 @@ function Result({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col items-center gap-1">
-        <StimmtsLogo className="text-[19px]" />
-        <Countdown size="compact" />
-      </div>
-
-      <section
-        aria-label="Dein Ergebnis"
-        aria-live="polite"
-        className={cn(CARD_SURFACE, 'flex flex-col gap-3 px-4 py-3.5')}
-      >
-        <p className="flex items-baseline justify-between gap-2">
-          <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
-            {score.correct} von {score.total}{' '}
-            <span className="font-sans text-[15px] font-semibold tracking-normal text-[var(--daily-muted)]">
-              richtig
-            </span>
-          </span>
-          <span className="text-[13px] text-[var(--daily-muted)]">
-            {feedDate(playDate)}
-          </span>
-        </p>
-        <ul
-          aria-label="Deine Tipps je Partei"
-          className="grid grid-cols-5 gap-1"
-        >
-          {score.parties.map((entry) => (
-            <li
-              key={entry.partyId}
-              className="flex flex-col items-center gap-1.5"
-            >
-              <PartyTile partyId={entry.partyId} size="sm" />
-              <span className="sr-only">{partyLabel(entry.partyId)}</span>
-              <Verdict
-                correct={entry.correct}
-                className="size-[22px] text-xs"
-              />
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <ShareButton
-        text={buildShareText({
-          puzzleNumber: number,
-          score,
-          title: puzzle.title,
-          url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
-        })}
-        image={{
-          path: shareImagePath('square', {
-            number,
-            score: score.correct,
-            playDate,
-            period: sharedPeriod,
-          }),
-          name: `stimmts-${number}.png`,
-        }}
-        onShared={(method) => trackResultShared('result', method, number)}
-      />
-      {/* Not held back until the cast: the card is cast further down, and
-          the prompt appearing above would shift the page out from under the
-          player. */}
-      <FeedbackPrompt />
-
-      <VoteResultCard puzzle={puzzle} onOpen={onReview} />
-
-      {/* Between the vote and the Stimmkarte: questions come up while the
-          vote is on screen. */}
-      {STIMMTS_CHAT_ENABLED && (
-        <ChatCard puzzle={puzzle} guesses={game.guesses} />
-      )}
-
-      <div className="mt-5 flex flex-col gap-10">
+      <div className="flex flex-col gap-10">
         {!game.cast && (
           // The card's space closes once it is in the urn, so the urn rises
           // into its place instead of jumping.
@@ -295,6 +223,14 @@ function Result({
           </div>
         )}
 
+        {game.cast && (
+          // Once the card, which carries the score, is in the urn.
+          <div className="flex flex-col items-center gap-1">
+            <StimmtsLogo className="text-[19px]" />
+            <Countdown size="compact" />
+          </div>
+        )}
+
         <div className="flex flex-col gap-4">
           {/* While the card waits, the urn sits a little lower, leaving the
               hint room between the two. */}
@@ -327,7 +263,84 @@ function Result({
             </p>
           )}
         </div>
+      </div>
 
+      {game.cast && (
+        // The Stimmkarte showed the score until it went into the urn; from
+        // then on this card keeps it on screen.
+        <section
+          aria-label="Dein Ergebnis"
+          aria-live="polite"
+          className={cn(
+            CARD_SURFACE,
+            'flex flex-col gap-3 px-4 py-3.5',
+            justCast &&
+              'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
+          )}
+        >
+          <p className="flex items-baseline justify-between gap-2">
+            <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
+              {score.correct} von {score.total}{' '}
+              <span className="font-sans text-[15px] font-semibold tracking-normal text-[var(--daily-muted)]">
+                richtig
+              </span>
+            </span>
+            <span className="text-[13px] text-[var(--daily-muted)]">
+              {feedDate(playDate)}
+            </span>
+          </p>
+          <ul
+            aria-label="Deine Tipps je Partei"
+            className="grid grid-cols-5 gap-1"
+          >
+            {score.parties.map((entry) => (
+              <li
+                key={entry.partyId}
+                className="flex flex-col items-center gap-1.5"
+              >
+                <PartyTile partyId={entry.partyId} size="sm" />
+                <span className="sr-only">{partyLabel(entry.partyId)}</span>
+                <Verdict
+                  correct={entry.correct}
+                  className="size-[22px] text-xs"
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <ShareButton
+        text={buildShareText({
+          puzzleNumber: number,
+          score,
+          title: puzzle.title,
+          url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
+        })}
+        image={{
+          path: shareImagePath('square', {
+            number,
+            score: score.correct,
+            playDate,
+            period: sharedPeriod,
+          }),
+          name: `stimmts-${number}.png`,
+        }}
+        onShared={(method) => trackResultShared('result', method, number)}
+      />
+      {/* Shown with the result rather than after the cast: appearing later,
+          it would land mid-page and push the vote card down under the
+          player's eyes. */}
+      <FeedbackPrompt />
+
+      <VoteResultCard puzzle={puzzle} onOpen={onReview} />
+
+      {/* Right under the vote: questions come up while it is on screen. */}
+      {STIMMTS_CHAT_ENABLED && (
+        <ChatCard puzzle={puzzle} guesses={game.guesses} />
+      )}
+
+      <div className="mt-5">
         <div className="relative px-6">
           <PeriodChamber
             seats={periodSeats(period.days, false)}
