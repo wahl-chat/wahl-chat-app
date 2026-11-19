@@ -36,15 +36,19 @@ export function parseStimmtsStatus(data: unknown): StimmtsStatus {
 }
 
 /**
- * The switch read through `read`, which returns the raw doc data. Any failure
- * is off: a page that cannot tell must not advertise a game that may not run.
+ * The switch read through `read`. Any failure is off: a page that cannot tell
+ * must not advertise a game that may not run. The catch sits here, outside
+ * whatever cache wraps `read`, so a failed read is reported and never stored
+ * as an answer.
  */
 export async function readStimmtsStatus(
-  read: () => Promise<unknown>,
+  read: () => Promise<StimmtsStatus>,
+  onError: (error: unknown) => void,
 ): Promise<StimmtsStatus> {
   try {
-    return parseStimmtsStatus(await read());
-  } catch {
+    return await read();
+  } catch (error) {
+    onError(error);
     return { enabled: false };
   }
 }
