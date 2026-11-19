@@ -57,7 +57,7 @@ function Urn({ cards, casting = null, slotRef }: Props) {
     <svg
       viewBox="0 36 240 182"
       aria-hidden
-      className="mx-auto block w-56 overflow-visible text-foreground"
+      className="mx-auto block w-56 overflow-visible text-[var(--daily-ink)]"
     >
       {/* Shifted so the box, perspective included, is centred on the page,
           and the slot sits right under the card's line of flight. */}
@@ -101,7 +101,7 @@ function Urn({ cards, casting = null, slotRef }: Props) {
                   rx={3}
                   transform={`rotate(${angle})`}
                   strokeWidth={1.5}
-                  className="fill-foreground stroke-background"
+                  className="fill-[var(--daily-ink)] stroke-[var(--daily-canvas)]"
                 />
               </g>
             </g>
@@ -114,7 +114,7 @@ function Urn({ cards, casting = null, slotRef }: Props) {
           strokeWidth={3}
           strokeLinejoin="round"
           strokeLinecap="round"
-          className="stroke-foreground"
+          className="stroke-[var(--daily-ink)]"
         />
         {casting === 'inserting' && (
           // The cast card slides down through the slot; the lid hides the
@@ -133,7 +133,7 @@ function Urn({ cards, casting = null, slotRef }: Props) {
                 height={26}
                 rx={3}
                 strokeWidth={1.5}
-                className="animate-stimmts-insert fill-foreground stroke-background"
+                className="animate-stimmts-insert fill-[var(--daily-ink)] stroke-[var(--daily-canvas)]"
               />
             </g>
           </>
@@ -142,7 +142,7 @@ function Urn({ cards, casting = null, slotRef }: Props) {
         <polygon
           ref={slotRef}
           points="110,57.5 114,53.5 160,53.5 156,57.5"
-          className="fill-foreground"
+          className="fill-[var(--daily-ink)]"
         />
       </g>
     </svg>

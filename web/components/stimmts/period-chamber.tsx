@@ -121,7 +121,7 @@ function PeriodChamber({
                 seat.kind === 'played' &&
                   (isToday ? 'stroke-brand-red' : 'stroke-transparent'),
                 openable &&
-                  'group-hover/seat:opacity-80 group-focus-visible/seat:stroke-ring',
+                  'group-hover/seat:opacity-80 group-focus-visible/seat:stroke-[var(--daily-ink)]',
               )}
             />
           </g>

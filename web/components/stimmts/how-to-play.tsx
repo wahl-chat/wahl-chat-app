@@ -7,6 +7,7 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogTrigger,
 } from '@/components/chat/responsive-drawer-dialog';
+import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import { STIMMTS_FONT_CLASSES } from '@/lib/stimmts/fonts';
 import { cn } from '@/lib/utils';
 import { CircleHelp } from 'lucide-react';
@@ -70,18 +71,25 @@ function HowToPlay({ autoOpen }: Props) {
       <ResponsiveDialogTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-1.5 self-center text-sm text-muted-foreground underline-offset-[3px] hover:underline"
+          className="flex items-center gap-1.5 self-center text-sm text-[var(--daily-muted)] underline-offset-[3px] hover:underline"
         >
           <CircleHelp aria-hidden className="size-4" />
           So funktioniert’s
         </button>
       </ResponsiveDialogTrigger>
-      <ResponsiveDialogContent className={cn(STIMMTS_FONT_CLASSES, 'pb-6')}>
+      {/* A portal leaves the page's theme behind, so the dialog sets it again. */}
+      <ResponsiveDialogContent
+        className={cn(
+          DAILY_THEME_CLASSES,
+          STIMMTS_FONT_CLASSES,
+          'border-[var(--daily-border)] bg-[var(--daily-canvas)] pb-6',
+        )}
+      >
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle className="font-display text-2xl font-extrabold tracking-[-0.02em]">
             So funktioniert’s
           </ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>
+          <ResponsiveDialogDescription className="text-[var(--daily-muted)]">
             Wie haben die Parteien im Bundestag abgestimmt?
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>

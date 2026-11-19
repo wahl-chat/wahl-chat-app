@@ -65,7 +65,7 @@ function Reveal({
             >
               Auflösen
             </PillButton>
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-sm text-[var(--daily-muted)]">
               Oder tippe auf eine Partei.
             </p>
           </>

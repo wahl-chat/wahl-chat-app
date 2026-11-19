@@ -6,8 +6,10 @@ import {
   shouldAskForFeedback,
 } from '@/lib/stimmts/feedback';
 import { useProgress } from '@/lib/stimmts/use-progress';
+import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { OUTLINE_BUTTON } from './pill-button';
 
 // Not the key of the earlier star rating, so a player who was asked that is
 // still asked this.
@@ -91,7 +93,7 @@ function FeedbackPrompt() {
   return (
     <section
       aria-labelledby="stimmts-feedback"
-      className="flex w-full flex-col items-center gap-3 rounded-lg border bg-card p-4 text-center"
+      className="flex w-full flex-col items-center gap-3 rounded-lg border border-[var(--daily-border)] bg-[var(--daily-canvas)] p-4 text-center"
     >
       <div className="flex w-full items-start justify-between gap-3">
         <span aria-hidden className="size-8 shrink-0" />
@@ -105,13 +107,13 @@ function FeedbackPrompt() {
           type="button"
           onClick={close}
           aria-label="Schließen"
-          className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="grid size-8 shrink-0 place-items-center rounded-md text-[var(--daily-muted)] hover:text-[var(--daily-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--daily-ink)]"
         >
           <X aria-hidden className="size-4" />
         </button>
       </div>
       {answered ? (
-        <p role="status" className="text-sm text-muted-foreground">
+        <p role="status" className="text-sm text-[var(--daily-muted)]">
           Deine Antwort hilft uns, zu entscheiden, was wir als Nächstes bauen.
         </p>
       ) : (
@@ -119,7 +121,7 @@ function FeedbackPrompt() {
           <Button
             size="lg"
             variant="outline"
-            className="flex-1 px-4"
+            className={cn(OUTLINE_BUTTON, 'flex-1 px-4')}
             onClick={() => answer('yes')}
           >
             Ja, gern
@@ -127,7 +129,7 @@ function FeedbackPrompt() {
           <Button
             size="lg"
             variant="outline"
-            className="flex-1 px-4"
+            className={cn(OUTLINE_BUTTON, 'flex-1 px-4')}
             onClick={() => answer('no')}
           >
             Eher nicht

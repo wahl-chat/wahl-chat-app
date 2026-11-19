@@ -32,14 +32,14 @@ const FLIP_SPREAD_MS = 650;
 // their prediction against reality without reading.
 const SEAT_CLASSES: Record<SeatLook, string> = {
   pending: 'fill-seat-pending stroke-transparent',
-  active: 'fill-muted-foreground stroke-transparent',
-  'guess-yes': 'fill-background stroke-seat-yes',
-  'guess-no': 'fill-background stroke-seat-no',
-  'guess-abstain': 'fill-background stroke-seat-abstain',
+  active: 'fill-[var(--daily-muted)] stroke-transparent',
+  'guess-yes': 'fill-[var(--daily-canvas)] stroke-seat-yes',
+  'guess-no': 'fill-[var(--daily-canvas)] stroke-seat-no',
+  'guess-abstain': 'fill-[var(--daily-canvas)] stroke-seat-abstain',
   yes: 'fill-seat-yes stroke-transparent',
   no: 'fill-seat-no stroke-transparent',
   abstain: 'fill-seat-abstain stroke-transparent',
-  absent: 'fill-background stroke-seat-absent-ring',
+  absent: 'fill-[var(--daily-canvas)] stroke-seat-absent-ring',
   unaffiliated: 'fill-seat-unaffiliated stroke-transparent',
 };
 
@@ -132,11 +132,11 @@ function Hemicycle({
         <text
           y={-0.1}
           fontSize={0.13}
-          className="fill-foreground font-display font-extrabold"
+          className="fill-[var(--daily-ink)] font-display font-extrabold"
         >
           {center.big}
         </text>
-        <text y={-0.01} fontSize={0.075} className="fill-muted-foreground">
+        <text y={-0.01} fontSize={0.075} className="fill-[var(--daily-muted)]">
           {center.small}
         </text>
       </g>
@@ -213,7 +213,7 @@ function PartyMarker({ band, state, onClick }: MarkerProps) {
         height={fixed(TILE_HEIGHT + 0.04)}
         rx={0.05}
         strokeWidth={0.012}
-        className="fill-none stroke-transparent group-data-[active=true]:stroke-foreground"
+        className="fill-none stroke-transparent group-data-[active=true]:stroke-[var(--daily-ink)]"
       />
       <rect
         x={fixed(x)}

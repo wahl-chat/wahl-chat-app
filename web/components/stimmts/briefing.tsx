@@ -91,7 +91,7 @@ function PlainBriefing({
           <p className="text-sm font-medium">
             Namentliche Abstimmung im Bundestag
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[var(--daily-muted)]">
             {weekdayName(puzzle.voteDate)}, {formatDate(puzzle.voteDate)} ·{' '}
             {timeAgo(puzzle.voteDate, playDate)}
           </p>

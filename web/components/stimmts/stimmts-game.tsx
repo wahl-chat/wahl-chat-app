@@ -23,6 +23,7 @@ import ClosingScreen from './closing-screen';
 import Countdown from './countdown';
 import NewDayNotice from './new-day-notice';
 import PastPuzzle from './past-puzzle';
+import { OUTLINE_BUTTON } from './pill-button';
 import PillButton from './pill-button';
 import PuzzleGame from './puzzle-game';
 import StatusScreen, { LoadingScreen } from './status-screen';
@@ -56,17 +57,27 @@ function PreviewBar({ day, puzzleId }: { day: number; puzzleId?: string }) {
   };
 
   return (
-    <div className="mt-6 flex flex-col gap-2 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+    <div className="mt-6 flex flex-col gap-2 rounded-md border border-dashed border-[var(--daily-border)] p-3 text-xs text-[var(--daily-muted)]">
       <span>
         Vorschau-Modus · Tag {day} · mit ?day=N einen anderen Tag öffnen
       </span>
       <div className="flex flex-wrap gap-2">
         {puzzleId && (
-          <Button size="sm" variant="outline" onClick={resetPuzzle}>
+          <Button
+            size="sm"
+            variant="outline"
+            className={OUTLINE_BUTTON}
+            onClick={resetPuzzle}
+          >
             Dieses Quiz zurücksetzen
           </Button>
         )}
-        <Button size="sm" variant="outline" onClick={resetEverything}>
+        <Button
+          size="sm"
+          variant="outline"
+          className={OUTLINE_BUTTON}
+          onClick={resetEverything}
+        >
           Alles zurücksetzen
         </Button>
       </div>
