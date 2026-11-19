@@ -53,7 +53,7 @@ function PastPuzzle({ number, playDate, puzzle, guesses, onBack }: Props) {
       />
       {!guesses && (
         <p className="text-center text-sm text-muted-foreground">
-          Dieses Rätsel hast du verpasst.
+          Dieses Quiz hast du verpasst.
         </p>
       )}
       <BriefingSheet puzzle={puzzle} playDate={playDate} />

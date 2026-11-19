@@ -43,7 +43,7 @@ function Stimmkarte({
   ref,
 }: Props) {
   const scored = score !== undefined;
-  const label = `Stimmkarte, Tagesrätsel Nummer ${number} vom ${formatDate(playDate)}${
+  const label = `Stimmkarte, Tagesquiz Nummer ${number} vom ${formatDate(playDate)}${
     scored ? `, ${score} von ${MAX_SCORE} richtig` : ''
   }`;
   // On the briefing the title is the page's heading; on the result the card

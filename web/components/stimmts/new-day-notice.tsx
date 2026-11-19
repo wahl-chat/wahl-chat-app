@@ -43,10 +43,10 @@ function NewDayNotice({ puzzleId }: { puzzleId: string }) {
       className="mt-6 flex items-start gap-3 rounded-lg border bg-card p-4 text-sm"
     >
       <p className="flex-1">
-        <span className="font-semibold">Neuer Tag, neues Rätsel.</span>{' '}
+        <span className="font-semibold">Neuer Tag, neues Quiz.</span>{' '}
         {notice.leftOpen
-          ? 'Das Rätsel von gestern ist um Mitternacht abgelaufen, deine angefangenen Tipps zählen leider nicht.'
-          : 'Das Rätsel von gestern ist um Mitternacht zu Ende gegangen.'}
+          ? 'Das Quiz von gestern ist um Mitternacht abgelaufen, deine angefangenen Tipps zählen leider nicht.'
+          : 'Das Quiz von gestern ist um Mitternacht zu Ende gegangen.'}
       </p>
       <button
         type="button"

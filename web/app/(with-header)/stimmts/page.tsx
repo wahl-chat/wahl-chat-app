@@ -11,7 +11,7 @@ import {
 import type { Metadata } from 'next';
 
 const DESCRIPTION =
-  'Das tägliche Rätsel von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?';
+  'Das tägliche Quiz von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?';
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -41,7 +41,7 @@ export async function generateMetadata({
   const image = {
     url: shareImagePath('link', result),
     ...SHARE_FORMATS.link,
-    alt: "Stimmt's?, das tägliche Rätsel von wahl.chat",
+    alt: "Stimmt's?, das tägliche Quiz von wahl.chat",
   };
 
   return {

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
  * Counts down to the next Berlin midnight, when the next puzzle opens: above
  * the urn once today's card is in, and on the eve of the launch.
  */
-function Countdown({ label = 'Nächstes Rätsel in' }: { label?: string }) {
+function Countdown({ label = 'Nächstes Quiz in' }: { label?: string }) {
   const [remaining, setRemaining] = useState(
     () => countdownTarget(new Date(), null) - Date.now(),
   );

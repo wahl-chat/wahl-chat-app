@@ -35,7 +35,7 @@ function ClosingScreen({ days, onOpenDay }: Props) {
   return (
     <StatusScreen
       title="Die Wahlperiode ist vorbei"
-      text={`Alle ${last} Rätsel dieser Runde sind gelaufen. Mehr Rätsel sind in Arbeit. Bleib dran!`}
+      text={`Alle ${last} Quizze dieser Runde sind gelaufen. Weitere Quizze sind in Arbeit. Bleib dran!`}
     >
       {summary.played > 0 && (
         <div className="flex w-full flex-col items-center gap-8">

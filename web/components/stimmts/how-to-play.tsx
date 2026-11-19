@@ -19,7 +19,7 @@ const STEPS = [
   'Jeden Tag eine echte namentliche Abstimmung des aktuellen Bundestags (seit 2025). Sie kann auch schon ein paar Monate zurückliegen.',
   'Tippe für jede Fraktion: Ja, Nein oder Enthaltung, so wie die Mehrheit der Fraktion abgestimmt hat.',
   'Dann siehst du, wie wirklich abgestimmt wurde und wie viele deiner Tipps stimmen.',
-  'Um Mitternacht kommt das nächste Rätsel. 30 Tage sind eine Wahlperiode.',
+  'Um Mitternacht kommt das nächste Quiz. 30 Tage sind eine Wahlperiode.',
 ];
 
 // Only a convenience: without storage the intro simply shows again.
