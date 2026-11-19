@@ -33,7 +33,7 @@ def test_prompt_rules_present() -> None:
     assert "Never speak as a party" in prompt
     assert "wrong premise" in prompt
     assert "(nicht im Bundestag)" in prompt
-    assert "preferred_outlet=false" in prompt and "not among the outlets wahl.chat prefers" in prompt
+    assert "preferred_outlet=false" in prompt and "add no note about preferred outlets" in prompt
     assert "Never cite the wahl.chat feed summaries" in prompt
     assert "query it in German" in prompt
     assert "Ids start at 0" in prompt

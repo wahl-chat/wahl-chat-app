@@ -40,6 +40,8 @@ export type Source = {
   // Leading excerpt of the cited chunk — the PDF viewer's highlight anchor.
   // Absent on votes, Perplexity sources, and messages persisted before it shipped.
   snippet?: string;
+  // False for a web result from outside wahl.chat's preferred outlets.
+  preferred_outlet?: boolean;
 };
 
 /** One `tool_status` line of the general chat's agent. */
