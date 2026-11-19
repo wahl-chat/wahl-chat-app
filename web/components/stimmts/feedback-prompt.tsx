@@ -1,22 +1,26 @@
-import '@fillout/react/style.css';
+import { useStudyRunning } from '@/components/providers/study-status-provider';
 import { Button } from '@/components/ui/button';
-import { trackRated, trackRatingDismissed } from '@/lib/stimmts/analytics';
+import { type MoreGamesAnswer, trackMoreGames } from '@/lib/stimmts/analytics';
 import {
-  STIMMTS_FEEDBACK_FORM_ID,
   finishedGameCount,
   shouldAskForFeedback,
 } from '@/lib/stimmts/feedback';
 import { useProgress } from '@/lib/stimmts/use-progress';
-import { cn } from '@/lib/utils';
-import { FilloutPopupEmbed } from '@fillout/react';
-import { Star, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
-const ASKED_KEY = 'stimmts:feedback-asked';
-const STARS = [1, 2, 3, 4, 5];
+// Not the key of the earlier star rating, so a player who was asked that is
+// still asked this.
+const ASKED_KEY = 'stimmts:more-games-asked';
 
-// Only a convenience: without storage a player may be asked once more.
+// Without storage the flag below still keeps another day's result from asking
+// again in the same visit; only a reload may ask once more.
+let askedThisSession = false;
+
 function wasAsked(): boolean {
+  if (askedThisSession) {
+    return true;
+  }
   try {
     return window.localStorage.getItem(ASKED_KEY) === '1';
   } catch {
@@ -25,45 +29,62 @@ function wasAsked(): boolean {
 }
 
 function markAsked() {
+  askedThisSession = true;
   try {
     window.localStorage.setItem(ASKED_KEY, '1');
   } catch {
-    // Nothing to remember it in.
+    // Nothing to remember it in beyond this visit.
   }
 }
 
 /**
- * Asks once, after the fifth finished puzzle, how players like the game: a
- * single tap on a star, because a written form is mostly closed unread. Only
- * then is there an offer to say more. A rating or a close both count as
- * asked, so the card never returns.
+ * Asks once, after the first finished puzzle, whether we should make more
+ * small games. It asks about the format only, never about the vote or its
+ * topic, so the card names no bill. An answer or a close both count as asked,
+ * so the card never returns. While the PledgeTracker study runs, its
+ * questionnaire is the only thing anyone is asked for, so the card stays away.
  */
 function FeedbackPrompt() {
+  const studyRunning = useStudyRunning();
   const progress = useProgress((state) => state.progress);
   // Unknown until mounted, so it never flashes up for someone already asked.
   const [asked, setAsked] = useState(true);
-  const [rating, setRating] = useState<number | null>(null);
-  const [hovered, setHovered] = useState<number | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
+  const [answered, setAnswered] = useState(false);
   const [closed, setClosed] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => setAsked(wasAsked()), []);
+  // The answer buttons unmount on an answer; without this, focus falls back
+  // to the page and a keyboard user loses their place.
+  useEffect(() => {
+    if (answered) {
+      closeRef.current?.focus();
+    }
+  }, [answered]);
 
   const games = finishedGameCount(progress);
-  // A rating keeps the card (now a thank-you) until it is closed.
-  if (closed || (rating === null && !shouldAskForFeedback(progress, asked))) {
+  // Only a study status known to be off lets the card show: "not known yet"
+  // could still turn out to be on. The game itself needs Firestore, so a
+  // player who cannot reach it is not losing a question they could answer.
+  const studyKnownOff = studyRunning === false;
+  // An answer keeps the card (now a thank-you) until it is closed.
+  if (
+    !studyKnownOff ||
+    closed ||
+    (!answered && !shouldAskForFeedback(progress, asked))
+  ) {
     return null;
   }
 
-  const rate = (stars: number) => {
+  const answer = (value: Exclude<MoreGamesAnswer, 'dismissed'>) => {
     markAsked();
-    setRating(stars);
-    trackRated(stars, games);
+    setAnswered(true);
+    trackMoreGames(value, games);
   };
   const close = () => {
     markAsked();
     setClosed(true);
-    if (rating === null) {
-      trackRatingDismissed(games);
+    if (!answered) {
+      trackMoreGames('dismissed', games);
     }
   };
 
@@ -73,66 +94,45 @@ function FeedbackPrompt() {
       className="flex w-full flex-col items-center gap-3 rounded-lg border bg-card p-4 text-center"
     >
       <div className="flex w-full items-start justify-between gap-3">
-        <span aria-hidden className="size-4" />
-        <h2 id="stimmts-feedback" className="font-semibold">
-          {rating === null ? 'Wie gefällt dir Stimmt’s?' : 'Danke dir!'}
+        <span aria-hidden className="size-8 shrink-0" />
+        <h2 id="stimmts-feedback" className="text-balance pt-1 font-semibold">
+          {answered
+            ? 'Danke dir!'
+            : 'Stimmt’s? ist neu. Sollen wir mehr kleine Spiele machen?'}
         </h2>
         <button
+          ref={closeRef}
           type="button"
           onClick={close}
-          aria-label={rating === null ? 'Nicht jetzt' : 'Schließen'}
-          className="text-muted-foreground hover:text-foreground"
+          aria-label="Schließen"
+          className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X aria-hidden className="size-4" />
         </button>
       </div>
-      {rating === null ? (
-        <div
-          role="group"
-          aria-label="Bewertung"
-          className="flex gap-1"
-          onMouseLeave={() => setHovered(null)}
-        >
-          {STARS.map((stars) => (
-            <button
-              key={stars}
-              type="button"
-              onClick={() => rate(stars)}
-              onMouseEnter={() => setHovered(stars)}
-              onFocus={() => setHovered(stars)}
-              onBlur={() => setHovered(null)}
-              aria-label={stars === 1 ? '1 Stern' : `${stars} Sterne`}
-              className="rounded-md p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Star
-                aria-hidden
-                strokeWidth={1.75}
-                className={cn(
-                  'size-8 transition-colors',
-                  hovered !== null && stars <= hovered
-                    ? 'fill-foreground text-foreground'
-                    : 'text-muted-foreground',
-                )}
-              />
-            </button>
-          ))}
-        </div>
-      ) : (
+      {answered ? (
         <p role="status" className="text-sm text-muted-foreground">
-          Deine Bewertung hilft uns, das Spiel besser zu machen.
+          Deine Antwort hilft uns, zu entscheiden, was wir als Nächstes bauen.
         </p>
-      )}
-      {rating !== null && STIMMTS_FEEDBACK_FORM_ID !== '' && (
-        <Button size="sm" variant="outline" onClick={() => setFormOpen(true)}>
-          Magst du uns mehr erzählen?
-        </Button>
-      )}
-      {formOpen && (
-        <FilloutPopupEmbed
-          filloutId={STIMMTS_FEEDBACK_FORM_ID}
-          onClose={() => setFormOpen(false)}
-          parameters={{ rating: String(rating), games: String(games) }}
-        />
+      ) : (
+        <div className="flex w-full max-w-xs gap-2">
+          <Button
+            size="lg"
+            variant="outline"
+            className="flex-1 px-4"
+            onClick={() => answer('yes')}
+          >
+            Ja, gern
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="flex-1 px-4"
+            onClick={() => answer('no')}
+          >
+            Eher nicht
+          </Button>
+        </div>
       )}
     </section>
   );

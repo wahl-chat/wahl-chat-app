@@ -16,14 +16,14 @@ export function trackPuzzleCompleted(day: number, score: number) {
   track('stimmts_puzzle_completed', { day, score });
 }
 
-/** The one-tap rating, 1 to 5 stars, after the fifth finished puzzle. */
-export function trackRated(stars: number, games: number) {
-  track('stimmts_rated', { stars, games });
-}
+export type MoreGamesAnswer = 'yes' | 'no' | 'dismissed';
 
-/** Closing the rating card without a rating, so skips can be counted too. */
-export function trackRatingDismissed(games: number) {
-  track('stimmts_rating_dismissed', { games });
+/**
+ * Whether players want more small games, asked once after the first finished
+ * puzzle. A close without an answer is 'dismissed', so skips count too.
+ */
+export function trackMoreGames(answer: MoreGamesAnswer, games: number) {
+  track('stimmts_more_games', { answer, games });
 }
 
 export type ShareMethod = 'share' | 'copy';
