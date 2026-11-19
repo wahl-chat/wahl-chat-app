@@ -86,6 +86,17 @@ The dropped puzzle can stay in `puzzles.json` as a spare.
 4. Add its id to `schedule.json` (or leave it out as a spare).
 5. Run the checks and commit.
 
+## Topics
+
+The `topic` is a short German word, like `Energie` or `Migration`. The game
+shows it with the feed's coloured topic dot. The feed has fewer, broader
+topics, so `web/lib/stimmts/topic.ts` maps each word to one of them
+(`Energie` to climate, `Verteidigung` to foreign policy, and so on).
+
+Reuse a word that is already mapped where you can. A new word needs a new
+line in that map, or the checks fail: without it, the puzzle would have no
+dot.
+
 ## Key points
 
 The briefing card shows three bullets before the long `briefing`. Players
@@ -130,8 +141,9 @@ cd web && bun test lib/stimmts
 
 The tests load the real content through the validator and fail on a puzzle
 that breaks the contract: an answer the counts do not support, parties missing
-or out of order, seats that do not add up to all 630 members, unknown or
-duplicate ids in the schedule.
+or out of order, seats that do not add up to all 630 members, a topic word
+with no feed topic, key points that break the rules, unknown or duplicate ids
+in the schedule.
 
 To see a puzzle as players will, run `bun run dev` in `web/` and open
 `http://localhost:3000/stimmts?day=N`. Locally, preview mode is always on, and

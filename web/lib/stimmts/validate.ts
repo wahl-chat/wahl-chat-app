@@ -2,6 +2,7 @@ import { safeExternalUrl } from '@/lib/pledge-tracker/pledges';
 import { isIsoDate } from './berlin-time';
 import { hasBalancedEmphasis, stripEmphasis } from './emphasis';
 import { SEATING_ORDER } from './parties';
+import { feedTopicFor } from './topic';
 import type {
   BillDocument,
   DocumentSubmitter,
@@ -158,6 +159,17 @@ function readDocument(value: unknown, id: string): BillDocument {
   };
 }
 
+function readTopic(record: Json, id: string): string {
+  const topic = readString(record, 'topic', id);
+  if (feedTopicFor(topic) === undefined) {
+    return fail(
+      id,
+      `topic "${topic}" has no feed topic; add it to topic.ts so it gets its dot`,
+    );
+  }
+  return topic;
+}
+
 function countWords(text: string): number {
   return stripEmphasis(text).split(/\s+/).filter(Boolean).length;
 }
@@ -251,7 +263,7 @@ export function validatePuzzle(data: unknown): Puzzle {
   return {
     id,
     voteDate: readDate(data, 'voteDate', id),
-    topic: readString(data, 'topic', id),
+    topic: readTopic(data, id),
     title: readString(data, 'title', id),
     briefing: readString(data, 'briefing', id),
     ...(data.keyPoints === undefined

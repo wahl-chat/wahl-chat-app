@@ -99,6 +99,12 @@ describe('validatePuzzle', () => {
     expect(() => validatePuzzle(badDate)).toThrow('voteDate');
   });
 
+  it('rejects a topic word with no feed topic, so it keeps its dot', () => {
+    const puzzle = firstPuzzle();
+    puzzle.topic = 'Raumfahrt';
+    expect(() => validatePuzzle(puzzle)).toThrow('topic.ts');
+  });
+
   it('names the offending puzzle in the error', () => {
     const puzzle = firstPuzzle();
     puzzle.title = '';
