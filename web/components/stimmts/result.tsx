@@ -1,6 +1,7 @@
 import { CARD_SURFACE } from '@/components/daily/card-styles';
 import { BASE_URL } from '@/lib/seo';
 import { trackResultShared } from '@/lib/stimmts/analytics';
+import { STIMMTS_CHAT_ENABLED } from '@/lib/stimmts/chat-chips';
 import { PUZZLES } from '@/lib/stimmts/content';
 import { feedDate, partyLabel } from '@/lib/stimmts/labels';
 import { periodSeats } from '@/lib/stimmts/logo';
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { Pointer } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ChatCard from './chat-card';
 import Countdown from './countdown';
 import FeedbackPrompt from './feedback-prompt';
 import PartyTile from './party-tile';
@@ -229,8 +231,11 @@ function Result({
 
       <VoteResultCard puzzle={puzzle} onOpen={onReview} />
 
-      {/* The card that takes the day's vote into the chat goes here, between
-          the vote and the Stimmkarte. */}
+      {/* Between the vote and the Stimmkarte: questions come up while the
+          vote is on screen. */}
+      {STIMMTS_CHAT_ENABLED && (
+        <ChatCard puzzle={puzzle} guesses={game.guesses} />
+      )}
 
       <div className="mt-5 flex flex-col gap-10">
         {!game.cast && (
