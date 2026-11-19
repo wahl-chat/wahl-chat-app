@@ -49,7 +49,7 @@ const markHeight = (width: number) => Math.round((width * 1.2) / 2.2);
  */
 export const SHARE_IMAGE_TEXT = [
   "Stimmt's?’ STIMMKARTE Nr. von richtig getippt Abgestimmt Tag",
-  'Schaffst du mehr? Jeden Tag ein neues Rätsel. wahl.chat/stimmts',
+  'Schaffst du mehr? Jeden Tag ein neues Quiz. wahl.chat/stimmts',
   QUESTION,
   WEEKDAYS.map((day) => day.slice(0, 2)).join(' '),
   '0123456789 .',
@@ -433,7 +433,7 @@ function ShareImage({ format, result }: ShareImageData) {
         }}
       >
         <span style={{ ...display, fontSize: s.cta, letterSpacing: -1.5 }}>
-          {result ? 'Schaffst du mehr?' : 'Jeden Tag ein neues Rätsel.'}
+          {result ? 'Schaffst du mehr?' : 'Jeden Tag ein neues Quiz.'}
         </span>
         <span style={{ fontSize: s.url, color: C.muted }}>
           wahl.chat/stimmts

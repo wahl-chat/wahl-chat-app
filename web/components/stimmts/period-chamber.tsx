@@ -96,7 +96,7 @@ function PeriodChamber({
               ? {
                   role: 'button',
                   tabIndex: 0,
-                  'aria-label': `${label}. Rätsel ansehen`,
+                  'aria-label': `${label}. Quiz ansehen`,
                   onClick: open,
                   onKeyDown,
                 }

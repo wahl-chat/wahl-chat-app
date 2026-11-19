@@ -74,7 +74,7 @@ describe('buildClosingShareText', () => {
       [
         "Stimmt's? · 24 von 30 Tagen gespielt · 97/120 richtig",
         '',
-        'Das Rätsel von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
+        'Das Quiz von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
         'https://wahl.chat/stimmts',
       ].join('\n'),
     );

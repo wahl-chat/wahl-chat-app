@@ -63,7 +63,7 @@ function PreviewBar({ day, puzzleId }: { day: number; puzzleId?: string }) {
       <div className="flex flex-wrap gap-2">
         {puzzleId && (
           <Button size="sm" variant="outline" onClick={resetPuzzle}>
-            Dieses Rätsel zurücksetzen
+            Dieses Quiz zurücksetzen
           </Button>
         )}
         <Button size="sm" variant="outline" onClick={resetEverything}>
@@ -176,7 +176,7 @@ function StimmtsGame({ previewEnabled }: Props) {
     return (
       <StatusScreen
         title="Kommt bald"
-        text={`Das tägliche Rätsel von wahl.chat: ${QUESTION} Schau bald wieder vorbei.`}
+        text={`Das tägliche Quiz von wahl.chat: ${QUESTION} Schau bald wieder vorbei.`}
       />
     );
   }
@@ -231,7 +231,7 @@ function StimmtsGame({ previewEnabled }: Props) {
       {today.status === 'not-started' && (
         <StatusScreen
           title="Bald geht’s los"
-          text={`Stimmt’s? startet am ${weekdayName(today.startsOn)}, ${formatDate(today.startsOn)}. Ab dann jeden Tag ein neues Rätsel: ${QUESTION}`}
+          text={`Stimmt’s? startet am ${weekdayName(today.startsOn)}, ${formatDate(today.startsOn)}. Ab dann jeden Tag ein neues Quiz: ${QUESTION}`}
         >
           {today.startsOn === addDays(berlinDate(clock.now), 1) && (
             <Countdown label="Stimmt’s? startet in" />

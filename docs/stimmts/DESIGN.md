@@ -46,7 +46,7 @@ Wahlperiode, starting on the launch date.
 6. **After the first finished puzzle,** once: whether we should make more
    small games („Ja, gern" / „Eher nicht").
 7. **After the last day,** a closing screen: the player's Wahlperiode, how many
-   days they played and how many tips were right, and "Mehr Rätsel sind in
+   days they played and how many tips were right, and "Weitere Quizze sind in
    Arbeit. Bleib dran!"
 
 ## Screens and states
@@ -78,11 +78,11 @@ stateDiagram-v2
 | Off | "Kommt bald" | switch off, doc missing, or a malformed launch date |
 | Not started | "Bald geht's los", the date; a countdown on the eve | before the launch date |
 | Briefing, Answering, Reveal, Result | the game | from the launch date to the last day |
-| Closing | the Wahlperiode, the numbers, "Mehr Rätsel sind in Arbeit" | after the last day |
+| Closing | the Wahlperiode, the numbers, "Weitere Quizze sind in Arbeit" | after the last day |
 
 A page left open past midnight moves to the new day by itself, also when a
 sleeping phone or a frozen tab held the timer back, and says so in a short
-notice ("Neuer Tag, neues Rätsel"), adding that unfinished tips no longer
+notice ("Neuer Tag, neues Quiz"), adding that unfinished tips no longer
 count.
 
 ## Decisions and why

@@ -44,7 +44,7 @@ export function buildClosingShareText({
   return [
     `Stimmt's? · ${summary.played} von ${days} Tagen gespielt · ${summary.correct}/${summary.possible} richtig`,
     '',
-    'Das Rätsel von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
+    'Das Quiz von wahl.chat: Wie haben die Parteien im Bundestag abgestimmt?',
     url,
   ].join('\n');
 }
