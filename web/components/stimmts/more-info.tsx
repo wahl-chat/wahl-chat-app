@@ -20,6 +20,8 @@ const DD = 'mt-0.5 text-[15px] leading-[22px] text-[var(--daily-body)]';
 type Props = {
   id: string;
   puzzle: Puzzle;
+  /** The front shows the briefing paragraph (a puzzle without key points). */
+  briefingOnFront: boolean;
   /** Hidden while the card shows its front; kept in the DOM for aria-controls. */
   hidden: boolean;
   headingRef: Ref<HTMLHeadingElement>;
@@ -42,7 +44,14 @@ function documentKind(document: BillDocument): string {
  * the card, so the way back sits on top there and at the end on a phone,
  * where the player has just scrolled through it.
  */
-function MoreInfo({ id, puzzle, hidden, headingRef, onClose }: Props) {
+function MoreInfo({
+  id,
+  puzzle,
+  briefingOnFront,
+  hidden,
+  headingRef,
+  onClose,
+}: Props) {
   const { document } = puzzle;
   return (
     <div
@@ -75,9 +84,14 @@ function MoreInfo({ id, puzzle, hidden, headingRef, onClose }: Props) {
           ? `Drucksache ${document.number} vom ${formatDate(document.date)}`
           : `Namentliche Abstimmung vom ${formatDate(puzzle.voteDate)}`}
       </h3>
+      {/* Below md the front stays open above, so a front that already shows
+          the briefing must not show it twice; from md up the front is gone. */}
       <p
         lang="de"
-        className="hyphens-auto text-[15px] leading-[22px] text-[var(--daily-body)]"
+        className={cn(
+          'hyphens-auto text-[15px] leading-[22px] text-[var(--daily-body)]',
+          briefingOnFront && 'hidden md:block',
+        )}
       >
         {puzzle.briefing}
       </p>

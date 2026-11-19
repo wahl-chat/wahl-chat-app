@@ -203,6 +203,7 @@ function BriefingCard({ puzzle }: { puzzle: Puzzle }) {
       <MoreInfo
         id={moreId}
         puzzle={puzzle}
+        briefingOnFront={front.kind === 'briefing'}
         hidden={!open}
         headingRef={moreHeading}
         onClose={() => setOpenFromUser(false)}

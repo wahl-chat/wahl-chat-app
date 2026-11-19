@@ -22,6 +22,11 @@ export function keyPointSourceLabel(source: KeyPointSource): string {
   return `${source.document} · S. ${source.page}`;
 }
 
-export function keyPointSourceAria(source: KeyPointSource): string {
-  return `Quelle: Drucksache ${source.document}, Seite ${source.page}`;
+/**
+ * Read after the chip's own label, never instead of it: the accessible name
+ * has to start with the visible text so voice control finds the chip by
+ * what it shows.
+ */
+export function keyPointSourceContext(source: KeyPointSource): string {
+  return `, Quelle: Drucksache ${source.document}, Seite ${source.page}`;
 }

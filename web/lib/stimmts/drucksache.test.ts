@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { PUZZLES } from './content';
 import {
   drucksachePdfUrl,
-  keyPointSourceAria,
+  keyPointSourceContext,
   keyPointSourceLabel,
   keyPointSourceUrl,
 } from './drucksache';
@@ -50,9 +50,15 @@ describe('key point source', () => {
     );
   });
 
-  it('spells the source out for screen readers', () => {
-    expect(keyPointSourceAria({ document: '21/8157', page: 4 })).toBe(
-      'Quelle: Drucksache 21/8157, Seite 4',
+  it('spells the source out for screen readers after the chip label', () => {
+    const source = { document: '21/8157', page: 4 };
+    expect(keyPointSourceContext(source)).toBe(
+      ', Quelle: Drucksache 21/8157, Seite 4',
     );
+    // The accessible name must start with what the chip shows, so voice
+    // control can target it by its visible text.
+    expect(
+      `${keyPointSourceLabel(source)}${keyPointSourceContext(source)}`,
+    ).toStartWith(keyPointSourceLabel(source));
   });
 });

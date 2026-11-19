@@ -1,6 +1,6 @@
 import { FOCUS_RING, SECTION_LABEL } from '@/components/daily/card-styles';
 import {
-  keyPointSourceAria,
+  keyPointSourceContext,
   keyPointSourceLabel,
   keyPointSourceUrl,
 } from '@/lib/stimmts/drucksache';
@@ -24,13 +24,17 @@ function KeyPoints({ points }: { points: KeyPoint[] }) {
               href={keyPointSourceUrl(point.source)}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={keyPointSourceAria(point.source)}
+              // The invisible layer stretches the 20 px chip to a 24 px
+              // target; more would overlap the chip in the next bullet.
               className={cn(
                 FOCUS_RING,
-                'inline-flex h-5 items-center whitespace-nowrap rounded-full bg-[var(--daily-surface)] px-2 align-[1px] text-xs font-medium leading-none text-[var(--daily-ink)] transition-colors hover:bg-[var(--daily-border)]',
+                "relative inline-flex h-5 items-center whitespace-nowrap rounded-full bg-[var(--daily-surface)] px-2 align-[1px] text-xs font-medium leading-none text-[var(--daily-ink)] transition-colors before:absolute before:inset-x-0 before:-inset-y-0.5 before:content-[''] hover:bg-[var(--daily-border)]",
               )}
             >
               {keyPointSourceLabel(point.source)}
+              <span className="sr-only">
+                {keyPointSourceContext(point.source)}
+              </span>
             </a>
           </li>
         ))}
