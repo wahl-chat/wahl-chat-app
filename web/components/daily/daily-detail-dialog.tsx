@@ -157,7 +157,7 @@ function WhyLink({ item, question }: { item: DetailItem; question: string }) {
       href={feedChatHref(item, question, 'why')}
       className={cn(
         FOCUS_RING,
-        'mt-2 inline-flex min-h-11 items-center gap-2 self-start rounded-2xl bg-[var(--daily-accent-soft)] px-4 py-2 text-left text-[15px] leading-snug font-semibold text-[var(--daily-accent)] transition-opacity hover:opacity-80',
+        'mt-2 inline-flex min-h-11 items-center gap-2 self-start rounded-2xl border border-[var(--daily-border)] bg-[var(--daily-surface)] px-4 py-2 text-left text-[15px] leading-snug font-semibold transition-colors hover:bg-[var(--daily-border)]',
       )}
     >
       <MessageCircleIcon className="size-4 shrink-0" aria-hidden />
