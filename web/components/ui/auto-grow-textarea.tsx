@@ -22,7 +22,8 @@ type Props = Omit<
   'rows' | 'onSubmit'
 > & {
   value: string;
-  /** Enter sends; Shift+Enter breaks the line. */
+  /** Enter sends; Shift+Enter breaks the line. On touch screens Return
+   * always breaks the line and the send button sends. */
   onSubmit: () => void;
 };
 
@@ -47,6 +48,7 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
   ) {
     const ref = useRef<HTMLTextAreaElement | null>(null);
     const [collapsed, setCollapsed] = useState(false);
+    const touch = useCoarsePointer();
     // Bumped when the box changes width, so the height follows the new wrap.
     const [width, setWidth] = useState(0);
     const composing = useRef(false);
@@ -122,7 +124,7 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
         ref={setRefs}
         rows={1}
         value={value}
-        enterKeyHint="send"
+        enterKeyHint={touch ? 'enter' : 'send'}
         className={cn('block resize-none leading-6', className)}
         onFocus={(event) => {
           setCollapsed(false);
@@ -147,6 +149,7 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
         onKeyDown={(event) => {
           onKeyDown?.(event);
           if (
+            touch ||
             event.defaultPrevented ||
             event.key !== 'Enter' ||
             event.shiftKey ||
@@ -166,3 +169,19 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
 );
 
 export default AutoGrowTextarea;
+
+/** Phones and tablets: the primary pointer is a finger. */
+function useCoarsePointer(): boolean {
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia?.('(pointer: coarse)');
+    if (!query) {
+      return;
+    }
+    setCoarse(query.matches);
+    const onChange = (event: MediaQueryListEvent) => setCoarse(event.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+  return coarse;
+}

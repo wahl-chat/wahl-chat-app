@@ -54,33 +54,11 @@ function ChatInput() {
     <form
       onSubmit={handleSubmit}
       className={cn(
-        'relative w-full overflow-hidden rounded-[30px] border border-input dark:focus-within:border-zinc-700 focus-within:border-zinc-300 transition-colors bg-chat-input',
-        !isGeneral && quickReplies.length > 0 && 'rounded-[20px]',
-        isGeneral && 'rounded-[24px]',
+        'relative w-full overflow-hidden rounded-[24px] border border-input dark:focus-within:border-zinc-700 focus-within:border-zinc-300 transition-colors bg-chat-input',
       )}
     >
       {!isGeneral && quickReplies.length > 0 && (
-        <>
-          <ChatInputAddPartiesButton disabled={loading} />
-          <div
-            className={cn(
-              'ml-7 flex gap-1 px-2 pt-2 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-              loading && 'opacity-50 z-0',
-            )}
-          >
-            {quickReplies.map((r) => (
-              <button
-                key={r}
-                className="shrink-0 rounded-full bg-muted px-2 py-1 transition-colors enabled:hover:bg-muted/50 disabled:cursor-not-allowed"
-                onClick={() => handleQuickReplyClick(r)}
-                disabled={loading}
-                type="button"
-              >
-                <p className="line-clamp-1 text-xs">{r}</p>
-              </button>
-            ))}
-          </div>
-        </>
+        <ChatInputAddPartiesButton disabled={loading} />
       )}
 
       {loading && <MessageLoadingBorderTrail />}
@@ -94,7 +72,7 @@ function ChatInput() {
       <AutoGrowTextarea
         className={cn(
           'w-full bg-chat-input py-3 pl-4 pr-11 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed',
-          isGeneral && 'pl-11',
+          (isGeneral || quickReplies.length > 0) && 'pl-11',
         )}
         placeholder="Schreibe eine Nachricht..."
         aria-label="Nachricht"
@@ -116,13 +94,9 @@ function ChatInput() {
     </form>
   );
 
-  if (!isGeneral) {
-    return form;
-  }
-
   return (
     <div className="flex w-full flex-col">
-      <ChatFocusChips disabled={loading} />
+      {isGeneral && <ChatFocusChips disabled={loading} />}
       {quickReplies.length > 0 && (
         <div
           className={cn(
