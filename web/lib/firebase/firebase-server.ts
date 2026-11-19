@@ -12,6 +12,7 @@ import { GROUP_PARTY_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import { speakerPhotos } from '@/lib/daily/politicians';
 import { editionIdOf, pageStart } from '@/lib/daily/window';
 import type { PartyDetails } from '@/lib/party-details';
+import { type StimmtsStatus, readStimmtsStatus } from '@/lib/stimmts/status';
 import type {
   GroupedMessage,
   MessageItem,
@@ -1093,6 +1094,28 @@ export async function getSystemStatus() {
       is_at_rate_limit: false,
     } as LlmSystemStatus;
   }
+}
+
+const STIMMTS_STATUS_REVALIDATE_SECONDS = 60 * 5;
+
+// Cached for minutes only: the switch must follow a console edit quickly, and
+// the feed page that shows the entry is itself cached.
+export async function getStimmtsStatus(): Promise<StimmtsStatus> {
+  return cache(
+    () =>
+      readStimmtsStatus(async () => {
+        const serverDb = await getServerFirestore({ useHeaders: false });
+        const snapshot = await getDoc(
+          doc(serverDb, 'system_status', 'stimmts'),
+        );
+        return snapshot.data();
+      }),
+    ['getStimmtsStatus', 'v1'],
+    {
+      revalidate: STIMMTS_STATUS_REVALIDATE_SECONDS,
+      tags: ['stimmts-status'],
+    },
+  )();
 }
 
 export async function getWahlSwiperHistory(resultId: string) {

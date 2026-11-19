@@ -36,6 +36,20 @@ export function parseStimmtsStatus(data: unknown): StimmtsStatus {
 }
 
 /**
+ * The switch read through `read`, which returns the raw doc data. Any failure
+ * is off: a page that cannot tell must not advertise a game that may not run.
+ */
+export async function readStimmtsStatus(
+  read: () => Promise<unknown>,
+): Promise<StimmtsStatus> {
+  try {
+    return parseStimmtsStatus(await read());
+  } catch {
+    return { enabled: false };
+  }
+}
+
+/**
  * Whether the game is on, and since when. Preview always plays: it keeps the
  * real launch date when there is one and otherwise starts today, so every
  * puzzle can be tried before the launch.
