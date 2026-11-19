@@ -384,7 +384,9 @@ html[data-stimmts-fly] .stimmts-header-badge {
       var(--daily-glint) 50%,
       transparent 100%
     );
-    animation: stimmts-sweep 2.5s ease-out 0.4s 3 both;
+    /* One sweep, then a rest, every 4 s until the card is opened (the
+       component drops the class then). */
+    animation: stimmts-sweep 4s ease-out 0.4s infinite both;
     pointer-events: none;
   }
 }
@@ -393,7 +395,8 @@ html[data-stimmts-fly] .stimmts-header-badge {
   0% {
     left: -70%;
   }
-  30% {
+  /* About 0.75 s of the 4 s cycle: a quick glint, then stillness. */
+  19% {
     left: 130%;
   }
   100% {

@@ -47,12 +47,14 @@ Wahlperiode, starting on the launch date.
    over, the result follows by itself after a short pause (almost at once with
    reduced motion). A vote looked at again from the result, without tips, has
    no such move: it has its own "Zurück zum Ergebnis" button.
-5. **Result.** From the top: the countdown to the next puzzle; the score card
-   (the score, the day, a verdict per party); sharing; the more-games
-   question (step 6); the vote result card, which opens the vote again; the
-   slot for the chat card (switched off); the Stimmkarte, which the player
-   casts into the urn of this Wahlperiode; the urn; the Wahlperiode as 30
-   seats, where a past day opens again.
+5. **Result.** From the top: the stamped Stimmkarte (the score, a verdict
+   per party), which the player casts into the urn of this Wahlperiode, and
+   the urn; sharing; the more-games question (step 6); the vote result card,
+   which opens the vote again; the slot for the chat card (switched off); the
+   Wahlperiode as 30 seats, where a past day opens again. The card leads so
+   it is on screen when the result opens. Once it is cast, the countdown to
+   the next puzzle takes its place and a score card under the urn keeps the
+   score on screen.
 6. **After the first finished puzzle,** once: whether we should make more
    small games („Ja, gern" / „Eher nicht").
 7. **After the last day,** a closing screen: the player's Wahlperiode, how many
@@ -371,7 +373,7 @@ both clock changes, the launch-relative schedule, scoring, saving and resuming
 (including other tabs and newer saves), the Wahlperiode, the preview clock,
 the share text, image URLs and share action, the font loader, the countdown
 and the feedback rule, the feed card's rules (when it shows, the countdown,
-"Neu", the visit count) and the presence mark (the inline script run as it
+its spoken label) and the presence mark (the inline script run as it
 runs in the page). They run on fixtures, so real content can change
 without touching them; separate tests check the shipped content.
 

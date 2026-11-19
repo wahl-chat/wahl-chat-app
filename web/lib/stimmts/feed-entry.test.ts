@@ -2,12 +2,10 @@ import { describe, expect, it } from 'bun:test';
 import { PUZZLES } from './content';
 import {
   type FeedEntry,
-  NEW_FOR_DAYS,
   feedCardLabel,
   feedEntry,
   hasPuzzleToday,
   nextFeedTick,
-  recordFeedVisit,
   remainingLabel,
 } from './feed-entry';
 import { EMPTY_PROGRESS, type Progress } from './progress';
@@ -38,7 +36,7 @@ const day1 = new Date('2026-11-15T22:59:59Z');
 
 describe('feedEntry', () => {
   it('is hidden when off, before launch and after the last puzzle', () => {
-    const base = { now: day1, progress: EMPTY_PROGRESS, visitDays: 1 };
+    const base = { now: day1, progress: EMPTY_PROGRESS };
     expect(feedEntry({ ...base, status: { enabled: false } }).kind).toBe(
       'hidden',
     );
@@ -53,7 +51,7 @@ describe('feedEntry', () => {
   });
 
   it('offers day 1 until Berlin midnight, then day 2', () => {
-    const base = { status: on, progress: EMPTY_PROGRESS, visitDays: 1 };
+    const base = { status: on, progress: EMPTY_PROGRESS };
     const one = feedEntry({ ...base, now: day1 });
     expect(one).toMatchObject({
       kind: 'play',
@@ -74,7 +72,6 @@ describe('feedEntry', () => {
       status: on,
       now,
       progress: finished('2026-11-14', 3),
-      visitDays: 1,
     });
     expect(play.kind).toBe('play');
     expect(
@@ -82,24 +79,8 @@ describe('feedEntry', () => {
         status: on,
         now,
         progress: finished('2026-11-15', 3),
-        visitDays: 1,
       }),
     ).toEqual({ kind: 'played', number: 1, score: 3 });
-  });
-
-  it('is new for 14 days and while under 3 visit days', () => {
-    const isNew = (day: number, visitDays: number) => {
-      const entry = feedEntry({
-        status: on,
-        now: new Date(Date.UTC(2026, 10, 14 + day, 12)),
-        progress: EMPTY_PROGRESS,
-        visitDays,
-      });
-      return entry.kind === 'play' && entry.isNew;
-    };
-    expect(isNew(NEW_FOR_DAYS, 2)).toBe(true);
-    expect(isNew(NEW_FOR_DAYS + 1, 2)).toBe(false);
-    expect(isNew(1, 3)).toBe(false);
   });
 });
 
@@ -125,34 +106,6 @@ describe('readStimmtsStatus', () => {
     );
     expect(status).toEqual(on);
     expect(reported).toEqual([]);
-  });
-});
-
-describe('recordFeedVisit', () => {
-  function fake(initial?: string) {
-    const data = new Map<string, string>();
-    if (initial !== undefined) {
-      data.set('stimmts:feed-visits', initial);
-    }
-    return {
-      getItem: (key: string) => data.get(key) ?? null,
-      setItem: (key: string, value: string) => void data.set(key, value),
-    };
-  }
-
-  it('counts once per day', () => {
-    const storage = fake();
-    expect(recordFeedVisit(storage, '2026-11-15')).toBe(1);
-    expect(recordFeedVisit(storage, '2026-11-15')).toBe(1);
-    expect(recordFeedVisit(storage, '2026-11-16')).toBe(2);
-  });
-
-  it('survives missing storage and junk', () => {
-    expect(recordFeedVisit(null, '2026-11-15')).toBe(1);
-    expect(recordFeedVisit(fake('{nope'), '2026-11-15')).toBe(1);
-    expect(recordFeedVisit(fake('{"last":5,"count":"x"}'), '2026-11-15')).toBe(
-      1,
-    );
   });
 });
 
@@ -184,17 +137,10 @@ describe('feedCardLabel', () => {
     number: 1,
     shortName: 'Der Tankrabatt',
     endsAt: new Date('2026-11-15T23:00:00Z'),
-    isNew: true,
   };
 
   it('reads the whole card as one link', () => {
     expect(feedCardLabel(play, now)).toBe(
-      'Stimmt’s?, neu: Heute: Der Tankrabatt. Jeden Tag ein neues Quiz. Noch 8 Stunden 41 Minuten. Los geht’s',
-    );
-  });
-
-  it('drops "neu" once the card is no longer new', () => {
-    expect(feedCardLabel({ ...play, isNew: false }, now)).toBe(
       'Stimmt’s?: Heute: Der Tankrabatt. Jeden Tag ein neues Quiz. Noch 8 Stunden 41 Minuten. Los geht’s',
     );
   });

@@ -7,12 +7,9 @@ import {
   type FeedEntry,
   feedCardLabel,
   feedEntry,
-  hasPuzzleToday,
   nextFeedTick,
-  recordFeedVisit,
 } from '@/lib/stimmts/feed-entry';
 import { browserSession, clearJustPlayed } from '@/lib/stimmts/presence';
-import { browserStorage } from '@/lib/stimmts/progress-store';
 import type { StimmtsStatus } from '@/lib/stimmts/status';
 import { type TodaysResult, todaysResult } from '@/lib/stimmts/todays-result';
 import { useProgress } from '@/lib/stimmts/use-progress';
@@ -24,7 +21,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { CARD_SURFACE, FOCUS_RING, MUTED_TEXT } from './card-styles';
 import StimmtsFlyIn from './stimmts-fly-in';
 
-const SHINE_KEY = 'stimmts:shine-shown';
+// Set when the reader opens the card; from then on the shine is not needed.
+const CARD_OPENED_KEY = 'stimmts:card-opened';
 
 // Before mount the card shows no name or countdown, and below 360 px its
 // button has no visible text; this keeps "Los geht’s" in the link's name.
@@ -33,36 +31,36 @@ const STATIC_LABEL = 'Stimmt’s?: Jeden Tag ein neues Quiz. Los geht’s';
 type PlayEntry = Extract<FeedEntry, { kind: 'play' }>;
 
 /**
- * The shine on "Los geht’s" plays on the very first view only, so it draws
- * the eye once and never becomes noise. A reader who asked for less motion
- * never sees it, and does not use it up either.
+ * The shine on "Los geht’s" keeps inviting, one gentle sweep every few
+ * seconds, until the reader has opened the card once; after that it never
+ * plays again. A reader who asked for less motion never sees it.
  */
-function claimShine(): boolean {
+function wantsShine(): boolean {
   try {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return false;
     }
-    if (window.localStorage.getItem(SHINE_KEY)) {
-      return false;
-    }
-    window.localStorage.setItem(SHINE_KEY, '1');
-    return true;
+    return !window.localStorage.getItem(CARD_OPENED_KEY);
   } catch {
-    // Blocked storage could not keep the "once": better no shine than one
-    // on every visit.
+    // Blocked storage could never remember the tap: better no shine than
+    // one that never stops.
     return false;
+  }
+}
+
+function rememberCardOpened() {
+  try {
+    window.localStorage.setItem(CARD_OPENED_KEY, '1');
+  } catch {
+    // Nothing to remember it in; the shine is already off for this reader.
   }
 }
 
 function useShine(active: boolean): boolean {
   const [shine, setShine] = useState(false);
-  const [claimed, setClaimed] = useState(false);
   useEffect(() => {
-    if (active && !claimed) {
-      setClaimed(true);
-      setShine(claimShine());
-    }
-  }, [active, claimed]);
+    setShine(active && wantsShine());
+  }, [active]);
   return shine;
 }
 
@@ -91,7 +89,6 @@ function StimmtsFeedCard({ initialStatus }: { initialStatus: StimmtsStatus }) {
   const progress = useProgress((s) => s.progress);
 
   const [now, setNow] = useState<Date | null>(null);
-  const [visitDays, setVisitDays] = useState<number | null>(null);
 
   useEffect(() => {
     hydrate();
@@ -113,20 +110,8 @@ function StimmtsFeedCard({ initialStatus }: { initialStatus: StimmtsStatus }) {
   }, [hydrate, refresh]);
 
   const ready = now !== null && hydrated;
-  const puzzleToday = ready && hasPuzzleToday(status, now);
 
-  // Visits count only on days with a puzzle, so a reader who came by before
-  // the launch still sees the card as new once it starts.
-  useEffect(() => {
-    if (puzzleToday && visitDays === null) {
-      setVisitDays(recordFeedVisit(browserStorage(), berlinDate(new Date())));
-    }
-  }, [puzzleToday, visitDays]);
-
-  const entry =
-    ready && (!puzzleToday || visitDays !== null)
-      ? feedEntry({ status, now, progress, visitDays: visitDays ?? 0 })
-      : null;
+  const entry = ready ? feedEntry({ status, now, progress }) : null;
   const kind = entry?.kind;
   const shine = useShine(kind === 'play');
 
@@ -309,6 +294,7 @@ function Card({
       // A promotion on the busiest page: the game loads when it is chosen,
       // not for every reader who scrolls past.
       prefetch={false}
+      onClick={rememberCardOpened}
       aria-label={label ?? STATIC_LABEL}
       className={cn(
         'stimmts-feed-card flex flex-col gap-1.5 px-3.5 pb-3 pt-2.5 text-[var(--daily-ink)] no-underline',
@@ -325,16 +311,11 @@ function Card({
         {/* The design sets the mark 12 px high beside a 15 px wordmark;
             the logo's own height follows the font, which would make it 21. */}
         <StimmtsLogo className="flex-none gap-[5px] text-[15px] text-[var(--daily-ink)] [&>svg]:h-3" />
-        {entry?.isNew && (
-          <span className="inline-flex h-[18px] flex-none items-center rounded-full border border-[var(--daily-ink)] px-[7px] text-[11px] font-bold text-[var(--daily-ink)]">
-            Neu
-          </span>
-        )}
         {/* translate="no": a browser that auto-translates the page rewrites
             the text in place, which leaves the old time next to the new
             one. */}
         <span translate="no" className="ml-auto flex-none tabular-nums">
-          {remaining === null ? null : `noch ${formatCountdown(remaining)}`}
+          {remaining === null ? null : formatCountdown(remaining)}
         </span>
       </span>
       {/* On a phone the name can take two lines, and whether it does is

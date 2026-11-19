@@ -1,7 +1,6 @@
 import { berlinDate, nextPuzzleAt } from './berlin-time';
 import { PUZZLES, createSchedule } from './content';
 import { EMPTY_PROGRESS, type Progress, getGame } from './progress';
-import type { StorageLike } from './progress-store';
 import { getTodaysPuzzle } from './schedule';
 import { scorePuzzle } from './score';
 import type { StimmtsStatus } from './status';
@@ -13,31 +12,16 @@ export type FeedEntry =
       number: number;
       shortName: string;
       endsAt: Date;
-      isNew: boolean;
     }
   | { kind: 'played'; number: number; score: number };
-
-/** The card counts as new for the first two weeks of the game... */
-export const NEW_FOR_DAYS = 14;
-/** ...or until the visitor has opened the feed on this many different days. */
-export const NEW_FOR_VISITS = 3;
-
-const VISITS_KEY = 'stimmts:feed-visits';
 
 type Args = {
   status: StimmtsStatus;
   now: Date;
   progress: Progress;
-  /** Berlin days on which this device opened the feed (see recordFeedVisit). */
-  visitDays: number;
 };
 
-export function feedEntry({
-  status,
-  now,
-  progress,
-  visitDays,
-}: Args): FeedEntry {
+export function feedEntry({ status, now, progress }: Args): FeedEntry {
   if (!status.enabled) {
     return { kind: 'hidden' };
   }
@@ -63,7 +47,6 @@ export function feedEntry({
     number,
     shortName: puzzle.shortName,
     endsAt: nextPuzzleAt(now),
-    isNew: number <= NEW_FOR_DAYS && visitDays < NEW_FOR_VISITS,
   };
 }
 
@@ -73,10 +56,7 @@ export function feedEntry({
  * drawn before the launch or after the last puzzle only to vanish on mount.
  */
 export function hasPuzzleToday(status: StimmtsStatus, now: Date): boolean {
-  return (
-    feedEntry({ status, now, progress: EMPTY_PROGRESS, visitDays: 0 }).kind !==
-    'hidden'
-  );
+  return feedEntry({ status, now, progress: EMPTY_PROGRESS }).kind !== 'hidden';
 }
 
 /** Past midnight by this much, so the wake-up lands safely on the new day. */
@@ -91,43 +71,6 @@ export function nextFeedTick(kind: FeedEntry['kind'], now: Date): number {
   return kind === 'play'
     ? 1000
     : nextPuzzleAt(now).getTime() - now.getTime() + ROLLOVER_MARGIN_MS;
-}
-
-/**
- * Counts the Berlin days this device opened the feed, once per day, to tell
- * when the card stops being new. Storage that is missing, blocked or corrupt
- * simply counts this visit as the first.
- */
-export function recordFeedVisit(
-  storage: StorageLike | null,
-  today: string,
-): number {
-  let last: string | null = null;
-  let count = 0;
-  try {
-    const saved = JSON.parse(storage?.getItem(VISITS_KEY) ?? 'null');
-    if (
-      saved &&
-      typeof saved.last === 'string' &&
-      Number.isInteger(saved.count) &&
-      saved.count > 0
-    ) {
-      last = saved.last;
-      count = saved.count;
-    }
-  } catch {
-    // Unreadable history is no history.
-  }
-  if (last === today) {
-    return count;
-  }
-  count += 1;
-  try {
-    storage?.setItem(VISITS_KEY, JSON.stringify({ last: today, count }));
-  } catch {
-    // Blocked storage: the count just does not persist.
-  }
-  return count;
 }
 
 function counted(count: number, one: string, many: string): string {
@@ -165,7 +108,6 @@ export function feedCardLabel(entry: FeedEntry, now: Date): string | null {
   if (entry.kind !== 'play') {
     return null;
   }
-  const name = entry.isNew ? 'Stimmt’s?, neu' : 'Stimmt’s?';
   const remaining = remainingLabel(entry.endsAt.getTime() - now.getTime());
-  return `${name}: Heute: ${entry.shortName}. Jeden Tag ein neues Quiz. Noch ${remaining}. Los geht’s`;
+  return `Stimmt’s?: Heute: ${entry.shortName}. Jeden Tag ein neues Quiz. Noch ${remaining}. Los geht’s`;
 }
