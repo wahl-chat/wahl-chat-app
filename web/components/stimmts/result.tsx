@@ -20,8 +20,8 @@ import { useProgress } from '@/lib/stimmts/use-progress';
 import { cn } from '@/lib/utils';
 import { Pointer } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import ChatCard from './chat-card';
 import Countdown from './countdown';
 import FeedbackPrompt from './feedback-prompt';
 import PartyTile from './party-tile';
@@ -32,6 +32,15 @@ import StimmtsLogo from './stimmts-logo';
 import Urn from './urn';
 import { Verdict } from './verdict';
 import VoteResultCard from './vote-result-card';
+
+/**
+ * Fetched only when the switch is on, so while the general chat does not
+ * exist the card and its placeholder answer stay out of the result screen's
+ * bundle.
+ */
+const ChatCard = STIMMTS_CHAT_ENABLED
+  ? dynamic(() => import('./chat-card'))
+  : () => null;
 
 /**
  * The cast, step by step (see the stimmts-fly, -insert and -fall animations):

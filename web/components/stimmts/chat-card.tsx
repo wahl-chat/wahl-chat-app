@@ -81,14 +81,18 @@ function ChatCard({ puzzle, guesses }: Props) {
       setTurns((current) =>
         current.map((turn) => (turn.id === id ? change(turn) : turn)),
       );
-    for await (const chunk of placeholderAnswer(controller.signal)) {
-      update((turn) => ({ ...turn, answer: turn.answer + chunk }));
+    try {
+      for await (const chunk of placeholderAnswer(controller.signal)) {
+        update((turn) => ({ ...turn, answer: turn.answer + chunk }));
+      }
+    } finally {
+      // A stream that throws must not leave the stop button up for good.
+      update((turn) => ({
+        ...turn,
+        streaming: false,
+        stopped: controller.signal.aborted,
+      }));
     }
-    update((turn) => ({
-      ...turn,
-      streaming: false,
-      stopped: controller.signal.aborted,
-    }));
   };
 
   const submit = (event: FormEvent) => {
@@ -156,7 +160,7 @@ function ChatCard({ puzzle, guesses }: Props) {
             <ChevronDown
               aria-hidden
               className={cn(
-                'size-[18px] shrink-0 transition-transform',
+                'size-[18px] shrink-0 transition-transform motion-reduce:transition-none',
                 openTurns.has(turn.id) && 'rotate-180',
               )}
             />
@@ -181,12 +185,14 @@ function ChatCard({ puzzle, guesses }: Props) {
         </>
       )}
 
-      {/* Announced once the answer is complete: read word by word while it
-          streams, it would be a stutter. */}
+      {/* While it streams, only that it is coming: read word by word, the
+          answer would be a stutter. It is announced whole once complete. */}
       <p aria-live="polite" className="sr-only">
-        {latest && !latest.streaming
-          ? `${latest.answer}${latest.stopped ? ' … Antwort gestoppt.' : ''}`
-          : ''}
+        {latest?.streaming
+          ? 'wahl.chat schreibt …'
+          : latest
+            ? `${latest.answer}${latest.stopped ? ' … Antwort gestoppt.' : ''}`
+            : ''}
       </p>
 
       {continueHref && (

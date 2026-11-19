@@ -1,5 +1,6 @@
 import { chatQuestion } from './chat-question';
-import type { Guesses, Puzzle, VoteAnswer } from './types';
+import { ANSWER_LABELS } from './labels';
+import type { Guesses, Puzzle } from './types';
 
 /**
  * Off until the general chat exists: the card on the result screen stays
@@ -15,19 +16,17 @@ export type ChatChip = {
   question: string;
 };
 
-/** How a chip names each Fraktion: as short as the name gets. */
+/**
+ * How a chip names each Fraktion: as short as the name gets. Not partyLabel:
+ * "Bündnis 90/Die Grünen" and "CDU/CSU" would push "Warum Nein, …?" past
+ * what fits on a chip.
+ */
 const SHORT_NAMES: Record<string, string> = {
   linke: 'Linke',
   spd: 'SPD',
   gruene: 'Grüne',
   cdu: 'Union',
   afd: 'AfD',
-};
-
-const SHORT_ANSWERS: Record<VoteAnswer, string> = {
-  yes: 'Ja',
-  no: 'Nein',
-  abstain: 'Enthaltung',
 };
 
 /** The chat context whose parties sit in the Bundestag. */
@@ -60,7 +59,7 @@ function firstChip(puzzle: Puzzle, guesses: Guesses): ChatChip {
   )?.answer;
   if (asked.kind === 'wrong-guess' && actual && SHORT_NAMES[partyId]) {
     return {
-      label: `Warum ${SHORT_ANSWERS[actual]}, ${SHORT_NAMES[partyId]}?`,
+      label: `Warum ${ANSWER_LABELS[actual]}, ${SHORT_NAMES[partyId]}?`,
       question: asked.text,
     };
   }
