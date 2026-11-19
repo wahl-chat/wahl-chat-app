@@ -10,6 +10,8 @@ type BorderTrailProps = {
   delay?: number;
   onAnimationComplete?: () => void;
   style?: React.CSSProperties;
+  /** Run counterclockwise; the rect() path itself runs clockwise. */
+  reverse?: boolean;
 };
 
 export function BorderTrail({
@@ -19,6 +21,7 @@ export function BorderTrail({
   delay,
   onAnimationComplete,
   style,
+  reverse = false,
 }: BorderTrailProps) {
   const BASE_TRANSITION = {
     repeat: Number.POSITIVE_INFINITY,
@@ -36,7 +39,7 @@ export function BorderTrail({
           ...style,
         }}
         animate={{
-          offsetDistance: ['0%', '100%'],
+          offsetDistance: reverse ? ['100%', '0%'] : ['0%', '100%'],
         }}
         transition={{
           ...(transition ?? BASE_TRANSITION),

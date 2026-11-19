@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  chatElection,
+  electionStatusLabel,
   getNextUpcomingElection,
   isUpcomingElection,
   splitElectionsByDate,
@@ -59,6 +61,28 @@ describe('isUpcomingElection', () => {
       date: '2026-09-06' as never,
     };
     expect(isUpcomingElection(asString, NOW)).toBe(true);
+  });
+});
+
+describe('electionStatusLabel', () => {
+  // A concluded election can stay the default chat context, so its page must
+  // not keep announcing it as the current one.
+  it('calls a concluded election past', () => {
+    expect(
+      electionStatusLabel(election('past', new Date('2026-08-01')), NOW),
+    ).toBe('Vergangene Wahl');
+  });
+
+  it('keeps an election current through its polling day', () => {
+    expect(
+      electionStatusLabel(election('today', new Date('2026-08-08')), NOW),
+    ).toBe('Aktuelle Wahl');
+  });
+
+  it('treats an undated context as current', () => {
+    expect(electionStatusLabel(election('undated', null), NOW)).toBe(
+      'Aktuelle Wahl',
+    );
   });
 });
 
@@ -157,5 +181,54 @@ describe('getNextUpcomingElection', () => {
 
   it('returns undefined for an empty list', () => {
     expect(getNextUpcomingElection([], NOW)).toBeUndefined();
+  });
+});
+
+describe('chatElection', () => {
+  const held = (id: string, day: string) => election(id, new Date(day));
+
+  it('opens the next upcoming election', () => {
+    expect(
+      chatElection(
+        [held('past', '2026-03-08'), held('next', '2026-09-06')],
+        NOW,
+      )?.context_id,
+    ).toBe('next');
+  });
+
+  it('opens the most recently held election between elections', () => {
+    expect(
+      chatElection(
+        [held('older', '2025-02-23'), held('latest', '2026-03-22')],
+        NOW,
+      )?.context_id,
+    ).toBe('latest');
+  });
+
+  it('keeps the given order for elections on the same day', () => {
+    expect(
+      chatElection(
+        [held('berlin', '2026-03-22'), held('mv', '2026-03-22')],
+        NOW,
+      )?.context_id,
+    ).toBe('berlin');
+  });
+
+  it('accepts dates that arrive as strings', () => {
+    // unstable_cache serialises Context.date to an ISO string.
+    const asString = (id: string, day: string) => ({
+      ...election(id, null),
+      date: new Date(day).toISOString() as never,
+    });
+    expect(
+      chatElection(
+        [asString('older', '2025-02-23'), asString('latest', '2026-03-22')],
+        NOW,
+      )?.context_id,
+    ).toBe('latest');
+  });
+
+  it('has nothing to open without an election', () => {
+    expect(chatElection([], NOW)).toBeUndefined();
   });
 });

@@ -19,6 +19,10 @@ This script:
    into contexts/{context_id}/proposed_questions sub-collection
 4. Imports source documents from firestore_data/{env}/sources_{context_id}.json
    into sources/{context_id}/parties/{party_id}/source_documents
+5. Emulator only: imports sample parliament-feed editions and items, and the
+   Bundestag's sitting calendar, from firestore_data/emulator/feed.json, so the
+   feed has content locally (German and English) without corpus access or LLM
+   calls
 
 File naming convention:
 - contexts.json: Contains all context documents
@@ -32,6 +36,7 @@ File naming convention:
            -> sources/landtagswahl-sachsen-anhalt-2026/parties/{party_id}/source_documents/
 """
 
+import gzip
 import json
 import os
 import sys
@@ -47,6 +52,17 @@ SCRIPT_DIR = Path(__file__).parent
 FIREBASE_DIR = SCRIPT_DIR.parent
 REPO_ROOT = FIREBASE_DIR.parent
 DATA_DIR = FIREBASE_DIR / "firestore_data" / ENV
+# Real feed-builder output for a few sitting days. Only ever written to the
+# emulator: in a real project, the feed collections belong to the builder alone.
+EMULATOR_FEED_FILE = FIREBASE_DIR / "firestore_data" / "emulator" / "feed.json"
+# Hand-written explanations of the feed's commonest expert terms, the same in
+# every environment. The feed job adds the rest (ingestion.feed.glossary).
+GLOSSARY_FILE = FIREBASE_DIR / "firestore_data" / "glossary.json"
+# Gzipped: every speaker's record, Veröffentlichungspflichtige Angaben and
+# votes included, is too large to commit as plain JSON.
+EMULATOR_POLITICIANS_FILE = (
+    FIREBASE_DIR / "firestore_data" / "emulator" / "politicians.json.gz"
+)
 
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
@@ -351,6 +367,86 @@ def seed_sources(db):
     print(f"\nTotal source documents seeded: {total_documents}")
 
 
+def seed_feed(db):
+    """Seed the parliament feed's sample editions and items into the emulator."""
+    if not os.getenv("FIRESTORE_EMULATOR_HOST"):
+        return
+    if not EMULATOR_FEED_FILE.exists():
+        print("\n⚠️  No sample feed found")
+        return
+
+    with open(EMULATOR_FEED_FILE) as f:
+        feed = json.load(f)
+
+    for item in feed["items"]:
+        db.collection("feed_items").document(item["id"]).set(item)
+    for edition in feed["editions"]:
+        db.collection("feed_editions").document(edition["id"]).set(edition)
+    if "calendar" in feed:
+        calendar = feed["calendar"]
+        db.collection("feed_calendar").document(calendar["parliament"]).set(calendar)
+    print(
+        f"\n📰 Seeded {len(feed['editions'])} feed editions with "
+        f"{len(feed['items'])} items (emulator only)"
+    )
+    if EMULATOR_POLITICIANS_FILE.exists():
+        with gzip.open(EMULATOR_POLITICIANS_FILE, "rt", encoding="utf-8") as f:
+            politicians = json.load(f)
+        for politician in politicians:
+            db.collection("politicians").document(politician["mdb_id"]).set(
+                politician
+            )
+        print(f"👤 Seeded {len(politicians)} politicians (emulator only)")
+
+
+def glossary_term_id(term):
+    """Mirrors ingestion.feed.glossary.term_id: the job and the seed must
+    write the same document."""
+    import re
+    import unicodedata
+
+    text = term.casefold().replace("ß", "ss")
+    for umlaut, spelled in (("ä", "ae"), ("ö", "oe"), ("ü", "ue")):
+        text = text.replace(umlaut, spelled)
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+
+
+def seed_glossary(db):
+    """Write the hand-written glossary entries. Merged, so the forms the feed
+    job has collected for a term are kept.
+
+    In a real project an entry is shown only once the feed job has checked it
+    against its sources, as it checks its own: seeded "pending", it stays
+    hidden until then. The emulator has no job run, so there it is shown at
+    once.
+    """
+    if not GLOSSARY_FILE.exists():
+        return
+    with open(GLOSSARY_FILE) as f:
+        entries = json.load(f)
+    now = datetime.now(timezone.utc).isoformat()
+    status = "verified" if os.getenv("FIRESTORE_EMULATOR_HOST") else "pending"
+    for entry in entries:
+        term_id = glossary_term_id(entry["term"])
+        db.collection("glossary").document(term_id).set(
+            {
+                "term_id": term_id,
+                "term": entry["term"],
+                "definition": entry["definition"],
+                "forms": firestore.ArrayUnion(entry["forms"]),
+                "sources": entry["sources"],
+                "status": status,
+                "attempts": 0,
+                "generated_by": "hand",
+                "prompt_version": None,
+                "updated_at": now,
+            },
+            merge=True,
+        )
+    print(f"\n📖 Seeded {len(entries)} glossary entries ({status})")
+
+
 def revalidate_frontend_cache(context_ids, firestore_project=None):
     """Optionally bust the live site's Firestore cache after a real-project seed.
 
@@ -415,6 +511,10 @@ def main():
 
     # Seed source documents for each context's sources page
     seed_sources(db)
+
+    seed_feed(db)
+
+    seed_glossary(db)
 
     revalidate_frontend_cache(
         context_ids, firestore_project=getattr(db, "project", None)

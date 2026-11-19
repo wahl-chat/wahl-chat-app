@@ -10,11 +10,13 @@ Public API:
   normalize_party(value) -> str | None   (alias resolution via PARTY_ALIASES)
   is_known_party(value) -> bool
   parse_int(value) -> int
+  parse_dotted_date(value) -> date | None   ("07.07.1986")
 """
 
 from __future__ import annotations
 
 import re
+from datetime import date, datetime
 
 from .constants import PARTY_ALIASES, VALID_PARTIES
 
@@ -52,3 +54,13 @@ def parse_int(value: str | None) -> int:
         return int(normalize_whitespace(value) or 0)
     except ValueError:
         return 0
+
+
+def parse_dotted_date(value: str | None) -> date | None:
+    """A ``DD.MM.YYYY`` date, as the Bundestag's XML writes them; None when
+    absent or malformed."""
+    value = normalize_whitespace(value)
+    try:
+        return datetime.strptime(value, "%d.%m.%Y").date() if value else None
+    except ValueError:
+        return None

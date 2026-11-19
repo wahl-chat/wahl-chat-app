@@ -77,8 +77,10 @@ services = {
 # Jobs run the ingestion image (CI is the image authority — cloudbuild.backend.yaml
 # builds it and updates the jobs). A job only sets CONNECTOR_ID (entrypoint
 # dispatch). Runs are cursor-resumable: 15-minute executions that continue where
-# they left off. Weekly, because the sources change slowly. Backfills are manual
-# `gcloud run jobs execute` runs.
+# they left off. The Bundestag chain (speeches → federal votes → feed) runs
+# nightly, so a sitting reaches the feed the night after its protocol appears
+# (Friday's usually by Tuesday); the other sources change slowly and run weekly.
+# Backfills are manual `gcloud run jobs execute` runs.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Shared plumbing merged into every job by envs/dev/main.tf.
@@ -121,7 +123,7 @@ jobs = {
   # secret only if a real key exists — a bootstrap sentinel would be sent as a
   # credential and break requests).
 
-  # Bundestag (current + prior term): weekly.
+  # Bundestag (current + prior term): nightly, for the feed's vote items.
   "ingest-aw-votes-bund" = {
     env = {
       CONNECTOR_ID       = "abgeordnetenwatch_votes"
@@ -129,7 +131,7 @@ jobs = {
     }
     task_count  = 4
     parallelism = 2
-    schedule    = "0 4 * * 0"
+    schedule    = "0 4 * * *"
   }
 
   # All configured Landtag legislatures: weekly.
@@ -152,7 +154,7 @@ jobs = {
     secret_env = {
       DIP_API_KEY = "dip-api-key"
     }
-    schedule = "0 3 * * 0"
+    schedule = "0 3 * * *"
   }
 
   # AW election-programme catalogue.
@@ -173,5 +175,28 @@ jobs = {
       MANIFESTO_UPLOADS_SOURCE = "bucket" # list the live bucket, not the committed manifest
     }
     schedule = "30 5 * * 0"
+  }
+
+  # Parliament feed on the web's start page, built from the speeches and votes
+  # above (CONNECTOR_ID=feed hands over to the feed runner in the entrypoint).
+  # Every half hour from 06:00 to 07:30, nightly: each run publishes day by day
+  # and stops before the cap, the next one continues, and once nothing is new a
+  # run skips every day without LLM calls.
+  "ingest-feed" = {
+    env = {
+      CONNECTOR_ID             = "feed"
+      ELECTION_FIXTURES_SOURCE = "firestore" # party names + colours from the live DB
+    }
+    # ENV=dev writes the deployed dev Firestore, which the target guard only
+    # allows when asked to explicitly.
+    # --revalidate busts the web's feed cache after a run that wrote, so new
+    # items show at once. dev.wahl.chat is behind Vercel's Deployment
+    # Protection; the bypass token lets the POST through it.
+    secret_env = {
+      REVALIDATE_SECRET               = "revalidate-secret"
+      VERCEL_AUTOMATION_BYPASS_SECRET = "vercel-automation-bypass"
+    }
+    args     = ["--days", "14", "--time-budget", "780", "--allow-remote", "--revalidate"]
+    schedule = "*/30 6-7 * * *"
   }
 }

@@ -10,41 +10,85 @@ import { useStudyRunning } from '@/components/providers/study-status-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getUser } from '@/lib/firebase/firebase';
+import { oauthErrorAction } from '@/lib/auth/oauth-errors';
+import { getUser, userJoinBriefingsWaitlist } from '@/lib/firebase/firebase';
 import { FirebaseError } from 'firebase/app';
 import {
   EmailAuthProvider,
   GithubAuthProvider,
   GoogleAuthProvider,
+  type OAuthCredential,
+  type User,
   getAuth,
   linkWithCredential,
   linkWithPopup,
   signInWithCredential,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
+import { ChevronLeftIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import PasswordResetForm from './password-reset-form';
 import SuccessAuthForm from './success-auth-form';
+import WeeklySignup from './weekly-signup';
 
 type AuthProvider = 'google' | 'github' | 'email';
 
+/** Why the reader is asked to sign in. The feed asks them to sign up for
+ * "Meine Woche", the weekly digest, which is also recorded on their user
+ * doc. */
+export type LoginPurpose = 'chat-history' | 'briefings';
+
 type Props = {
   onSuccess: () => void;
+  purpose?: LoginPurpose;
 };
 
-function LoginForm({ onSuccess }: Props) {
+const DESCRIPTIONS: Record<
+  LoginPurpose,
+  Record<'login' | 'register', string>
+> = {
+  'chat-history': {
+    login:
+      'Du kannst dich bei wahl.chat anmelden um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.',
+    register:
+      'Du kannst dich bei wahl.chat registrieren um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.',
+  },
+  briefings: {
+    login: 'Melde dich an, dann melden wir uns, sobald „Meine Woche“ losgeht.',
+    register:
+      'Registriere dich mit E-Mail und Passwort, dann melden wir uns, sobald „Meine Woche“ losgeht.',
+  },
+};
+
+function LoginForm({ onSuccess, purpose = 'chat-history' }: Props) {
   const { refreshUser } = useAnonymousAuth();
   const studyRunning = useStudyRunning();
-  const [isRegister, setIsRegister] = useState(false);
+  // "Meine Woche" opens on its own pitch; its email option is signing up.
+  const [showWeekly, setShowWeekly] = useState(purpose === 'briefings');
+  const [isRegister, setIsRegister] = useState(purpose === 'briefings');
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [allowNewsletter, setAllowNewsletter] = useState(false);
+  // A provider credential whose email already has a password account. It is
+  // linked to that account once the password sign-in succeeds.
+  const [pendingCredential, setPendingCredential] =
+    useState<OAuthCredential | null>(null);
+  const [pendingEmail, setPendingEmail] = useState('');
 
   const handleAuthSuccess = async () => {
     await refreshUser();
     const uid = getAuth().currentUser?.uid;
+
+    if (uid && purpose === 'briefings') {
+      try {
+        await userJoinBriefingsWaitlist(uid);
+      } catch (error) {
+        // The sign-in itself worked; a missed waitlist mark must not undo it.
+        console.error('Could not join the briefings waitlist', error);
+      }
+    }
 
     if (uid) {
       const user = await getUser(uid);
@@ -64,14 +108,19 @@ function LoginForm({ onSuccess }: Props) {
 
   const handleAuthError = (error: unknown, provider: AuthProvider) => {
     if (error instanceof FirebaseError) {
-      if (error.code === 'auth/invalid-credential') {
-        return toast.error('Die eingegebenen Daten sind ungültig.');
-      }
-      if (error.code === 'auth/credential-already-in-use') {
-        return handleCredentialAlreadyInUse(error, provider);
-      }
-      if (error.code === 'auth/provider-already-linked') {
-        return handleProviderAlreadyLinked();
+      switch (oauthErrorAction(error.code)) {
+        case 'invalid-credential':
+          return toast.error('Die eingegebenen Daten sind ungültig.');
+        case 'sign-in-with-credential':
+          return signInWithExistingCredential(error, provider);
+        case 'already-linked':
+          return handleProviderAlreadyLinked();
+        case 'popup-blocked':
+          return toast.error(
+            'Das Anmeldefenster wurde blockiert. Bitte erlaube Pop-ups für wahl.chat und versuche es erneut.',
+          );
+        case 'ignore':
+          return;
       }
     }
 
@@ -79,32 +128,67 @@ function LoginForm({ onSuccess }: Props) {
     showErrorReloadToast();
   };
 
-  const handleCredentialAlreadyInUse = async (
+  const signInWithExistingCredential = async (
     error: FirebaseError,
     provider: AuthProvider,
   ) => {
-    const auth = getAuth();
-
-    let credential = null;
-    if (provider === 'google') {
-      credential = GoogleAuthProvider.credentialFromError(error);
-    } else if (provider === 'github') {
-      credential = GithubAuthProvider.credentialFromError(error);
-    } else if (provider === 'email') {
+    if (provider === 'email') {
+      setIsRegister(false);
+      toast.error(
+        'Zu dieser E-Mail-Adresse gibt es schon ein Konto. Bitte melde dich an.',
+      );
       return;
     }
 
+    const credential =
+      provider === 'google'
+        ? GoogleAuthProvider.credentialFromError(error)
+        : GithubAuthProvider.credentialFromError(error);
+
     if (!credential) {
+      console.error(error);
       showErrorReloadToast();
       return;
     }
 
     try {
-      await signInWithCredential(auth, credential);
+      await signInWithCredential(getAuth(), credential);
       await handleAuthSuccess();
     } catch (signInError) {
-      handleAuthError(signInError, provider);
+      // Firebase lets Google take over an account with the same email, but
+      // not GitHub: the owner has to sign in with the password first.
+      if (
+        signInError instanceof FirebaseError &&
+        signInError.code === 'auth/account-exists-with-different-credential'
+      ) {
+        const email = signInError.customData?.email;
+        askForPassword(credential, typeof email === 'string' ? email : '');
+        return;
+      }
+
+      // Not handleAuthError: its credential path would retry this sign-in.
+      console.error(signInError);
+      showErrorReloadToast();
     }
+  };
+
+  const askForPassword = (credential: OAuthCredential, email: string) => {
+    setPendingCredential(credential);
+    setPendingEmail(email);
+    setShowWeekly(false);
+    setIsRegister(false);
+  };
+
+  const linkPendingCredential = async (user: User) => {
+    if (!pendingCredential) return;
+
+    try {
+      await linkWithCredential(user, pendingCredential);
+    } catch (error) {
+      // The password sign-in itself worked; a missed link must not undo it.
+      console.error('Could not link the provider to the account', error);
+    }
+    setPendingCredential(null);
   };
 
   const handleProviderAlreadyLinked = async () => {
@@ -119,7 +203,8 @@ function LoginForm({ onSuccess }: Props) {
   const handleLogin = async (email: string, password: string) => {
     const auth = getAuth();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
+      await linkPendingCredential(user);
       await handleAuthSuccess();
     } catch (error) {
       handleAuthError(error, 'email');
@@ -155,18 +240,7 @@ function LoginForm({ onSuccess }: Props) {
     }
 
     try {
-      const result = await linkWithPopup(auth.currentUser, provider);
-      const credential =
-        provider instanceof GoogleAuthProvider
-          ? GoogleAuthProvider.credentialFromResult(result)
-          : GithubAuthProvider.credentialFromResult(result);
-
-      if (!credential) {
-        showErrorReloadToast();
-        return;
-      }
-
-      await linkWithCredential(auth.currentUser, credential);
+      await linkWithPopup(auth.currentUser, provider);
       await handleAuthSuccess();
     } catch (error) {
       handleAuthError(
@@ -204,7 +278,11 @@ function LoginForm({ onSuccess }: Props) {
   };
 
   const showSuccessToast = () => {
-    toast.success('Erfolgreich angemeldet');
+    toast.success(
+      purpose === 'briefings'
+        ? 'Du bist dabei – wir melden uns, sobald „Meine Woche“ startet.'
+        : 'Erfolgreich angemeldet',
+    );
   };
 
   const handleResetPassword = async () => {
@@ -220,7 +298,36 @@ function LoginForm({ onSuccess }: Props) {
   }
 
   if (allowNewsletter) {
-    return <SuccessAuthForm onSuccess={onSuccess} />;
+    return (
+      <SuccessAuthForm
+        onSuccess={() => {
+          onSuccess();
+          // Signing up for "Meine Woche" is confirmed even when the
+          // newsletter question came first.
+          if (purpose === 'briefings') {
+            showSuccessToast();
+          }
+        }}
+      />
+    );
+  }
+
+  if (showWeekly) {
+    return (
+      <WeeklySignup
+        onGoogle={handleGoogleLogin}
+        onGithub={handleGithubLogin}
+        onEmail={() => {
+          setIsRegister(true);
+          setShowWeekly(false);
+        }}
+        onLogin={() => {
+          setIsRegister(false);
+          setShowWeekly(false);
+        }}
+        disabled={isLoading}
+      />
+    );
   }
 
   return (
@@ -230,25 +337,47 @@ function LoginForm({ onSuccess }: Props) {
         name="isRegister"
         value={isRegister ? 'true' : 'false'}
       />
+      {purpose === 'briefings' && (
+        <Button
+          type="button"
+          variant="link"
+          className="mb-2 h-auto self-start p-0 text-muted-foreground"
+          onClick={() => setShowWeekly(true)}
+          disabled={isLoading}
+        >
+          <ChevronLeftIcon className="size-4" aria-hidden />
+          Zurück
+        </Button>
+      )}
       <div className="mb-4">
         <ResponsiveDialogTitle className="text-center text-2xl font-bold md:text-left">
           {isRegister ? 'Registrieren' : 'Anmelden'}
         </ResponsiveDialogTitle>
         <ResponsiveDialogDescription className="text-center text-sm text-muted-foreground md:text-left">
-          {isRegister
-            ? 'Du kannst dich bei wahl.chat registrieren um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.'
-            : 'Du kannst dich bei wahl.chat anmelden um deine Chatverläufe zu speichern und mit mehreren Geräten abzurufen.'}
+          {DESCRIPTIONS[purpose][isRegister ? 'register' : 'login']}
         </ResponsiveDialogDescription>
       </div>
+
+      {pendingCredential && (
+        <p className="rounded-md border border-border p-3 text-sm">
+          Zu dieser E-Mail-Adresse gibt es schon ein Konto. Melde dich mit
+          deinem Passwort an – danach kannst du dich auch mit{' '}
+          {pendingCredential.providerId === 'google.com' ? 'Google' : 'Github'}{' '}
+          anmelden.
+        </p>
+      )}
 
       <div className="flex flex-col">
         <div className="mt-4 grid gap-1">
           <Label htmlFor="email">Email</Label>
           <Input
+            // Re-mounts so the address from a provider collision is filled in.
+            key={pendingEmail}
             id="email"
             name="email"
             type="email"
             placeholder="max@mustermann.de"
+            defaultValue={pendingEmail}
             required
           />
         </div>

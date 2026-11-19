@@ -6,6 +6,7 @@ import {
   REGION_CONTEXTS,
   TENANT_ID_HEADER,
 } from './lib/constants';
+import { looksLikeContextId } from './lib/context-id';
 
 // Static pages that should remain at root level (not context-specific)
 const STATIC_PAGES = [
@@ -17,6 +18,8 @@ const STATIC_PAGES = [
   '/login',
   '/donate',
   '/topics',
+  '/aktuell',
+  '/election-chat',
   '/api',
 ];
 
@@ -64,14 +67,6 @@ function getContextIdFromGeo(request: NextRequest): string {
     : DEFAULT_CONTEXT_ID;
 }
 
-// Known context ID patterns (will be validated against actual contexts)
-function looksLikeContextId(segment: string): boolean {
-  // Context IDs are like: bundestagswahl-2025, bw2026, europawahl-2029
-  return /^[a-z]{2,}\d{4}$|^[a-z]+-[a-z]+-\d{4}$|^[a-z]+wahl-\d{4}$/.test(
-    segment,
-  );
-}
-
 // Helper to build redirect URL with search params preserved
 function buildRedirectUrl(
   request: NextRequest,
@@ -112,13 +107,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/budget-spent', request.url));
   }
 
-  // Legacy context-less URLs. Bare paths go to /, which is stable and lets the
-  // visitor pick their own election — so those can be permanent (308) and
-  // consolidate their link equity. Paths carrying a party or session still need
-  // a context, and middleware can only guess one from the request's region, so
-  // those stay temporary (307).
+  // Legacy context-less URLs. Bare paths go to /, which is stable — so those
+  // can be permanent (308) and consolidate their link equity. Paths carrying a
+  // party or session still need a context, and middleware can only guess one
+  // from the request's region, so those stay temporary (307).
+
+  // The chat landing page lives at /election-chat. /chat forwards there only
+  // temporarily (307): the path is reserved for another product, and a 308
+  // would be kept by browsers and search engines, which already happened once
+  // when production sent /chat to / permanently.
   if (pathname === '/chat') {
-    return NextResponse.redirect(buildRedirectUrl(request, '/'), 308);
+    return NextResponse.redirect(
+      buildRedirectUrl(request, '/election-chat'),
+      307,
+    );
   }
 
   if (pathname.startsWith('/chat/')) {

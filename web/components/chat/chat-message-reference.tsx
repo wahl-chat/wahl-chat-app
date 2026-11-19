@@ -38,9 +38,12 @@ function ChatMessageReference({
 
         return (
           <Tooltip key={number}>
-            <TooltipTrigger>
-              {/* biome-ignore lint/a11y/useKeyWithClickEvents:  */}
-              {/* biome-ignore lint/nursery/noStaticElementInteractions: */}
+            {/* The trigger is the button, so a keyboard opens the source too. */}
+            <TooltipTrigger
+              type="button"
+              onClick={() => onReferenceClick(refNumber)}
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               <span
                 className={cn(
                   'inline-flex cursor-pointer items-center justify-center rounded-full bg-muted px-2 py-1 text-xs transition-colors hover:bg-muted/80',
@@ -48,7 +51,6 @@ function ChatMessageReference({
                   isVideo &&
                     'gap-1 bg-primary/10 font-medium text-primary hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30',
                 )}
-                onClick={() => onReferenceClick(refNumber)}
               >
                 {isVideo ? (
                   <>

@@ -10,6 +10,8 @@ Covers:
   - set-difference discovery: ingested protocols excluded, never-stored ones
     re-surface regardless of age, the runner cursor is ignored
   - update sweep: recently-`aktualisiert` ingested protocols re-surface
+  - op-covered protocols (no dip points left) count as seen
+  - unseen protocols are returned before sweep re-checks
   - DIP DESC input → ascending output: regression guard
   - government (999…) speakers kept with name-lookup / quarantine attribution
   - test_empty_protocol_skips: normalize() raises ValueError for a protocol with zero
@@ -48,20 +50,33 @@ class _FakeDipClient:
 
 
 class _FakeStore:
-    """Fake Qdrant client serving stored DIP parent keys for set-difference tests."""
+    """Fake Qdrant client for set-difference tests: stored DIP parent keys for
+    dip scrolls, op speech keys for op scrolls."""
 
-    def __init__(self, ingested_protocol_ids: list[str]) -> None:
+    def __init__(
+        self,
+        ingested_protocol_ids: list[str],
+        op_speech_keys: list[str] | None = None,
+    ) -> None:
         self._ids = ingested_protocol_ids
+        self._op_keys = op_speech_keys or []
 
-    def scroll(self, **kwargs: object) -> tuple:
+    def scroll(self, **kwargs: Any) -> tuple:
         from types import SimpleNamespace
 
+        source = next(
+            c.match.value for c in kwargs["scroll_filter"].must if c.key == "source"
+        )
+        if source == "op":
+            payloads = [{"speech_key": key} for key in self._op_keys]
+        else:
+            payloads = [
+                {"source_parent_key": f"parliamentary_speech:dip:{pid}"}
+                for pid in self._ids
+            ]
         points = [
-            SimpleNamespace(
-                id=f"pt-{pid}",
-                payload={"source_parent_key": f"parliamentary_speech:dip:{pid}"},
-            )
-            for pid in self._ids
+            SimpleNamespace(id=f"pt-{i}", payload=payload)
+            for i, payload in enumerate(payloads)
         ]
         return (points, None)
 
@@ -184,6 +199,93 @@ class TestDiscover:
         assert "701" not in ids, (
             "an ingested protocol without a recent update stays excluded"
         )
+
+    def test_op_covered_protocol_is_not_re_discovered(self) -> None:
+        """A protocol op covers completely has no dip points left once its
+        twins are superseded; it must not count as new on every run, or the
+        resurrection-guard work on it crowds new sittings out of the budget."""
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "801",
+                        "dokumentnummer": "21/4",
+                        "datum": "2025-05-15",
+                        "aktualisiert": "2025-06-03T09:00:00+02:00",
+                    },
+                    {"id": "802", "dokumentnummer": "21/5", "datum": "2025-05-16"},
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=[],
+                op_speech_keys=["de-21-4-erika-beispiel-top-1"],
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["802"]
+
+    def test_op_covered_protocol_still_swept_after_a_recent_update(self) -> None:
+        """The update sweep still re-surfaces an op-covered protocol, so the
+        resurrection guard can add speeches an upstream correction brings."""
+        from datetime import date, timedelta
+
+        recent = (date.today() - timedelta(days=2)).isoformat()
+        pages = [
+            {
+                "documents": [
+                    {
+                        "id": "801",
+                        "dokumentnummer": "21/4",
+                        "datum": "2025-05-15",
+                        "aktualisiert": f"{recent}T09:00:00+02:00",
+                    }
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(
+                ingested_protocol_ids=[],
+                op_speech_keys=["de-21-4-erika-beispiel-top-1"],
+            ),
+            "wahlchat_chunks_test",
+        )
+        assert conn.discover(since=None) == ["801"]
+
+    def test_unseen_protocols_come_before_sweep_re_checks(self) -> None:
+        """A new sitting must not queue behind older re-checks: those are the
+        slow part of a run, and the time budget ends the loop early."""
+        from datetime import date, timedelta
+
+        recent = (date.today() - timedelta(days=1)).isoformat()
+        pages = [
+            {
+                "documents": [
+                    {"id": "903", "dokumentnummer": "21/104", "datum": "2026-11-04"},
+                    {
+                        "id": "902",
+                        "dokumentnummer": "21/103",
+                        "datum": "2026-10-16",
+                        "aktualisiert": f"{recent}T09:00:00+02:00",
+                    },
+                    {
+                        "id": "901",
+                        "dokumentnummer": "21/98",
+                        "datum": "2026-10-07",
+                        "aktualisiert": f"{recent}T09:00:00+02:00",
+                    },
+                    {"id": "900", "dokumentnummer": "21/97", "datum": "2026-09-25"},
+                ]
+            }
+        ]
+        conn = _make_connector_with_fake_client(pages)
+        conn.bind_store(
+            _FakeStore(ingested_protocol_ids=["901", "902"]), "wahlchat_chunks_test"
+        )
+        assert conn.discover(since=None) == ["900", "903", "901", "902"]
 
     def test_discover_caches_protocols(self) -> None:
         """discover() populates self._protocols with the fetched protocol dicts."""
