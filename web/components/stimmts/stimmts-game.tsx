@@ -7,6 +7,7 @@ import {
   daysBetween,
   nextPuzzleAt,
 } from '@/lib/stimmts/berlin-time';
+import { shareChallenge } from '@/lib/stimmts/challenge';
 import { PUZZLES, PUZZLE_COUNT, createSchedule } from '@/lib/stimmts/content';
 import { formatDate, weekdayName } from '@/lib/stimmts/labels';
 import { dayRecords } from '@/lib/stimmts/period';
@@ -232,6 +233,11 @@ function StimmtsGame({ previewEnabled }: Props) {
           puzzle={today.puzzle}
           schedule={schedule}
           today={berlinDate(clock.now)}
+          challenge={shareChallenge({
+            search,
+            today: berlinDate(clock.now),
+            playedToday: getGame(progress, today.puzzle.id).finishedOn !== null,
+          })}
           onOpenDay={(number) => {
             setPastDay(number);
             scrollTop();
