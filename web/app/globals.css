@@ -257,3 +257,18 @@ body {
   --daily-day-upcoming: #3f3f46;
   --daily-action-bg: #3f3f46;
 }
+
+/* Below md, Stimmt's? pins "Los geht's" to the bottom of the viewport
+   (components/stimmts/start-bar.tsx). The page ends that much lower, so its
+   last line and the footer can still scroll out from under the bar. The
+   height is the bar's: 1px border, 12px above, the 52px button, and at least
+   16px below. A scroll padding of the bar plus 16px keeps anything scrolled to
+   by focus or scrollIntoView from landing under it. */
+@media (max-width: 767.98px) {
+  html:has([data-stimmts-start-bar]) {
+    scroll-padding-bottom: calc(81px + max(16px, env(safe-area-inset-bottom)));
+  }
+  body:has([data-stimmts-start-bar]) {
+    padding-bottom: calc(65px + max(16px, env(safe-area-inset-bottom)));
+  }
+}

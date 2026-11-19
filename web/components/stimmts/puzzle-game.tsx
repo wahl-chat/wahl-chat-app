@@ -24,12 +24,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import Briefing from './briefing';
 import ChamberLegend from './chamber-legend';
 import GuessStep from './guess-step';
 import Hemicycle from './hemicycle';
 import Result from './result';
 import Reveal from './reveal';
+import StartScreen from './start-screen';
 
 /** "Auflösen" turns the parties over one after another, left to right. */
 const REVEAL_ALL_STEP_MS = 450;
@@ -53,6 +53,7 @@ function PuzzleGame({ number, puzzle, schedule, today, onOpenDay }: Props) {
   const game = useProgress((state) => getGame(state.progress, puzzle.id));
   const reduceMotion = useReducedMotion() ?? false;
   const [started, setStarted] = useState(false);
+  const startCounted = useRef(false);
   // A game that was already finished when the page opened shows its result
   // straight away instead of replaying the reveal.
   const [alreadyFinished] = useState(game.finishedOn !== null);
@@ -111,7 +112,7 @@ function PuzzleGame({ number, puzzle, schedule, today, onOpenDay }: Props) {
       ? 'answering'
       : 'briefing';
 
-  // Every screen but the briefing (whose Stimmkarte is the heading) opens on
+  // Every screen but the start screen (whose task is its visible h1) opens on
   // a heading for screen readers, and the focus moves to it when the screen
   // changes; otherwise it would stay on a button that is gone.
   const screenHeading = useRef<HTMLHeadingElement>(null);
@@ -198,12 +199,17 @@ function PuzzleGame({ number, puzzle, schedule, today, onOpenDay }: Props) {
 
   if (phase === 'briefing') {
     return (
-      <div className="py-6">
-        <Briefing
+      <div className="pb-2 pt-3 md:pt-10">
+        <StartScreen
           number={number}
           playDate={today}
           puzzle={puzzle}
           onStart={() => {
+            // A double tap lands before the screen is gone; count one start.
+            if (startCounted.current) {
+              return;
+            }
+            startCounted.current = true;
             setStarted(true);
             trackPuzzleStarted(number, puzzle.id);
             goTop();
