@@ -43,6 +43,7 @@ import type {
   ParliamentFeed,
   SittingCalendar,
 } from '@/lib/firebase/firebase.types';
+import type { StimmtsStatus } from '@/lib/stimmts/status';
 import { cn } from '@/lib/utils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -51,6 +52,7 @@ import DailyDaySection from './daily-day-section';
 import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { FeedFilters, FilterBar, ParliamentSelector } from './daily-filters';
 import DaySkeleton from './day-skeleton';
+import StimmtsFeedCard from './stimmts-feed-card';
 
 const ITEM_PARAM = 'item';
 
@@ -69,6 +71,8 @@ type Props = {
   calendar?: SittingCalendar | null;
   /** The days the Bundestag's feed has content for. */
   editionDates?: string[];
+  /** The Stimmt's? switch as the server read it; the card follows it live. */
+  stimmtsStatus?: StimmtsStatus;
 };
 
 type View = {
@@ -185,6 +189,7 @@ function DailyFeed({
   linkedDay,
   calendar = null,
   editionDates = [],
+  stimmtsStatus = { enabled: false },
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
@@ -416,6 +421,8 @@ function DailyFeed({
           </>
         )}
       </FilterBar>
+
+      <StimmtsFeedCard initialStatus={stimmtsStatus} />
 
       <div className="flex flex-col gap-12 pt-2">
         {visibleDays.length === 0 ? (

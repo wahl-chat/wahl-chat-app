@@ -1,6 +1,6 @@
 import { berlinDate, nextPuzzleAt } from './berlin-time';
 import { PUZZLES, createSchedule } from './content';
-import { type Progress, getGame } from './progress';
+import { EMPTY_PROGRESS, type Progress, getGame } from './progress';
 import type { StorageLike } from './progress-store';
 import { getTodaysPuzzle } from './schedule';
 import { scorePuzzle } from './score';
@@ -68,6 +68,32 @@ export function feedEntry({
 }
 
 /**
+ * Whether the switch is on and a puzzle runs today, whatever this device has
+ * played. The server renders the feed card from this, so the card is not
+ * drawn before the launch or after the last puzzle only to vanish on mount.
+ */
+export function hasPuzzleToday(status: StimmtsStatus, now: Date): boolean {
+  return (
+    feedEntry({ status, now, progress: EMPTY_PROGRESS, visitDays: 0 }).kind !==
+    'hidden'
+  );
+}
+
+/** Past midnight by this much, so the wake-up lands safely on the new day. */
+const ROLLOVER_MARGIN_MS = 1000;
+
+/**
+ * Milliseconds until an open feed should look at the clock again: every
+ * second while the countdown runs, otherwise just after the next Berlin
+ * midnight, when a played day turns into a new puzzle or the launch begins.
+ */
+export function nextFeedTick(kind: FeedEntry['kind'], now: Date): number {
+  return kind === 'play'
+    ? 1000
+    : nextPuzzleAt(now).getTime() - now.getTime() + ROLLOVER_MARGIN_MS;
+}
+
+/**
  * Counts the Berlin days this device opened the feed, once per day, to tell
  * when the card stops being new. Storage that is missing, blocked or corrupt
  * simply counts this visit as the first.
@@ -102,4 +128,44 @@ export function recordFeedVisit(
     // Blocked storage: the count just does not persist.
   }
   return count;
+}
+
+function counted(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+/**
+ * The countdown as a screen reader says it, "8 Stunden 41 Minuten". The
+ * visible clock ticks every second, which is noise when read aloud, so the
+ * spoken form stops at minutes. Seconds round up as on the clock, so both
+ * always show the same hours and minutes.
+ */
+export function remainingLabel(milliseconds: number): string {
+  const totalMinutes = Math.floor(
+    Math.max(0, Math.ceil(milliseconds / 1000)) / 60,
+  );
+  if (totalMinutes === 0) {
+    return 'weniger als 1 Minute';
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return [
+    hours > 0 ? counted(hours, 'Stunde', 'Stunden') : null,
+    minutes > 0 ? counted(minutes, 'Minute', 'Minuten') : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/**
+ * The accessible name of the feed card, which is one link: everything the
+ * card shows, in reading order. Null when there is no card to play.
+ */
+export function feedCardLabel(entry: FeedEntry, now: Date): string | null {
+  if (entry.kind !== 'play') {
+    return null;
+  }
+  const name = entry.isNew ? 'Stimmt’s?, neu' : 'Stimmt’s?';
+  const remaining = remainingLabel(entry.endsAt.getTime() - now.getTime());
+  return `${name}: Heute: ${entry.shortName}. Jeden Tag ein neues Quiz. Noch ${remaining}. Los geht’s`;
 }

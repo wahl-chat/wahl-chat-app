@@ -235,6 +235,8 @@ body {
   /* A card's own action ("Mehr anzeigen") on touch screens, which has to
      stand out from the card without any hover. */
   --daily-action-bg: #e4e4e7;
+  /* The light that sweeps once across the Stimmt's? card's ink button. */
+  --daily-glint: rgba(255, 255, 255, 0.45);
   color: var(--daily-ink);
   background: var(--daily-canvas);
   font-family: var(--font-daily-body), Arial, Helvetica, sans-serif;
@@ -256,6 +258,51 @@ body {
   --daily-day-pending-hover: #3f3f46;
   --daily-day-upcoming: #3f3f46;
   --daily-action-bg: #3f3f46;
+  --daily-glint: rgba(113, 113, 122, 0.45);
+}
+
+/* Stimmt's? card in the feed. The presence script in the root layout marks
+   <html> before first paint, so a device that played today never sees the
+   invitation flash; the fly-in flag keeps it for the animation that follows
+   a game just finished. */
+html[data-stimmts="today"]:not([data-stimmts-fly]) .stimmts-feed-card {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stimmts-shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stimmts-shine::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -70%;
+    width: 55%;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      var(--daily-glint) 50%,
+      transparent 100%
+    );
+    animation: stimmts-sweep 2.5s ease-out 0.4s 3 both;
+    pointer-events: none;
+  }
+}
+
+@keyframes stimmts-sweep {
+  0% {
+    left: -70%;
+  }
+  30% {
+    left: 130%;
+  }
+  100% {
+    left: 130%;
+  }
 }
 
 /* Below md, Stimmt's? pins "Los geht's" to the bottom of the viewport

@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'bun:test';
 import { PUZZLES } from './content';
-import { NEW_FOR_DAYS, feedEntry, recordFeedVisit } from './feed-entry';
+import {
+  type FeedEntry,
+  NEW_FOR_DAYS,
+  feedCardLabel,
+  feedEntry,
+  hasPuzzleToday,
+  nextFeedTick,
+  recordFeedVisit,
+  remainingLabel,
+} from './feed-entry';
 import { EMPTY_PROGRESS, type Progress } from './progress';
 import { type StimmtsStatus, readStimmtsStatus } from './status';
 
@@ -136,5 +145,92 @@ describe('recordFeedVisit', () => {
     expect(recordFeedVisit(fake('{"last":5,"count":"x"}'), '2026-11-15')).toBe(
       1,
     );
+  });
+});
+
+describe('remainingLabel', () => {
+  const at = (h: number, m: number, s: number) =>
+    ((h * 60 + m) * 60 + s) * 1000;
+
+  it('speaks hours and whole minutes', () => {
+    expect(remainingLabel(at(8, 41, 27))).toBe('8 Stunden 41 Minuten');
+    expect(remainingLabel(at(1, 1, 0))).toBe('1 Stunde 1 Minute');
+  });
+
+  it('leaves out an empty part', () => {
+    expect(remainingLabel(at(0, 12, 5))).toBe('12 Minuten');
+    expect(remainingLabel(at(3, 0, 30))).toBe('3 Stunden');
+  });
+
+  it('says less than a minute at the very end, never zero', () => {
+    expect(remainingLabel(at(0, 0, 59))).toBe('weniger als 1 Minute');
+    expect(remainingLabel(-5000)).toBe('weniger als 1 Minute');
+  });
+});
+
+describe('feedCardLabel', () => {
+  // 15:18:33 in Berlin on launch day, 8:41:27 before the next puzzle.
+  const now = new Date('2026-11-15T14:18:33Z');
+  const play: FeedEntry = {
+    kind: 'play',
+    number: 1,
+    shortName: 'Der Tankrabatt',
+    endsAt: new Date('2026-11-15T23:00:00Z'),
+    isNew: true,
+  };
+
+  it('reads the whole card as one link', () => {
+    expect(feedCardLabel(play, now)).toBe(
+      'Stimmt’s?, neu: Heute: Der Tankrabatt. Jeden Tag ein neues Quiz. Noch 8 Stunden 41 Minuten. Los geht’s',
+    );
+  });
+
+  it('drops "neu" once the card is no longer new', () => {
+    expect(feedCardLabel({ ...play, isNew: false }, now)).toBe(
+      'Stimmt’s?: Heute: Der Tankrabatt. Jeden Tag ein neues Quiz. Noch 8 Stunden 41 Minuten. Los geht’s',
+    );
+  });
+
+  it('has no label when there is nothing to play', () => {
+    expect(feedCardLabel({ kind: 'hidden' }, now)).toBeNull();
+    expect(
+      feedCardLabel({ kind: 'played', number: 1, score: 4 }, now),
+    ).toBeNull();
+  });
+});
+
+describe('hasPuzzleToday', () => {
+  it('is false while the switch is off', () => {
+    expect(hasPuzzleToday({ enabled: false }, day1)).toBe(false);
+  });
+
+  it('is false on the eve of the launch', () => {
+    expect(
+      hasPuzzleToday(
+        { enabled: true, launchDate: '2026-11-16' },
+        new Date('2026-11-15T12:00:00Z'),
+      ),
+    ).toBe(false);
+  });
+
+  it('is true on day 1', () => {
+    expect(hasPuzzleToday(on, new Date('2026-11-15T12:00:00Z'))).toBe(true);
+  });
+
+  it('is false once the last puzzle has run', () => {
+    expect(hasPuzzleToday(on, new Date('2030-01-01T12:00:00Z'))).toBe(false);
+  });
+});
+
+describe('nextFeedTick', () => {
+  it('ticks every second while there is a countdown', () => {
+    expect(nextFeedTick('play', new Date('2026-11-15T14:18:33Z'))).toBe(1000);
+  });
+
+  it('otherwise wakes just after the next Berlin midnight', () => {
+    // 22:59:00 UTC is 23:59:00 in Berlin: one minute, plus the margin.
+    const now = new Date('2026-11-15T22:59:00Z');
+    expect(nextFeedTick('played', now)).toBe(61_000);
+    expect(nextFeedTick('hidden', now)).toBe(61_000);
   });
 });

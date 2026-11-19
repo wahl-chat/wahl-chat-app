@@ -9,6 +9,7 @@ import {
   getLinkedFeedDay,
   getParliamentFeed,
   getSittingCalendar,
+  getStimmtsStatus,
 } from '@/lib/firebase/firebase-server';
 import type { FeedPage } from '@/lib/firebase/firebase.types';
 import {
@@ -17,6 +18,8 @@ import {
   WEBSITE_ID,
   productionRobots,
 } from '@/lib/seo';
+import { hasPuzzleToday } from '@/lib/stimmts/feed-entry';
+import type { StimmtsStatus } from '@/lib/stimmts/status';
 import type { Metadata } from 'next';
 
 // The search terms lead the title, the product name closes it. A results
@@ -84,14 +87,30 @@ async function HomePage({ searchParams }: Props) {
 
   // Only the Bundestag is in the feed for now (see `DAILY_STATES`).
   const item = typeof params.item === 'string' ? params.item : undefined;
-  const [bundestag, previewDigests, linkedDay, calendar, editionDates] =
-    await Promise.all([
-      getParliamentFeed('bundestag'),
-      getLocalPreviewDigests(),
-      item ? getLinkedFeedDay(item) : null,
-      getSittingCalendar('bundestag'),
-      getEditionDates('bundestag'),
-    ]);
+  const [
+    bundestag,
+    previewDigests,
+    linkedDay,
+    calendar,
+    editionDates,
+    stimmtsStatus,
+  ] = await Promise.all([
+    getParliamentFeed('bundestag'),
+    getLocalPreviewDigests(),
+    item ? getLinkedFeedDay(item) : null,
+    getSittingCalendar('bundestag'),
+    getEditionDates('bundestag'),
+    getStimmtsStatus(),
+  ]);
+  // The page renders per request, so it can tell whether a puzzle runs
+  // today. With none (before the launch, after the last puzzle) the server
+  // draws no card, rather than one the browser would then remove.
+  const stimmtsCardStatus: StimmtsStatus = hasPuzzleToday(
+    stimmtsStatus,
+    new Date(),
+  )
+    ? stimmtsStatus
+    : { enabled: false };
 
   return (
     <>
@@ -112,6 +131,7 @@ async function HomePage({ searchParams }: Props) {
         linkedDay={linkedDay}
         calendar={calendar}
         editionDates={editionDates}
+        stimmtsStatus={stimmtsCardStatus}
       />
     </>
   );
