@@ -55,6 +55,18 @@ def _in_domains(url: str, domains: tuple[str, ...]) -> bool:
     return any(host == d or host.endswith("." + d) for d in domains)
 
 
+# Perplexity takes at most this many entries in search_domain_filter.
+MAX_FILTER_DOMAINS = 20
+
+
+def domain_groups(domains: tuple[str, ...]) -> list[tuple[str, ...]]:
+    """``domains`` in filter-sized groups, searched side by side."""
+    return [
+        domains[start : start + MAX_FILTER_DOMAINS]
+        for start in range(0, len(domains), MAX_FILTER_DOMAINS)
+    ]
+
+
 def _dedup_key(url: str) -> str:
     parts = urlsplit(url)
     host = domain_of(url)
@@ -72,7 +84,9 @@ def _payload(
         "search_language_filter": ["de"],
     }
     if domains:
-        payload["search_domain_filter"] = list(domains)[:20]
+        if len(domains) > MAX_FILTER_DOMAINS:
+            raise ValueError(f"{len(domains)} domains; split with domain_groups")
+        payload["search_domain_filter"] = list(domains)
     if recency:
         payload["search_recency_filter"] = recency
     return payload
@@ -152,8 +166,9 @@ async def search_web(
             ][: MAX_PREFERRED + MAX_OTHERS]
             return results, None
 
+        groups = domain_groups(PREFERRED_OUTLETS)
         outcomes = await asyncio.gather(
-            _call(http, api_key, _payload(query, PREFERRED_OUTLETS, recency)),
+            *(_call(http, api_key, _payload(query, group, recency)) for group in groups),
             _call(http, api_key, _payload(query, None, recency)),
             return_exceptions=True,
         )
@@ -166,7 +181,8 @@ async def search_web(
                 calls.append(outcome)
         if all(isinstance(o, BaseException) for o in outcomes):
             return [], "Web search failed; answer without web sources."
-        return merge_news(calls[0], calls[1]), None
+        preferred = [raw for found in calls[:-1] for raw in found]
+        return merge_news(preferred, calls[-1]), None
     except Exception as exc:  # noqa: BLE001 (degrade, never end the turn)
         logger.warning("web_search: Perplexity search failed: %s", exc)
         return [], "Web search failed; answer without web sources."
@@ -185,8 +201,28 @@ async def search_sites(
         return [], "Web search is unavailable right now."
     try:
         async with httpx.AsyncClient() as http:
-            raw = await _call(http, api_key, _payload(query, domains, recency))
+            outcomes = await asyncio.gather(
+                *(
+                    _call(http, api_key, _payload(query, group, recency))
+                    for group in domain_groups(domains)
+                ),
+                return_exceptions=True,
+            )
     except Exception as exc:  # noqa: BLE001 (degrade, never end the turn)
         logger.warning("web_search: site search failed: %s", exc)
         return [], "Web search failed; answer without web sources."
-    return [_to_result(r, preferred=True) for r in raw if _in_domains(r["url"], domains)], None
+    found = [o for o in outcomes if not isinstance(o, BaseException)]
+    for outcome in outcomes:
+        if isinstance(outcome, BaseException):
+            logger.warning("web_search: site search failed: %s", outcome)
+    if not found:
+        return [], "Web search failed; answer without web sources."
+    seen: set[str] = set()
+    results: list[WebResult] = []
+    for raw in (r for group in found for r in group):
+        key = _dedup_key(raw["url"])
+        if key in seen or not _in_domains(raw["url"], domains):
+            continue
+        seen.add(key)
+        results.append(_to_result(raw, preferred=True))
+    return results, None

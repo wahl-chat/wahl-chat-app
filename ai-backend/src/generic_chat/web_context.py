@@ -20,6 +20,7 @@ import re
 import time
 from datetime import date, timedelta
 from typing import Iterable, Optional
+from urllib.parse import urlsplit
 
 from pydantic_ai.framing import wrap
 
@@ -46,6 +47,7 @@ FRAKTION_SITES: dict[str, str] = {
     "afdbundestag.de": "afd",
 }
 # A party's own site speaks for it too, wherever a web result comes from.
+# Each party we have data for adds its website_url (see party_sites).
 PARTY_SITES: dict[str, str] = {
     **FRAKTION_SITES,
     "cdu.de": "cdu",
@@ -55,6 +57,8 @@ PARTY_SITES: dict[str, str] = {
     "die-linke.de": "linke",
     "afd.de": "afd",
 }
+# Sites of parties we have no data for: domain to the party's name.
+EXTRA_PARTY_SITES: dict[str, str] = {}
 # bundestag.de is the record our corpus already holds, not coverage of it.
 PRESS_SITES = tuple(d for d in PREFERRED_OUTLETS if d != "bundestag.de") + tuple(FRAKTION_SITES)
 # Coverage of a law changes slowly; follow-up turns reuse it.
@@ -113,11 +117,36 @@ def matching(
     return out[:MAX_PRESS]
 
 
-def party_of(domain: str) -> Optional[str]:
-    return next(
-        (party for site, party in PARTY_SITES.items() if domain == site or domain.endswith("." + site)),
-        None,
-    )
+def _host(url: str) -> str:
+    host = (urlsplit(url if "//" in url else f"//{url}").hostname or "").lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def party_sites(deps: GenericChatDeps) -> dict[str, str]:
+    """Domain to party_id: the hand-kept sites plus every party's website."""
+    sites = dict(PARTY_SITES)
+    for party in deps.parties:
+        host = _host(party.website_url or "")
+        if host:
+            sites.setdefault(host, party.party_id)
+    return sites
+
+
+def _matches(domain: str, site: str) -> bool:
+    return domain == site or domain.endswith("." + site)
+
+
+def party_of(deps: GenericChatDeps, domain: str) -> tuple[Optional[str], Optional[str]]:
+    """The party a site speaks for: (party_id, name). A party without data
+    has a name but no id."""
+    domain = _host(domain)
+    for site, party_id in party_sites(deps).items():
+        if _matches(domain, site):
+            return party_id, deps.party_name(party_id)
+    for site, name in EXTRA_PARTY_SITES.items():
+        if _matches(domain, site):
+            return None, name
+    return None, None
 
 
 def register_results(
@@ -128,7 +157,7 @@ def register_results(
     documents = []
     for result in results:
         title = web.safe_title(result.title)
-        party = party_of(result.domain)
+        party_id, party = party_of(deps, result.domain)
         entry: dict = {
             "source": title,
             "page": 1,
@@ -137,9 +166,9 @@ def register_results(
             "source_document": result.domain,
             "source_type": "web",
         }
-        if party:
-            entry["party_id"] = party
-        else:
+        if party_id:
+            entry["party_id"] = party_id
+        if not party:
             entry["preferred_outlet"] = result.preferred
         number = deps.sources.register(entry)
         documents.append(
@@ -148,7 +177,7 @@ def register_results(
                 source_type="web",
                 title=title,
                 date=result.date,
-                party=deps.party_name(party) if party else None,
+                party=party,
                 outlet=result.domain,
                 preferred_outlet=None if party else result.preferred,
                 tier="party_site" if party else tier,

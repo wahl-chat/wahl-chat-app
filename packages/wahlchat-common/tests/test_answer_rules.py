@@ -28,8 +28,8 @@ def test_language_names_cover_every_language() -> None:
 
 
 @pytest.mark.parametrize("domains", [PREFERRED_OUTLETS, CIVIC_DOMAINS])
-def test_domain_lists_fit_a_search_domain_filter(domains: tuple[str, ...]) -> None:
-    # Perplexity accepts at most 20 entries in search_domain_filter.
-    assert 0 < len(domains) <= 20
+def test_domain_lists_are_bare_unique_hosts(domains: tuple[str, ...]) -> None:
+    # Longer lists than a search_domain_filter takes are split by the caller.
+    assert len(domains) > 0
     assert len(set(domains)) == len(domains)
     assert all(d == d.lower() and "/" not in d and not d.startswith("www.") for d in domains)

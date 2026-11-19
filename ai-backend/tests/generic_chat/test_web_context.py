@@ -78,3 +78,36 @@ async def test_a_procedure_brings_three_press_documents_once(
     await web_context.add_press(deps, again)
     assert len(sites) == 1
     assert [d.tier for d in first.documents] == ["press"] * 3 and again.documents == []
+
+
+def _result(url: str) -> WebResult:
+    from src.generic_chat.web_search import domain_of
+
+    return WebResult(title="Seite", url=url, snippet="…", date="2026-11-13",
+                     domain=domain_of(url), preferred=False)
+
+
+def test_a_small_partys_own_site_speaks_for_it() -> None:
+    deps = make_deps()
+    deps.parties[2] = deps.parties[2].model_copy(update={"website_url": "https://voltdeutschland.org/"})
+    [doc] = web_context.register_results(deps, [_result("https://www.voltdeutschland.org/presse")], "press")
+    entry = deps.sources.entries[doc.id]
+    assert (doc.tier, doc.party, entry.get("party_id")) == ("party_site", "Volt", "volt")
+    assert "preferred_outlet" not in entry
+
+
+def test_a_party_without_data_speaks_without_an_icon(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(web_context.EXTRA_PARTY_SITES, "die-partei.de", "Die PARTEI")
+    deps = make_deps()
+    [doc] = web_context.register_results(deps, [_result("https://die-partei.de/x")], "press")
+    entry = deps.sources.entries[doc.id]
+    assert (doc.tier, doc.party) == ("party_site", "Die PARTEI")
+    assert "party_id" not in entry and "preferred_outlet" not in entry
+
+
+def test_any_other_site_stays_external() -> None:
+    deps = make_deps()
+    [doc] = web_context.register_results(deps, [_result("https://www.youtube.com/watch")], "press")
+    entry = deps.sources.entries[doc.id]
+    assert (doc.tier, doc.party, entry["preferred_outlet"]) == ("press", None, False)
+

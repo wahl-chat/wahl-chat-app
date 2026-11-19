@@ -68,9 +68,12 @@ async def test_news_runs_two_parallel_calls_and_merges() -> None:
         )
 
     assert note is None
-    assert len(recorder.payloads) == 2
     filtered = [p for p in recorder.payloads if "search_domain_filter" in p]
-    assert len(filtered) == 1 and filtered[0]["search_domain_filter"] == list(PREFERRED_OUTLETS)
+    assert len(recorder.payloads) == len(filtered) + 1
+    # Every preferred outlet is searched, in filters Perplexity accepts.
+    searched = [d for p in filtered for d in p["search_domain_filter"]]
+    assert searched == list(PREFERRED_OUTLETS)
+    assert all(len(p["search_domain_filter"]) <= web.MAX_FILTER_DOMAINS for p in filtered)
     for payload in recorder.payloads:
         assert payload["query"] == "Mietpreisbremse Bundestag"
         assert set(payload) <= _ALLOWED_KEYS
@@ -138,3 +141,33 @@ async def test_missing_key_makes_no_request(monkeypatch: pytest.MonkeyPatch) -> 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         results, note = await web.search_web("x y", "news", client=client)
     assert results == [] and note
+
+
+def test_long_domain_lists_split_without_losing_one() -> None:
+    domains = tuple(f"site{i}.de" for i in range(45))
+    groups = web.domain_groups(domains)
+    assert [len(g) for g in groups] == [20, 20, 5]
+    assert [d for g in groups for d in g] == list(domains)
+    with pytest.raises(ValueError):
+        web._payload("x", domains, None)
+
+
+async def test_a_site_search_covers_every_domain(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.generic_chat import web_context
+
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        group = json.loads(request.content)["search_domain_filter"]
+        seen.extend(group)
+        return httpx.Response(200, json={"results": [_result(f"https://www.{group[-1]}/a")]})
+
+    class Client(httpx.AsyncClient):
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            super().__init__(transport=httpx.MockTransport(handler))
+
+    monkeypatch.setattr(web.httpx, "AsyncClient", Client)
+    results, note = await web.search_sites("x y", web_context.PRESS_SITES)
+    assert note is None and seen == list(web_context.PRESS_SITES)
+    assert len(results) == len(web.domain_groups(web_context.PRESS_SITES))
+

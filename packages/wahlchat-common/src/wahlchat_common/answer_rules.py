@@ -30,6 +30,18 @@ PREFERRED_OUTLETS: tuple[str, ...] = (
     "faz.net",
     "netzpolitik.org",
     "correctiv.org",
+    # Regional public broadcasters and Deutsche Welle.
+    "br.de",
+    "ndr.de",
+    "wdr.de",
+    "mdr.de",
+    "swr.de",
+    "hr.de",
+    "rbb24.de",
+    "sr.de",
+    "butenunbinnen.de",
+    "radiobremen.de",
+    "dw.com",
 )
 
 CIVIC_DOMAINS: tuple[str, ...] = (
