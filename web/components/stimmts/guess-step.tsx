@@ -88,7 +88,7 @@ function GuessStep({ puzzle, guesses, today }: Props) {
                 ? 'bg-[var(--daily-ink)]'
                 : i === index
                   ? 'bg-[var(--daily-muted)]'
-                  : 'bg-border',
+                  : 'bg-[var(--daily-border)]',
             )}
           />
         ))}

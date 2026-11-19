@@ -61,7 +61,6 @@ function Reveal({
             <PillButton
               aria-disabled={revealing}
               onClick={revealing ? undefined : onRevealAll}
-              className={revealing ? 'opacity-50' : undefined}
             >
               Auflösen
             </PillButton>

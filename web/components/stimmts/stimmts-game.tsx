@@ -23,8 +23,7 @@ import ClosingScreen from './closing-screen';
 import Countdown from './countdown';
 import NewDayNotice from './new-day-notice';
 import PastPuzzle from './past-puzzle';
-import { OUTLINE_BUTTON } from './pill-button';
-import PillButton from './pill-button';
+import PillButton, { OUTLINE_BUTTON } from './pill-button';
 import PuzzleGame from './puzzle-game';
 import StatusScreen, { LoadingScreen } from './status-screen';
 
