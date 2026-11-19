@@ -1,5 +1,6 @@
 import { safeExternalUrl } from '@/lib/pledge-tracker/pledges';
 import { isIsoDate } from './berlin-time';
+import { hasBalancedEmphasis, stripEmphasis } from './emphasis';
 import { SEATING_ORDER } from './parties';
 import type {
   BillDocument,
@@ -17,6 +18,10 @@ import type {
  * answer, so such a vote does not make a fair puzzle.
  */
 const MIN_PARTY_UNITY = 0.8;
+
+/** Key points are read at a glance on a phone, before the guess. */
+const KEY_POINT_COUNT = 3;
+const MAX_KEY_POINT_WORDS = 12;
 
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -153,6 +158,37 @@ function readDocument(value: unknown, id: string): BillDocument {
   };
 }
 
+function countWords(text: string): number {
+  return stripEmphasis(text).split(/\s+/).filter(Boolean).length;
+}
+
+function readKeyPoint(value: unknown, index: number, id: string): string {
+  const where = `key point ${index + 1}`;
+  if (typeof value !== 'string' || value.trim() === '') {
+    return fail(id, `${where} must be a non-empty string`);
+  }
+  if (value !== value.trim()) {
+    return fail(id, `${where} has leading or trailing whitespace`);
+  }
+  if (!hasBalancedEmphasis(value)) {
+    return fail(id, `${where} has an unpaired "**" marker`);
+  }
+  if (countWords(value) > MAX_KEY_POINT_WORDS) {
+    return fail(id, `${where} is longer than ${MAX_KEY_POINT_WORDS} words`);
+  }
+  return value;
+}
+
+function readKeyPoints(value: unknown, id: string): [string, string, string] {
+  if (!Array.isArray(value) || value.length !== KEY_POINT_COUNT) {
+    return fail(id, `"keyPoints" must list exactly ${KEY_POINT_COUNT} points`);
+  }
+  const [first, second, third] = value.map((point, index) =>
+    readKeyPoint(point, index, id),
+  );
+  return [first, second, third];
+}
+
 function readParty(value: unknown, id: string): PartyResult {
   if (!isRecord(value)) {
     return fail(id, 'each party must be an object');
@@ -218,6 +254,9 @@ export function validatePuzzle(data: unknown): Puzzle {
     topic: readString(data, 'topic', id),
     title: readString(data, 'title', id),
     briefing: readString(data, 'briefing', id),
+    ...(data.keyPoints === undefined
+      ? {}
+      : { keyPoints: readKeyPoints(data.keyPoints, id) }),
     yesMeans: readString(data, 'yesMeans', id),
     outcome,
     parties,

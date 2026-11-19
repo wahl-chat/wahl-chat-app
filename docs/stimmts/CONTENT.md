@@ -78,11 +78,28 @@ The dropped puzzle can stay in `puzzles.json` as a spare.
      630 seats.
    - `parties`: exactly `linke`, `spd`, `gruene`, `cdu`, `afd`, in that order.
    - `title`, `topic`, `briefing`, `yesMeans`: written by us (see the checklist).
+   - `keyPoints` (optional): three short bullets for the front of the
+     briefing card (see below). The `briefing` moves to the card's back.
    - `document` (optional): the Drucksache as printed on its cover. Leave it
      out if it cannot be verified; the briefing then uses the plain layout.
    - `source`: the vote's Abgeordnetenwatch page.
 4. Add its id to `schedule.json` (or leave it out as a spare).
 5. Run the checks and commit.
+
+## Key points
+
+The briefing card shows three bullets before the long `briefing`. Players
+read them first, often on a phone, so they must be quick to take in:
+
+- Exactly three bullets, each at most 12 words.
+- Plain language, one fact per bullet.
+- Cover what changes, who it affects, and what it costs or demands.
+- Mark numbers and dates bold with `**…**`, for example
+  `Tanken kann bis zu **rund 17 Cent** pro Liter billiger werden.`
+- No hint at the result: no outcome, no tally, no party positions.
+
+The validator checks the count, the length (the `**` markers do not count as
+words), paired markers, and no spaces at the start or end.
 
 ## Review checklist
 
@@ -93,6 +110,8 @@ Before a puzzle is committed, a person checks:
 - [ ] The title is neutral and does not hint at the result.
 - [ ] The briefing explains what was voted on, in plain German, without the
       outcome, the tally, or who argued for or against it.
+- [ ] The key points, if any, follow the rules above and say nothing the
+      briefing does not.
 - [ ] `yesMeans` says in one sentence what a Ja vote meant. Take extra care
       with committee recommendations, where Ja can mean rejecting a motion.
 - [ ] The Drucksache fields are copied exactly from the PDF, or left out.

@@ -73,6 +73,13 @@ export type Puzzle = {
   title: string;
   /** Shown before the guess, so it must not reveal the result. */
   briefing: string;
+  /**
+   * The short summary on the front of the briefing card, which leaves the
+   * full `briefing` for the back. Shown before the guess like the briefing,
+   * so it must not reveal the result either. `**…**` marks emphasis, used for
+   * numbers and dates (see `emphasis.ts`).
+   */
+  keyPoints?: [string, string, string];
   /** Spells out what "Ja" means, which is not obvious for every vote. */
   yesMeans: string;
   outcome: PuzzleOutcome;
