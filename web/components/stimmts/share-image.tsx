@@ -126,7 +126,7 @@ const SIZES: Record<ShareImageData['format'], Sizes> = {
     cardPadding: '26px 40px 46px',
     cardGap: 16,
     label: 20,
-    score: 72,
+    score: 40,
     right: 26,
     square: 36,
     stamp: 32,
@@ -284,7 +284,11 @@ function ScoreLine({ result, s }: { result: Result; s: Sizes }) {
   );
 }
 
-/** The link preview is wide and low: the score stands beside the title. */
+/**
+ * The link preview is wide and low: the score stands beside the title, in
+ * the plain face and smaller, so the title stays the main text. The squares
+ * come first, keeping them clear of the stamp at the card's lower edge.
+ */
 function ScoreColumn({ result, s }: { result: Result; s: Sizes }) {
   return (
     <div
@@ -292,25 +296,20 @@ function ScoreColumn({ result, s }: { result: Result; s: Sizes }) {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        gap: 10,
+        gap: 12,
         paddingLeft: 36,
         borderLeft: `3px solid ${C.muted}`,
       }}
     >
-      <span
-        style={{
-          ...DISPLAY,
-          fontSize: s.score,
-          lineHeight: 1,
-          letterSpacing: -2,
-        }}
-      >
-        {result.score} von {MAX_SCORE}
-      </span>
-      <span style={{ fontSize: s.right, fontWeight: 700, color: C.muted }}>
-        richtig getippt
-      </span>
       <Squares score={result.score} size={s.square} />
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: s.score, fontWeight: 700, lineHeight: 1.1 }}>
+          {result.score} von {MAX_SCORE}
+        </span>
+        <span style={{ fontSize: s.right, color: C.muted }}>
+          richtig getippt
+        </span>
+      </div>
     </div>
   );
 }
