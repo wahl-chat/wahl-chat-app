@@ -56,9 +56,48 @@ PARTY_SITES: dict[str, str] = {
     "gruene.de": "gruene",
     "die-linke.de": "linke",
     "afd.de": "afd",
+    "dielinkebt.de": "linke",
+    "junge-union.de": "cdu",
+    "jusos.de": "spd",
+    "gruene-jugend.de": "gruene",
+    "linksjugend-solid.de": "linke",
+    "julis.de": "fdp",
 }
-# Sites of parties we have no data for: domain to the party's name.
-EXTRA_PARTY_SITES: dict[str, str] = {}
+# Sites of parties we have no data for: domain to the party's name. Parties
+# on the 2025 Bundestag or 2024 European ballot, plus the larger Landtag-only
+# ones; each domain matches the party's filing with the Bundeswahlleiterin or
+# names the party on its own pages.
+EXTRA_PARTY_SITES: dict[str, str] = {
+    "diebasis-partei.de": "dieBasis",
+    "die-partei.de": "Die PARTEI",
+    "pdh.eu": "Partei der Humanisten",
+    "buendnis-c.de": "Bündnis C",
+    "mlpd.de": "MLPD",
+    "menschlichewelt.de": "Menschliche Welt",
+    "partei-des-fortschritts.de": "Partei des Fortschritts",
+    "gleichheit.de": "Sozialistische Gleichheitspartei",
+    "verjuengungsforschung.de": "Partei für Verjüngungsforschung",
+    "buendnis-deutschland.de": "Bündnis Deutschland",
+    "mera25.de": "MERA25",
+    "werteunion.de": "WerteUnion",
+    "gerechtigkeitspartei.de": "Team Todenhöfer",
+    "ssw.de": "SSW",
+    "bayernpartei.de": "Bayernpartei",
+    "bueso.de": "BüSo",
+    "wählefamilie.de": "Familien-Partei Deutschlands",
+    "xn--whlefamilie-l8a.de": "Familien-Partei Deutschlands",
+    "waehlefamilie.de": "Familien-Partei Deutschlands",
+    "die-heimat.de": "Die Heimat",
+    "tierschutz-hier.de": "TIERSCHUTZ hier!",
+    "bigpartei.de": "BIG",
+    "dkp.de": "DKP",
+    "aktion-bfg.de": "Aktion Bürger für Gerechtigkeit",
+    "dava-eu.org": "DAVA",
+    "klimaliste.org": "Klimaliste Deutschland",
+    "v-partei.de": "V-Partei³",
+    "bvb-fw.de": "BVB / Freie Wähler",
+    "freie-sachsen.info": "Freie Sachsen",
+}
 # bundestag.de is the record our corpus already holds, not coverage of it.
 PRESS_SITES = tuple(d for d in PREFERRED_OUTLETS if d != "bundestag.de") + tuple(FRAKTION_SITES)
 # Coverage of a law changes slowly; follow-up turns reuse it.

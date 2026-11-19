@@ -105,6 +105,20 @@ def test_a_party_without_data_speaks_without_an_icon(monkeypatch: pytest.MonkeyP
     assert "party_id" not in entry and "preferred_outlet" not in entry
 
 
+@pytest.mark.parametrize(
+    "url", ["https://xn--whlefamilie-l8a.de/a", "https://www.dkp.de/b", "https://bayern.die-partei.de/c"]
+)
+def test_listed_party_sites_match_with_subdomains(url: str) -> None:
+    from src.generic_chat.web_search import domain_of
+
+    assert web_context.party_of(make_deps(), domain_of(url))[1] is not None
+
+
+def test_youth_wing_speaks_for_its_party() -> None:
+    deps = make_deps()
+    assert web_context.party_of(deps, "www.jusos.de")[0] == "spd"
+
+
 def test_any_other_site_stays_external() -> None:
     deps = make_deps()
     [doc] = web_context.register_results(deps, [_result("https://www.youtube.com/watch")], "press")
