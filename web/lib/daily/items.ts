@@ -105,3 +105,22 @@ export function suggestedQuestions(item: DetailItem): string[] {
       : item.vote.suggested_questions) ?? []
   );
 }
+
+/** Whether a debate and a vote share a Drucksache: the motion debated is the
+ * one voted on. A shared topic is not enough. */
+export function sharesDrucksache(
+  section: DigestSessionSection,
+  vote: DigestVote,
+): boolean {
+  const debated = new Set(section.drucksachen ?? []);
+  return (vote.drucksachen ?? []).some((d) => debated.has(d));
+}
+
+/** The debate a vote ended, on the same sitting day. */
+export function debateForVote(item: VoteItem): SectionItem | null {
+  return (
+    sectionItems(item.digest).find((s) =>
+      sharesDrucksache(s.section, item.vote),
+    ) ?? null
+  );
+}

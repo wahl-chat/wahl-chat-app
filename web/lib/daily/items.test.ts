@@ -4,7 +4,7 @@ import type {
   DigestSessionSection,
   DigestVote,
 } from '@/lib/firebase/firebase.types';
-import { itemTeaser, openingParty } from './items';
+import { debateForVote, itemTeaser, openingParty } from './items';
 
 const SECTION: DigestSessionSection = {
   topic: 'economy_finance',
@@ -77,5 +77,53 @@ describe('itemTeaser', () => {
     expect(
       itemTeaser({ kind: 'vote', key: 'k', digest: DIGEST, vote: VOTE }),
     ).toBeNull();
+  });
+});
+
+describe('debateForVote', () => {
+  const debate = (drucksachen?: string[], item_id?: string) => ({
+    ...SECTION,
+    drucksachen,
+    item_id,
+  });
+  const voteItem = (
+    sections: DigestSessionSection[],
+    drucksachen?: string[],
+  ) => {
+    const digest = {
+      ...DIGEST,
+      session: { protocols: [], sections },
+    };
+    return {
+      kind: 'vote' as const,
+      key: 'v',
+      digest,
+      vote: { ...VOTE, drucksachen },
+    };
+  };
+
+  it('finds the debate that shares a Drucksache with the vote', () => {
+    const item = voteItem(
+      [debate(['21/1'], 'other'), debate(['21/2', '21/3'], 'debated')],
+      ['21/3'],
+    );
+    expect(debateForVote(item)?.key).toBe('debated');
+  });
+
+  it('is null when no debate shares a Drucksache', () => {
+    expect(debateForVote(voteItem([debate(['21/1'], 'd')], ['21/9']))).toBe(
+      null,
+    );
+  });
+
+  it('is null while the Drucksachen are unknown', () => {
+    expect(debateForVote(voteItem([debate(undefined, 'd')], ['21/1']))).toBe(
+      null,
+    );
+    expect(debateForVote(voteItem([debate(['21/1'], 'd')]))).toBe(null);
+  });
+
+  it('is null on a day without a sitting', () => {
+    expect(debateForVote(voteItem([], ['21/1']))).toBe(null);
   });
 });
