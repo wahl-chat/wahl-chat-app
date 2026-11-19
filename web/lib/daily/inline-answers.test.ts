@@ -71,7 +71,10 @@ describe('itemQuestions', () => {
         ],
       },
     ]);
-    expect(chips).toEqual(['Was kostet das?']);
+    expect(chips).toEqual([
+      'Warum haben die Fraktionen so abgestimmt?',
+      'Was kostet das?',
+    ]);
   });
 
   it('shows a question whose answer is null as a chip', () => {
@@ -92,13 +95,35 @@ describe('itemQuestions', () => {
     expect(answers.map((a) => [a.question, a.text])).toEqual([
       ['Was kostet das?', 'Nichts [0].'],
     ]);
-    expect(chips).toEqual(['Wer war dagegen?', 'Wann gilt das?']);
+    expect(chips).toEqual([
+      'Warum haben die Fraktionen so abgestimmt?',
+      'Wer war dagegen?',
+      'Wann gilt das?',
+    ]);
   });
 
-  it("keeps today's chips for an item without answers", () => {
+  it("puts the fixed why question before the item's own chips", () => {
     expect(
       itemQuestions(voteWith({ suggested_questions: ['Wer war dagegen?'] })),
-    ).toEqual({ answers: [], chips: ['Wer war dagegen?'] });
+    ).toEqual({
+      answers: [],
+      chips: ['Warum haben die Fraktionen so abgestimmt?', 'Wer war dagegen?'],
+    });
+  });
+
+  it('lists the fixed why question once, first', () => {
+    const { chips } = itemQuestions(
+      voteWith({
+        suggested_questions: [
+          'Warum haben die Fraktionen so abgestimmt?',
+          'Wann gilt das?',
+        ],
+      }),
+    );
+    expect(chips).toEqual([
+      'Warum haben die Fraktionen so abgestimmt?',
+      'Wann gilt das?',
+    ]);
   });
 });
 

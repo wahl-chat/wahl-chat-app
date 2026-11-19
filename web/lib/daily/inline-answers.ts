@@ -1,5 +1,6 @@
 import type { AnswerSource } from '@/lib/firebase/firebase.types';
 import type { Source } from '@/lib/stores/chat-store.types';
+import { FEED_CHAT_ENABLED } from './chat-handoff';
 import { type DetailItem, suggestedQuestions } from './items';
 
 /** A suggested question with its precomputed answer, ready for the chat's
@@ -49,6 +50,15 @@ export function toChatSource(source: AnswerSource): Source {
   };
 }
 
+/** The feed's fixed question for an item; its answer is a cached preset. */
+export function whyQuestion(item: DetailItem): string | null {
+  if (!FEED_CHAT_ENABLED) return null;
+  if (item.kind === 'vote') return 'Warum haben die Fraktionen so abgestimmt?';
+  return item.section.positions?.length
+    ? 'Wie haben die Fraktionen argumentiert?'
+    : null;
+}
+
 /** Pairs each suggested question with its answer by index; one without an
  * answer (null, empty or past the list) stays a chip. */
 export function itemQuestions(item: DetailItem): ItemQuestions {
@@ -56,7 +66,8 @@ export function itemQuestions(item: DetailItem): ItemQuestions {
     (item.kind === 'section'
       ? item.section.suggested_answers
       : item.vote.suggested_answers) ?? [];
-  const result: ItemQuestions = { answers: [], chips: [] };
+  const why = whyQuestion(item);
+  const result: ItemQuestions = { answers: [], chips: why ? [why] : [] };
   suggestedQuestions(item).forEach((question, i) => {
     const answer = answers[i];
     if (answer?.text.trim()) {
@@ -65,7 +76,7 @@ export function itemQuestions(item: DetailItem): ItemQuestions {
         text: toChatCitations(answer.text, answer.sources.length),
         sources: answer.sources.map(toChatSource),
       });
-    } else {
+    } else if (question !== why) {
       result.chips.push(question);
     }
   });
