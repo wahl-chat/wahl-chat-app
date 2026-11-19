@@ -22,7 +22,6 @@ import type {
   DigestPartyPosition,
   DigestSpeaker,
 } from '@/lib/firebase/firebase.types';
-import { useVisibleArea } from '@/lib/hooks/use-visible-area';
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, MessageCircleIcon, ShareIcon } from 'lucide-react';
@@ -350,7 +349,6 @@ export function DailyDetailDialog({
   onClose,
   backToItem = false,
 }: Props) {
-  const visible = useVisibleArea();
   // The speaker sheet belongs to the item it was opened from, so another
   // item never opens with it.
   const [opened, setOpened] = useState<{
@@ -424,11 +422,6 @@ export function DailyDetailDialog({
           onPointerDownOutside={keepOpen}
           onInteractOutside={keepOpen}
           onEscapeKeyDown={closeLayerAbove}
-          style={
-            visible
-              ? { top: visible.top, height: visible.height, bottom: 'auto' }
-              : undefined
-          }
           className={cn(
             DAILY_THEME_CLASSES,
             // Centred from md up by margins, not translate(-50%): a half-pixel
