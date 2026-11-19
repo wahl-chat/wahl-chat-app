@@ -67,7 +67,7 @@ Aktueller Wortlaut wörtlich aus `briefing` in `web/lib/stimmts/content/puzzles.
 - Jetzt: „Freiwillige sollen sechs bis elf Monate dienen und mindestens 2.600 Euro brutto im Monat erhalten.“
 - Grund: In der abgestimmten Ausschussfassung kann der freiwillige Wehrdienst „mit Verpflichtungszeiten von sechs bis elf Monaten geleistet werden“: 21/3076 S. 95; mindestens 2.600 Euro brutto: S. 96.
 
-**Nr. 24 GEAS** (`geas-asylreform`) – neu, zur Freigabe, nicht eingespielt
+**Nr. 24 GEAS** (`geas-asylreform`) – neu, freigegeben von Miquel am 19.11.2026, eingespielt
 - Aktuell: „Kern der Reform sind verpflichtende Grenzverfahren für bestimmte Gruppen: Ihre Asylanträge sollen beschleunigt an den EU-Außengrenzen geprüft werden, in Deutschland an Flughäfen und Seehäfen. Betroffen sind etwa Menschen, die über ihre Identität getäuscht haben, als Sicherheitsgefahr gelten oder aus einem Staat mit einer Schutzquote von höchstens 20 Prozent kommen und zugleich eindeutig widersprüchliche oder falsche Angaben gemacht haben.“
 - Vorschlag: „Kern der Reform sind verpflichtende Grenzverfahren für bestimmte Gruppen: Ihre Asylanträge sollen beschleunigt an den EU-Außengrenzen geprüft werden, in Deutschland an Flughäfen und Seehäfen. Betroffen sind etwa Menschen, die über ihre Identität getäuscht haben, als Sicherheitsgefahr gelten oder aus einem Staat mit einer EU-weiten Schutzquote von höchstens 20 Prozent kommen. Zur Erprobung sollen solche Verfahren an Flughäfen schon nach deutschem Recht möglich werden, bei Menschen aus Staaten mit so niedriger Schutzquote aber nur, wenn ihre Angaben zudem eindeutig widersprüchlich oder offensichtlich unwahrscheinlich sind.“
 - Grund: Das verpflichtende EU-Asylgrenzverfahren gilt für drei Gruppen: Täuschung über die Identität, Gefahr für die nationale Sicherheit oder die öffentliche Ordnung, Herkunftsstaat mit einer EU-weiten Schutzquote von 20 Prozent oder weniger. Die Schutzquote ist dort ein eigener Grund, ohne weitere Bedingung: 21/1848 S. 62. Die Bedingung „eindeutig unstimmige und widersprüchliche, eindeutig falsche oder offensichtlich unwahrscheinliche Angaben“ steht nur im neuen § 18a Abs. 1a AsylG (S. 7–8). Das ist ein Pilotprojekt für das Flughafenverfahren nach deutschem Recht; seine Anwendung liegt im Ermessen der Behörden (S. 78–79). Die bisherige Korrektur hat diese beiden Verfahren vermischt. Die Ausnahme für unbegleitete Minderjährige im Satz danach bleibt richtig (S. 62).
@@ -311,7 +311,7 @@ Belege im Detail: Ausgaben 524.540.138.000 Euro (§ 1 Abs. 1), Kreditermächtigu
 `id: geas-asylreform`
 
 - Verpflichtende, schnellere Asylverfahren an der Grenze, in Deutschland an Flughäfen und Seehäfen. — Quelle: 21/1848 S. 2
-- Betrifft etwa Täuschung über Identität oder unglaubwürdige Angaben bei geringer Schutzquote. — Quelle: 21/1848 S. 8
+- Betrifft etwa Täuschung über Identität, Sicherheitsgefahr oder geringe Schutzquote. — Quelle: 21/1848 S. 62
 - Kosten für den Bund: einmalig knapp 150 Millionen Euro, dazu laufende Kosten. — Quelle: 21/1848 S. 3
 
 Belege im Detail: verpflichtende Grenzverfahren für bestimmte Gruppen: 21/1848 S. 1; an luft- und seeseitigen Außengrenzen: S. 2; Gründe fürs Flughafenverfahren (Täuschung, Schutzquote bis 20 % nur zusammen mit eindeutig widersprüchlichen Angaben): S. 7–8; 149,74 Mio. Euro einmalig, bis zu 57,6 Mio. jährlich Sachkosten, mindestens 31,4 Mio. Personalkosten: S. 3.
