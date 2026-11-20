@@ -34,6 +34,7 @@ import Reveal from './reveal';
 import ReviewStep from './review-step';
 import ShareBanner from './share-banner';
 import StartScreen from './start-screen';
+import StyleButton from './style-button';
 
 /** "Auflösen" turns the parties over one after another, left to right. */
 const REVEAL_ALL_STEP_MS = 450;
@@ -271,6 +272,7 @@ function PuzzleGame({
           schedule={schedule}
           stamping={!stamped.current}
           onOpenDay={onOpenDay}
+          scoreActions={<StyleButton />}
           onReview={() => {
             setRevealed(new Set(puzzle.parties.map((party) => party.partyId)));
             setOpenParty(null);
