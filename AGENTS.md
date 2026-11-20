@@ -539,10 +539,15 @@ from the Qdrant-derived cursor on the next run.
   `data-stimmts-fly` on `<html>` before first paint, and rules in
   `web/app/globals.css` show or hide the card and the icon from those marks,
   so neither flashes nor shifts the feed.
-- **Chat card.** Follow-up questions on the result screen, behind
-  `STIMMTS_CHAT_ENABLED` in `web/lib/stimmts/chat-chips.ts`, committed
-  `false`. The card opens `/chat?q&poll_id` from the general chat, so enable
-  it only once that chat is in `develop`.
+- **Chat card.** Follow-up questions on the result screen, answered inside
+  the card (`web/components/stimmts/chat-card.tsx`); "Im Chat weiter" opens
+  the general chat at `/chat?q&poll_id`. Two switches, both committed off,
+  flipped together once the general chat is in `develop`:
+  `STIMMTS_CHAT_ENABLED` in `web/lib/stimmts/chat-chips.ts` shows the card
+  (preview mode shows it regardless), and `CHAT_ANSWERS` in
+  `web/lib/stimmts/chat-answer.ts` moves its answers from a local
+  placeholder to the general chat's `/api/chat`. Never flip `CHAT_ANSWERS`
+  earlier: `/api/chat` is the old party chat until then.
 - **Never change `launch_date` once anyone has played.** It renumbers every
   day, so played days turn into missed ones. Switching off and on again does
   not pause the calendar: the days keep counting from the launch date.

@@ -226,11 +226,16 @@ count.
   did this party vote that way?". The chat card on the result screen offers
   three questions as chips (why a party voted as it did, whether the bill is
   in force, what happens next) and a free question. It is built and sits
-  behind `STIMMTS_CHAT_ENABLED` in `chat-chips.ts`, committed `false`. It
-  answers nothing itself: a chip or the input opens the general chat at
-  `/chat?q&poll_id`, anchored on the day's vote, and the general chat
-  answers with sources. Enable it only once that chat is in `develop`. It
-  must never open a study context.
+  behind `STIMMTS_CHAT_ENABLED` in `chat-chips.ts`, committed `false`
+  (preview mode shows it). A chip or a typed question is answered inside the
+  card: the question as a bubble, the answer streaming under it, then its
+  sources as pills. Only the latest answer stays open; older ones fold into
+  a row that unfolds on tap, and a chip once asked disappears. "Im Chat
+  weiter" opens the general chat at `/chat?q&poll_id`, anchored on the
+  day's vote. Until the general chat is in `develop` the answers come from
+  a local placeholder (`CHAT_ANSWERS` in `chat-answer.ts`); then flip it to
+  `'general-chat'` together with `STIMMTS_CHAT_ENABLED`. It must never open
+  a study context.
 
 **Technical**
 
@@ -297,7 +302,7 @@ flowchart LR
 | State | `progress-store.ts`, `use-progress.ts` |
 | Sharing | `share.ts`, `share-action.ts`, `share-image.ts`, `load-once.ts`, `challenge.ts` (the banner for a shared link); `web/components/stimmts/share-decor.tsx` (a style's dress on the image) |
 | Styles | `styles.ts` (the styles and their milestones), `style-store.ts`, `style-themes.ts`, `style-sheet-view.ts`; `web/components/stimmts/style-frame`, `style-decor`, `style-button`, `style-sheet` |
-| Start screen and chat | `start-view.ts`, `drucksache.ts` (PDF and source-page links), `chat-chips.ts`, `chat-question.ts` |
+| Start screen and chat | `start-view.ts`, `drucksache.ts` (PDF and source-page links), `chat-chips.ts`, `chat-question.ts`, `chat-answer.ts` (answer source), `chat-turns.ts` (the card's turns) |
 | Measuring | `analytics.ts`, `feedback.ts` |
 | Look | `fonts.ts`, `parties.ts`, `hemicycle.ts`, `chamber-state.ts`, `game-view.ts`, `logo.ts`; logos in `web/public/images/stimmts/logos/` |
 | Wording | `labels.ts` |

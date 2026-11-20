@@ -189,6 +189,11 @@ export default {
           from: { opacity: '0', transform: 'rotate(-6deg) scale(1.8)' },
           to: { opacity: '1', transform: 'rotate(-6deg) scale(1)' },
         },
+        // The chat card's cursor while an answer streams: on, then off.
+        'stimmts-blink': {
+          '0%, 49%': { opacity: '1' },
+          '50%, 100%': { opacity: '0' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -207,6 +212,7 @@ export default {
           'stimmts-flip 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both',
         'stimmts-stamp':
           'stimmts-stamp 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) 0.25s both',
+        'stimmts-blink': 'stimmts-blink 1s step-end infinite',
       },
     },
   },
