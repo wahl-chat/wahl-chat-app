@@ -18,14 +18,29 @@ import { shareInvitation } from '@/lib/stimmts/share';
 import {
   SHARE_COLORS as C,
   MAX_SCORE,
+  SHARE_THEMES,
   SHARE_TITLE_TRACKING,
   SHARE_TITLE_WIDTH,
   type ShareImageData,
+  type ShareTheme,
   shareTitleSize,
 } from '@/lib/stimmts/share-image';
+import type { StyleId } from '@/lib/stimmts/styles';
+import type { CSSProperties } from 'react';
+import {
+  FestiveTree,
+  ShareDecor,
+  cardFrame,
+  decorScale,
+  halo,
+} from './share-decor';
 
 /** The font families the route registers. */
-export const SHARE_FONTS = { display: 'Bricolage', sans: 'Arimo' } as const;
+export const SHARE_FONTS = {
+  display: 'Bricolage',
+  sans: 'Arimo',
+  serif: 'Tinos',
+} as const;
 
 const QUESTION = 'Wie haben die Parteien im Bundestag abgestimmt?';
 
@@ -35,11 +50,13 @@ const MARK_FILLS: Record<MarkTone, string> = {
   yes: C.seatYes,
 };
 
-const TIER_FILLS: Record<ScoreTier, string> = {
-  low: C.faint,
-  mid: C.muted,
-  top: C.ink,
-};
+// Standard's tiers are faint, muted and ink, which its theme names ring, mid
+// and top.
+const tierFills = (t: ShareTheme): Record<ScoreTier, string> => ({
+  low: t.ring,
+  mid: t.mid,
+  top: t.top,
+});
 
 // The mark's viewBox is 2.2 wide and 1.2 high.
 const markHeight = (width: number) => Math.round((width * 1.2) / 2.2);
@@ -67,7 +84,8 @@ export const SHARE_IMAGE_TEXT = [
 ].join('');
 
 type Sizes = {
-  padding: string;
+  /** Top and bottom, then left and right. */
+  padding: [number, number];
   /** Multiplies the title's sizes in base units (see shareTitleSize). */
   titleScale: number;
   logo: number;
@@ -86,7 +104,7 @@ type Sizes = {
 
 const SIZES: Record<ShareImageData['format'], Sizes> = {
   square: {
-    padding: '64px 72px',
+    padding: [64, 72],
     titleScale: 2.5,
     logo: 92,
     mark: 110,
@@ -102,7 +120,7 @@ const SIZES: Record<ShareImageData['format'], Sizes> = {
     url: 32,
   },
   story: {
-    padding: '140px 72px',
+    padding: [140, 72],
     titleScale: 2.5,
     logo: 120,
     mark: 140,
@@ -118,7 +136,7 @@ const SIZES: Record<ShareImageData['format'], Sizes> = {
     url: 32,
   },
   link: {
-    padding: '40px 56px',
+    padding: [40, 56],
     titleScale: 2,
     logo: 64,
     mark: 76,
@@ -137,12 +155,16 @@ const SIZES: Record<ShareImageData['format'], Sizes> = {
 
 const DISPLAY = { fontFamily: SHARE_FONTS.display, fontWeight: 800 };
 
+/** The headline face: Papier sets its headlines in a serif. */
+const headline = (t: ShareTheme): CSSProperties =>
+  t.serif ? { fontFamily: SHARE_FONTS.serif, fontWeight: 700 } : DISPLAY;
+
 /** The wahl.chat logo, the same artwork as in the site header. */
-function WahlChatLogo({ height }: { height: number }) {
+function WahlChatLogo({ height, ink }: { height: number; ink: string }) {
   return (
     <svg width={logoWidth(height)} height={height} viewBox={LOGO_VIEWBOX}>
       {LOGO_PATHS.map(({ d, check }) => (
-        <path key={d} d={d} fill={check ? CHECK_RED : C.ink} />
+        <path key={d} d={d} fill={check ? CHECK_RED : ink} />
       ))}
     </svg>
   );
@@ -165,8 +187,17 @@ function Mark({ width }: { width: number }) {
 }
 
 /** The player's own days only: how they did, never how anyone voted. */
-function Period({ days, width }: { days: DayRecord[]; width: number }) {
+function Period({
+  days,
+  width,
+  t,
+}: {
+  days: DayRecord[];
+  width: number;
+  t: ShareTheme;
+}) {
   const seats = periodSeats(days, false);
+  const fills = tierFills(t);
   return (
     <svg width={width} height={markHeight(width)} viewBox={MARK_VIEWBOX}>
       {seats.map((seat) => {
@@ -177,7 +208,7 @@ function Period({ days, width }: { days: DayRecord[]; width: number }) {
         };
         const key = `${seat.x},${seat.y}`;
         if (seat.kind === 'played') {
-          return <circle key={key} {...at} fill={TIER_FILLS[seat.tier]} />;
+          return <circle key={key} {...at} fill={fills[seat.tier]} />;
         }
         if (seat.kind === 'missed') {
           return (
@@ -185,7 +216,7 @@ function Period({ days, width }: { days: DayRecord[]; width: number }) {
               key={key}
               {...at}
               fill="none"
-              stroke={C.muted}
+              stroke={t.mid}
               strokeWidth={0.02}
               strokeDasharray="0.03 0.025"
             />
@@ -196,7 +227,7 @@ function Period({ days, width }: { days: DayRecord[]; width: number }) {
             key={key}
             {...at}
             fill="none"
-            stroke={C.faint}
+            stroke={t.ring}
             strokeWidth={0.018}
           />
         );
@@ -210,12 +241,20 @@ function Period({ days, width }: { days: DayRecord[]; width: number }) {
  * box has the width shareTitleSize measured against, so the lines break
  * where it expected.
  */
-function Title({ title, scale }: { title: string; scale: number }) {
+function Title({
+  title,
+  scale,
+  t,
+}: {
+  title: string;
+  scale: number;
+  t: ShareTheme;
+}) {
   const fontSize = shareTitleSize(title) * scale;
   return (
     <span
       style={{
-        ...DISPLAY,
+        ...headline(t),
         width: SHARE_TITLE_WIDTH * scale,
         fontSize,
         lineHeight: 1.1,
@@ -231,7 +270,15 @@ function Title({ title, scale }: { title: string; scale: number }) {
 }
 
 /** The score as squares, right answers first, so no party order shows. */
-function Squares({ score, size }: { score: number; size: number }) {
+function Squares({
+  score,
+  size,
+  t,
+}: {
+  score: number;
+  size: number;
+  t: ShareTheme;
+}) {
   return (
     <div style={{ display: 'flex', gap: Math.round(size / 4) }}>
       {Array.from({ length: MAX_SCORE }, (_, i) => (
@@ -246,8 +293,8 @@ function Squares({ score, size }: { score: number; size: number }) {
             height: size,
             borderRadius: Math.round(size / 5),
             ...(i < score
-              ? { background: C.correct }
-              : { border: `4px solid ${C.muted}` }),
+              ? { background: t.correct }
+              : { border: `4px solid ${t.mid}` }),
           }}
         >
           {i < score && (
@@ -271,15 +318,17 @@ function Squares({ score, size }: { score: number; size: number }) {
 
 type Result = NonNullable<ShareImageData['result']>;
 
+type CardPart = { result: Result; s: Sizes; t: ShareTheme };
+
 /** Square and story: the score in one line under the title. */
-function ScoreLine({ result, s }: { result: Result; s: Sizes }) {
+function ScoreLine({ result, s, t }: CardPart) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-      <Squares score={result.score} size={s.square} />
+      <Squares score={result.score} size={s.square} t={t} />
       <span style={{ fontSize: s.score, fontWeight: 700 }}>
         {result.score} von {MAX_SCORE}
       </span>
-      <span style={{ fontSize: s.right, color: C.muted }}>richtig getippt</span>
+      <span style={{ fontSize: s.right, color: t.mid }}>richtig getippt</span>
     </div>
   );
 }
@@ -289,7 +338,7 @@ function ScoreLine({ result, s }: { result: Result; s: Sizes }) {
  * the plain face and smaller, so the title stays the main text. The squares
  * come first, keeping them clear of the stamp at the card's lower edge.
  */
-function ScoreColumn({ result, s }: { result: Result; s: Sizes }) {
+function ScoreColumn({ result, s, t }: CardPart) {
   return (
     <div
       style={{
@@ -298,23 +347,29 @@ function ScoreColumn({ result, s }: { result: Result; s: Sizes }) {
         justifyContent: 'center',
         gap: 12,
         paddingLeft: 36,
-        borderLeft: `3px solid ${C.muted}`,
+        borderLeft: `3px solid ${t.mid}`,
       }}
     >
-      <Squares score={result.score} size={s.square} />
+      <Squares score={result.score} size={s.square} t={t} />
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <span style={{ fontSize: s.score, fontWeight: 700, lineHeight: 1.1 }}>
           {result.score} von {MAX_SCORE}
         </span>
-        <span style={{ fontSize: s.right, color: C.muted }}>
-          richtig getippt
-        </span>
+        <span style={{ fontSize: s.right, color: t.mid }}>richtig getippt</span>
       </div>
     </div>
   );
 }
 
-function Card({ format, result }: Pick<ShareImageData, 'format' | 'result'>) {
+function Card({
+  format,
+  result,
+  style,
+  t,
+}: Pick<ShareImageData, 'format' | 'result'> & {
+  style: StyleId;
+  t: ShareTheme;
+}) {
   const s = SIZES[format];
   const link = format === 'link';
   return (
@@ -326,10 +381,11 @@ function Card({ format, result }: Pick<ShareImageData, 'format' | 'result'>) {
         gap: s.cardGap,
         padding: s.cardPadding,
         borderRadius: 28,
-        background: C.ink,
-        color: C.paper,
+        background: t.card,
+        color: t.cardText,
         // The story's card tilts a little.
         ...(format === 'story' ? { transform: 'rotate(-2deg)' } : {}),
+        ...cardFrame(style, t, decorScale(format)),
       }}
     >
       <div
@@ -339,7 +395,7 @@ function Card({ format, result }: Pick<ShareImageData, 'format' | 'result'>) {
           right: 14,
           bottom: 14,
           left: 14,
-          border: `2px solid ${C.muted}`,
+          border: `2px solid ${t.mid}`,
           borderRadius: 18,
         }}
       />
@@ -350,7 +406,7 @@ function Card({ format, result }: Pick<ShareImageData, 'format' | 'result'>) {
           fontSize: s.label,
           fontWeight: 700,
           letterSpacing: 4,
-          color: C.muted,
+          color: t.mid,
         }}
       >
         <span>STIMMKARTE</span>
@@ -369,17 +425,17 @@ function Card({ format, result }: Pick<ShareImageData, 'format' | 'result'>) {
             gap: link ? 36 : 32,
           }}
         >
-          <Title title={result.title ?? QUESTION} scale={s.titleScale} />
+          <Title title={result.title ?? QUESTION} scale={s.titleScale} t={t} />
           {link ? (
-            <ScoreColumn result={result} s={s} />
+            <ScoreColumn result={result} s={s} t={t} />
           ) : (
-            <ScoreLine result={result} s={s} />
+            <ScoreLine result={result} s={s} t={t} />
           )}
         </div>
       ) : (
         <span
           style={{
-            ...DISPLAY,
+            ...headline(t),
             fontSize: 50,
             lineHeight: 1.12,
             letterSpacing: -1.5,
@@ -419,10 +475,15 @@ function Card({ format, result }: Pick<ShareImageData, 'format' | 'result'>) {
  * Without a result it is the preview of the plain game link, which asks the
  * game's question and shows no day.
  */
-function ShareImage({ format, result }: ShareImageData) {
+function ShareImage({ format, result, style = 'standard' }: ShareImageData) {
   const s = SIZES[format];
   const story = format === 'story';
   const days = format === 'link' ? undefined : result?.days;
+  // The plain game link has no sharer, so it never wears a style.
+  const styleId = result ? style : 'standard';
+  const t = SHARE_THEMES[styleId];
+  const k = decorScale(format);
+  const [padY, padX] = s.padding;
 
   return (
     <div
@@ -433,12 +494,16 @@ function ShareImage({ format, result }: ShareImageData) {
         gap: story ? 100 : 0,
         width: '100%',
         height: '100%',
-        padding: s.padding,
-        background: C.paper,
-        color: C.ink,
+        padding: `${padY}px ${padX}px`,
+        // Room for the decorations some styles draw along the edges.
+        ...(t.topOffset ? { paddingTop: padY + t.topOffset * k } : {}),
+        ...(t.bottomOffset ? { paddingBottom: padY + t.bottomOffset * k } : {}),
+        background: t.canvas,
+        color: t.ink,
         fontFamily: SHARE_FONTS.sans,
       }}
     >
+      <ShareDecor style={styleId} format={format} theme={t} />
       <div
         style={{
           display: 'flex',
@@ -446,8 +511,21 @@ function ShareImage({ format, result }: ShareImageData) {
           alignItems: 'center',
         }}
       >
-        <WahlChatLogo height={s.logo} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        {styleId === 'kuppel' ? (
+          <div style={{ display: 'flex', ...halo(styleId, t, k) }}>
+            <WahlChatLogo height={s.logo} ink={t.ink} />
+          </div>
+        ) : (
+          <WahlChatLogo height={s.logo} ink={t.ink} />
+        )}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            ...halo(styleId, t, k),
+          }}
+        >
           <Mark width={s.mark} />
           <span
             style={{
@@ -461,7 +539,7 @@ function ShareImage({ format, result }: ShareImageData) {
           </span>
         </div>
       </div>
-      <Card format={format} result={result} />
+      <Card format={format} result={result} style={styleId} t={t} />
       {days && (
         <div
           style={{
@@ -471,10 +549,10 @@ function ShareImage({ format, result }: ShareImageData) {
             gap: story ? 24 : 40,
           }}
         >
-          <Period days={days} width={story ? 480 : 280} />
+          <Period days={days} width={story ? 480 : 280} t={t} />
           <span
             style={{
-              ...DISPLAY,
+              ...headline(t),
               fontSize: 48,
               lineHeight: 1.07,
               letterSpacing: -1.5,
@@ -482,6 +560,11 @@ function ShareImage({ format, result }: ShareImageData) {
           >
             Tag {days.length} von {PERIOD_LENGTH}
           </span>
+          {styleId === 'festlich' && !story && (
+            <div style={{ display: 'flex', marginLeft: 'auto' }}>
+              <FestiveTree width={130} />
+            </div>
+          )}
         </div>
       )}
       <div
@@ -493,12 +576,14 @@ function ShareImage({ format, result }: ShareImageData) {
           gap: story ? 8 : 32,
         }}
       >
-        <span style={{ ...DISPLAY, fontSize: s.cta, letterSpacing: -1.5 }}>
+        <span style={{ ...headline(t), fontSize: s.cta, letterSpacing: -1.5 }}>
           {result
             ? shareInvitation({ correct: result.score, total: MAX_SCORE })
             : 'Jeden Tag ein neues Quiz.'}
         </span>
-        <span style={{ fontSize: s.url, color: C.muted }}>
+        <span
+          style={{ fontSize: s.url, color: t.muted, ...halo(styleId, t, k) }}
+        >
           wahl.chat/stimmts
         </span>
       </div>

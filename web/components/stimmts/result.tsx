@@ -329,6 +329,7 @@ function Result({
                     score: score.correct,
                     playDate,
                     period: sharedPeriod,
+                    style,
                   }),
                   name: `stimmts-${number}.png`,
                 }}

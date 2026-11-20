@@ -4,6 +4,7 @@ import { encodePeriod } from './period';
 import {
   canonicalSharePath,
   parseShareParams,
+  parseShareStyle,
   shareImagePath,
   shareTitleLines,
   shareTitleSize,
@@ -112,6 +113,19 @@ describe('share paths', () => {
     });
   });
 
+  it('adds t only for a non-standard style', () => {
+    const result = { number: 3, score: 2, playDate: '2026-11-03' };
+    expect(shareImagePath('square', { ...result, style: 'nacht' })).toBe(
+      '/stimmts/share?f=square&n=3&s=2&d=2026-11-03&t=nacht',
+    );
+    expect(shareImagePath('square', { ...result, style: 'standard' })).toBe(
+      '/stimmts/share?f=square&n=3&s=2&d=2026-11-03',
+    );
+    expect(shareImagePath('square', result)).toBe(
+      '/stimmts/share?f=square&n=3&s=2&d=2026-11-03',
+    );
+  });
+
   it('links the plain game card without a day', () => {
     expect(shareImagePath('link')).toBe('/stimmts/share?f=link');
   });
@@ -125,6 +139,16 @@ describe('share paths', () => {
         period: '4444444444',
       }),
     ).toBe('/stimmts?n=10&s=4&d=2026-11-10');
+  });
+});
+
+describe('parseShareStyle', () => {
+  it('parseShareStyle accepts exact ids only', () => {
+    expect(parseShareStyle('nacht')).toBe('nacht');
+    expect(parseShareStyle('gold')).toBe('gold');
+    for (const value of ['../x', 'GOLD', '', ' gold', 'gold ', null]) {
+      expect(parseShareStyle(value)).toBe('standard');
+    }
   });
 });
 
@@ -153,6 +177,20 @@ describe('canonicalSharePath', () => {
     ]) {
       expect(canonical(path)).toBe(path);
     }
+  });
+
+  it('keeps a non-standard style and drops a standard one', () => {
+    const path = '/stimmts/share?f=square&n=2&s=4&d=2026-11-02&p=34';
+    const styled = (query: string, style: 'nacht' | 'standard') => {
+      const data = parse(query);
+      return data && canonicalSharePath({ ...data, style });
+    };
+    expect(styled(path.slice(path.indexOf('?')), 'nacht')).toBe(
+      `${path}&t=nacht`,
+    );
+    expect(styled(path.slice(path.indexOf('?')), 'standard')).toBe(path);
+    // The plain game link has no sharer, so it never carries a style.
+    expect(styled('?f=link', 'nacht')).toBe('/stimmts/share?f=link');
   });
 
   it('spells every other way of asking for the same image one way', () => {

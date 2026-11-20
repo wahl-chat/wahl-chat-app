@@ -1,6 +1,7 @@
 import { addDays, isIsoDate } from './berlin-time';
 import { SEATING_ORDER } from './parties';
 import { type DayRecord, PERIOD_LENGTH, encodePeriod } from './period';
+import { type StyleId, isStyleId } from './styles';
 
 /**
  * The share image's sizes. `link` is a link preview: of a shared result, or,
@@ -30,6 +31,137 @@ export const SHARE_COLORS = {
   seatAbstain: '#d9a93a',
 } as const;
 
+/**
+ * The colours of one Stil on the image. The seat colours are left out on
+ * purpose: they are the logo's on every style, so no style can paint a vote
+ * in colours of its own.
+ */
+export type ShareTheme = {
+  canvas: string;
+  ink: string;
+  /** Secondary text on the canvas. */
+  muted: string;
+  card: string;
+  cardText: string;
+  /** Labels, frame and empty squares on the card; also the period's mid tier. */
+  mid: string;
+  correct: string;
+  /** The period's top tier. */
+  top: string;
+  /** The period's low tier and its empty seats. */
+  ring: string;
+  /** The headline face: Papier sets its headlines in a serif. */
+  serif: boolean;
+  /**
+   * Extra room above and below the content, in units of the style board's
+   * 360-unit square, for decorations along those edges.
+   */
+  topOffset: number;
+  bottomOffset: number;
+};
+
+/**
+ * One theme per Stil. Standard is today's SHARE_COLORS, so its image does not
+ * change; the others follow the style board.
+ */
+export const SHARE_THEMES: Record<StyleId, ShareTheme> = {
+  standard: {
+    canvas: SHARE_COLORS.paper,
+    ink: SHARE_COLORS.ink,
+    muted: SHARE_COLORS.muted,
+    card: SHARE_COLORS.ink,
+    cardText: SHARE_COLORS.paper,
+    mid: SHARE_COLORS.muted,
+    correct: SHARE_COLORS.correct,
+    top: SHARE_COLORS.ink,
+    ring: SHARE_COLORS.faint,
+    serif: false,
+    topOffset: 0,
+    bottomOffset: 0,
+  },
+  papier: {
+    canvas: '#f3e9d2',
+    ink: '#2a2116',
+    muted: '#65573f',
+    card: '#2a2116',
+    cardText: '#f8f1e0',
+    mid: '#a8977a',
+    correct: '#22c55e',
+    top: '#2a2116',
+    ring: '#cdbb94',
+    serif: true,
+    topOffset: 4,
+    bottomOffset: 0,
+  },
+  kuppel: {
+    canvas: '#e9f0f6',
+    ink: '#0f1b2a',
+    muted: '#475b6e',
+    card: '#0f1b2a',
+    cardText: '#e9f0f6',
+    mid: '#8fa1b3',
+    correct: '#22c55e',
+    top: '#0f1b2a',
+    ring: '#b7c6d4',
+    serif: false,
+    topOffset: 0,
+    bottomOffset: 0,
+  },
+  nacht: {
+    canvas: '#0b1226',
+    ink: '#e8edf7',
+    muted: '#9aa6c0',
+    card: '#e8edf7',
+    cardText: '#0b1226',
+    mid: '#6b7896',
+    correct: '#15803d',
+    top: '#e8edf7',
+    ring: '#2c3656',
+    serif: false,
+    topOffset: 0,
+    bottomOffset: 0,
+  },
+  festlich: {
+    canvas: '#0f1a14',
+    ink: '#fbf5e6',
+    muted: '#b3bdb5',
+    card: '#fbf5e6',
+    cardText: '#0f1a14',
+    mid: '#6f7a72',
+    correct: '#15803d',
+    top: '#fbf5e6',
+    ring: '#2f3a33',
+    serif: false,
+    topOffset: 26,
+    bottomOffset: 0,
+  },
+  gold: {
+    canvas: '#12100b',
+    ink: '#f6efdc',
+    muted: '#b0a68e',
+    card: '#f6efdc',
+    cardText: '#12100b',
+    mid: '#7a705c',
+    correct: '#15803d',
+    top: '#f6efdc',
+    ring: '#3a3120',
+    serif: false,
+    topOffset: 14,
+    bottomOffset: 14,
+  },
+};
+
+/**
+ * The style a share URL asks for. Only an exact id counts; anything else is
+ * Standard. The server does not check that the sharer unlocked it: unlocking
+ * is device state it cannot see. A forged `t` only changes the look of an
+ * image the forger shares themselves, and the image shows nothing a style
+ * could make untrue.
+ */
+export function parseShareStyle(value: string | null): StyleId {
+  return isStyleId(value) ? value : 'standard';
+}
+
 export const MAX_SCORE = SEATING_ORDER.length;
 
 /** One player's day, as a shared result shows it. */
@@ -56,6 +188,8 @@ export type ShareImageData = {
   format: ShareFormat;
   /** Absent on the preview of the plain game link, which shows no day. */
   result?: SharedResult;
+  /** The sharer's Stil. Only a shared result wears one. */
+  style?: StyleId;
 };
 
 /**
@@ -234,6 +368,7 @@ export function parseShareParams(
 type ResultParams = Omit<SharedResult, 'days'> & {
   /** encodePeriod's string for the period through this puzzle. */
   period?: string;
+  style?: StyleId;
 };
 
 function resultQuery({ number, score, playDate }: ResultParams) {
@@ -252,6 +387,11 @@ export function shareImagePath(
   if (result?.period !== undefined) {
     params.set('p', result.period);
   }
+  // Standard stays off the URL, so every image drawn before styles existed
+  // keeps its one canonical spelling.
+  if (result?.style !== undefined && result.style !== 'standard') {
+    params.set('t', result.style);
+  }
   return `/stimmts/share?${params}`;
 }
 
@@ -265,12 +405,17 @@ export function sharedResultPath(result: ResultParams): string {
  * spelling (parameters in another order, extra or repeated ones) to it, so a
  * cache holds each image once and junk parameters cannot fill it.
  */
-export function canonicalSharePath({ format, result }: ShareImageData): string {
+export function canonicalSharePath({
+  format,
+  result,
+  style,
+}: ShareImageData): string {
   return shareImagePath(
     format,
     result && {
       ...result,
       period: result.days && encodePeriod(result.days),
+      style,
     },
   );
 }

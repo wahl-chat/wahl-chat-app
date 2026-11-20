@@ -10,6 +10,7 @@ import {
   SHARE_FORMATS,
   canonicalSharePath,
   parseShareParams,
+  parseShareStyle,
 } from '@/lib/stimmts/share-image';
 import { ImageResponse } from 'next/og';
 
@@ -23,15 +24,18 @@ const CACHE_CONTROL =
     : 'public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400';
 
 const loadFonts = createLoadOnce(async () => {
-  const [display, sans, sansBold] = await Promise.all([
+  const [display, sans, sansBold, serif] = await Promise.all([
     loadGoogleFont('Bricolage+Grotesque:wght@800', SHARE_IMAGE_TEXT),
     loadGoogleFont('Arimo:wght@400', SHARE_IMAGE_TEXT),
     loadGoogleFont('Arimo:wght@700', SHARE_IMAGE_TEXT),
+    // Papier's headlines.
+    loadGoogleFont('Tinos:wght@700', SHARE_IMAGE_TEXT),
   ]);
   return [
     { name: SHARE_FONTS.display, data: display, weight: 800 as const },
     { name: SHARE_FONTS.sans, data: sans, weight: 400 as const },
     { name: SHARE_FONTS.sans, data: sansBold, weight: 700 as const },
+    { name: SHARE_FONTS.serif, data: serif, weight: 700 as const },
   ];
 });
 
@@ -43,14 +47,18 @@ const loadFonts = createLoadOnce(async () => {
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const data = parseShareParams(
+  const parsed = parseShareParams(
     url.searchParams,
     PUZZLE_COUNT,
     berlinDate(new Date()),
   );
-  if (!data) {
+  if (!parsed) {
     return new Response('Invalid share image parameters', { status: 400 });
   }
+  // An unknown style is drawn as Standard, not refused: the canonical
+  // redirect below then drops it from the URL. With several `t`, the first
+  // counts, as for every other parameter.
+  const data = { ...parsed, style: parseShareStyle(url.searchParams.get('t')) };
   const canonical = canonicalSharePath(data);
   if (`${url.pathname}${url.search}` !== canonical) {
     return Response.redirect(new URL(canonical, url), 308);
@@ -68,7 +76,7 @@ export async function GET(request: Request) {
   const fonts = await loadFonts();
   const { width, height } = SHARE_FORMATS[data.format];
   return new ImageResponse(
-    <ShareImage format={data.format} result={result} />,
+    <ShareImage format={data.format} result={result} style={data.style} />,
     {
       width,
       height,
