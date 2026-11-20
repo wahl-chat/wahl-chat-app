@@ -37,6 +37,7 @@ dependencies = [
     "qdrant-client>=1.18.0,<1.19",
     # Test-client transport (AsyncASGITransport).
     "httpx>=0.27",
+    "pydantic-ai-slim[google,openai]>=2.68.0",
 ]
 
 [tool.uv.sources]

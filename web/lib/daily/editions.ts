@@ -36,8 +36,10 @@ function toSection(
     opening_quote: facts.opening_quote,
     opened_by: facts.opened_by,
     suggested_questions: content.suggested_questions,
+    suggested_answers: content.suggested_answers ?? [],
     item_id: item.id,
     drucksachen: facts.drucksachen ?? [],
+    procedures: item.procedures ?? [],
     interjections: facts.interjections ?? null,
     terms: content.terms ?? [],
   };
@@ -62,8 +64,10 @@ function toVote(
       logo_id: feedLogoId(item.parliament, party.party_id),
     })),
     suggested_questions: content.suggested_questions,
+    suggested_answers: content.suggested_answers ?? [],
     item_id: item.id,
     drucksachen: facts.drucksachen ?? [],
+    procedures: item.procedures ?? [],
     terms: content.terms ?? [],
   };
 }

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import {
-  chatElection,
+  LIVE_ELECTION_WINDOW_DAYS,
+  electionContexts,
   electionStatusLabel,
   getNextUpcomingElection,
   isUpcomingElection,
+  liveElections,
+  nextLiveElections,
   splitElectionsByDate,
 } from '@/lib/elections';
 import type { Context } from '@/lib/firebase/firebase.types';
@@ -184,51 +187,74 @@ describe('getNextUpcomingElection', () => {
   });
 });
 
-describe('chatElection', () => {
-  const held = (id: string, day: string) => election(id, new Date(day));
+describe('electionContexts', () => {
+  it('leaves general contexts out and keeps elections in order', () => {
+    const general: Context = {
+      ...election('bundestag-aktuell', null),
+      type: 'general',
+    };
+    const contexts = [
+      election('b', new Date('2026-09-20')),
+      general,
+      election('a', null),
+    ];
 
-  it('opens the next upcoming election', () => {
-    expect(
-      chatElection(
-        [held('past', '2026-03-08'), held('next', '2026-09-06')],
-        NOW,
-      )?.context_id,
-    ).toBe('next');
+    expect(electionContexts(contexts).map((c) => c.context_id)).toEqual([
+      'b',
+      'a',
+    ]);
+  });
+});
+
+describe('liveElections', () => {
+  const day = (offset: number) => {
+    const date = new Date('2026-08-08T00:00:00');
+    date.setDate(date.getDate() + offset);
+    return date;
+  };
+
+  it('includes elections from polling day up to the window end, nearest first', () => {
+    const contexts = [
+      election('edge', day(LIVE_ELECTION_WINDOW_DAYS)),
+      election('today', day(0)),
+      election('soon', day(10)),
+    ];
+
+    expect(liveElections(contexts, NOW).map((c) => c.context_id)).toEqual([
+      'today',
+      'soon',
+      'edge',
+    ]);
   });
 
-  it('opens the most recently held election between elections', () => {
-    expect(
-      chatElection(
-        [held('older', '2025-02-23'), held('latest', '2026-03-22')],
-        NOW,
-      )?.context_id,
-    ).toBe('latest');
+  it('leaves out elections beyond the window, past ones and undated contexts', () => {
+    const general: Context = { ...election('general', null), type: 'general' };
+    const contexts = [
+      election('far', day(LIVE_ELECTION_WINDOW_DAYS + 1)),
+      election('past', day(-1)),
+      election('undated', null),
+      general,
+    ];
+
+    expect(liveElections(contexts, NOW)).toEqual([]);
+  });
+});
+
+describe('nextLiveElections', () => {
+  it('keeps only the elections on the nearest polling day', () => {
+    const contexts = [
+      election('later', new Date('2026-09-06')),
+      election('berlin', new Date('2026-08-20')),
+      election('mv', new Date('2026-08-20')),
+    ];
+
+    expect(nextLiveElections(contexts, NOW).map((c) => c.context_id)).toEqual([
+      'berlin',
+      'mv',
+    ]);
   });
 
-  it('keeps the given order for elections on the same day', () => {
-    expect(
-      chatElection(
-        [held('berlin', '2026-03-22'), held('mv', '2026-03-22')],
-        NOW,
-      )?.context_id,
-    ).toBe('berlin');
-  });
-
-  it('accepts dates that arrive as strings', () => {
-    // unstable_cache serialises Context.date to an ISO string.
-    const asString = (id: string, day: string) => ({
-      ...election(id, null),
-      date: new Date(day).toISOString() as never,
-    });
-    expect(
-      chatElection(
-        [asString('older', '2025-02-23'), asString('latest', '2026-03-22')],
-        NOW,
-      )?.context_id,
-    ).toBe('latest');
-  });
-
-  it('has nothing to open without an election', () => {
-    expect(chatElection([], NOW)).toBeUndefined();
+  it('is empty without a live election', () => {
+    expect(nextLiveElections([], NOW)).toEqual([]);
   });
 });

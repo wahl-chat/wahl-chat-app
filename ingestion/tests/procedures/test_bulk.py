@@ -8,8 +8,8 @@ from functools import partial
 import pytest
 
 from ingestion.procedures import bulk
-from ingestion.procedures.bulk import _clear_as_read, run
-from ingestion.procedures.drucksachen import ingest_drucksachen
+from ingestion.procedures.bulk import _clear_as_read, known_empty, run
+from ingestion.procedures.drucksachen import CHUNK_RULES, ingest_drucksachen
 from ingestion.procedures.link_apply import Linker
 from ingestion.procedures.store import ProcedureStore
 
@@ -139,6 +139,15 @@ def test_rebuilt_collection_gets_profiles_back_on_backfill(
     assert (
         sum(1 for p in qdrant.points.values() if p["source_type"] == "procedure") == 2
     )
+
+
+def test_documents_without_chunks_are_read_again_under_new_rules() -> None:
+    listed = {"drucksachen_without_chunks": ["21/7868"]}
+    assert known_empty({**listed, "drucksachen_chunk_rules": CHUNK_RULES}) == {
+        "21/7868"
+    }
+    assert known_empty({**listed, "drucksachen_chunk_rules": CHUNK_RULES - 1}) == set()
+    assert known_empty(listed) == set()
 
 
 def test_a_run_that_stops_after_the_sync_is_followed_up_next_time(

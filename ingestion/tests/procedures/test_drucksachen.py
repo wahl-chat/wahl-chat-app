@@ -91,6 +91,16 @@ def test_law_text_and_begruendung_never_become_chunks() -> None:
     assert not any(p[0] in ("Gesetzestext", "Begründung") for p in paths)
 
 
+def test_an_overlong_bill_still_yields_its_vorblatt(monkeypatch) -> None:
+    import ingestion.procedures.drucksachen as module
+
+    doc = load("drucksache_21_7860")
+    overview = drucksache_chunks(doc, procedures={}, today=TODAY)
+    monkeypatch.setattr(module, "MAX_TEXT_CHARS", len(doc["text"]) // 2)
+    capped = drucksache_chunks(doc, procedures={}, today=TODAY)
+    assert [c.text for c in capped] == [c.text for c in overview]
+
+
 def test_the_hash_is_stable_and_covers_the_procedure_link(vorgaenge, positions) -> None:
     doc = load("drucksache_21_7860")
     a = drucksache_chunks(doc, procedures={}, today=TODAY)

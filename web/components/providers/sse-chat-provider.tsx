@@ -1,7 +1,12 @@
 'use client';
 
+import { sanitizeChatAnchor } from '@/lib/chat-anchor';
 import { getAuthHeader } from '@/lib/firebase/firebase';
-import type { PledgeTrackerSuggestions } from '@/lib/stores/chat-store.types';
+import type { ChatAnchor, ChatPreset } from '@/lib/firebase/firebase.types';
+import type {
+  PledgeTrackerSuggestions,
+  ToolStatus,
+} from '@/lib/stores/chat-store.types';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useCallback, useEffect } from 'react';
@@ -17,6 +22,9 @@ type AppendBody = {
   context_id: string;
   party_ids: string[];
   chat_history?: unknown[];
+  anchor?: ChatAnchor;
+  preset?: ChatPreset;
+  language?: 'de' | 'en';
 };
 
 // Expose append globally so store actions can call it without prop-drilling.
@@ -45,6 +53,8 @@ function SseChatProvider({ children }: Props) {
   const streamingMessageSourcesReady = useChatStore(
     (state) => state.streamingMessageSourcesReady,
   );
+  const updateToolStatus = useChatStore((state) => state.updateToolStatus);
+  const setAnchor = useChatStore((state) => state.setAnchor);
   const mergeStreamingChunkPayloadForMessage = useChatStore(
     (state) => state.mergeStreamingChunkPayloadForMessage,
   );
@@ -132,6 +142,19 @@ function SseChatProvider({ children }: Props) {
           ann.party_id as string,
           ann.sources as Parameters<typeof streamingMessageSourcesReady>[2],
         );
+      } else if (type === 'anchor') {
+        // The vote or law a chat without one settled on: it stays on it.
+        const anchor = sanitizeChatAnchor(ann.anchor);
+        if (anchor) {
+          setAnchor(anchor);
+        }
+      } else if (type === 'tool_status') {
+        updateToolStatus(ann.session_id as string, {
+          call_id: ann.call_id as string,
+          tool: ann.tool as string,
+          label: ann.label as string,
+          state: ann.state as ToolStatus['state'],
+        });
       } else if (type === 'party_chunk') {
         // V1: 'party_response_chunk_ready' event for secondary parties
         mergeStreamingChunkPayloadForMessage(

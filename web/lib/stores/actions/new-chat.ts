@@ -4,6 +4,7 @@ export const newChat: ChatStoreActionHandlerFor<'newChat'> =
   (get, set) => () => {
     set({
       chatSessionId: undefined,
+      anchor: undefined,
       messages: [],
       // The new chat's answers have not been counted yet. studyAnswersCompleted
       // deliberately survives: it counts the participant, not the chat.

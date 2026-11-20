@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Logo from './chat/logo';
 import { ThemeModeToggle } from './chat/theme-mode-toggle';
 import FeedbackDialog from './feedback-dialog';
+import HomeSocialMediaIcon from './icons/home-social-media-icon';
 import { useCurrentContext } from './providers/context-provider';
 
 function Footer() {
@@ -24,6 +25,9 @@ function Footer() {
         <Link href={SITE_LINKS.donate.href}>{SITE_LINKS.donate.label}</Link>
         <Link href={SITE_LINKS.aboutUs.href}>{SITE_LINKS.aboutUs.label}</Link>
         <Link href={sources.href}>{sources.label}</Link>
+        <Link href={SITE_LINKS.github.href} target="_blank">
+          {SITE_LINKS.github.label}
+        </Link>
         <Link href={SITE_LINKS.press.href} target="_blank">
           {SITE_LINKS.press.label}
         </Link>
@@ -34,7 +38,12 @@ function Footer() {
         <Link href={SITE_LINKS.privacy.href}>{SITE_LINKS.privacy.label}</Link>
       </section>
 
-      <ThemeModeToggle />
+      <div className="flex items-center gap-3">
+        <HomeSocialMediaIcon type="instagram" className="size-5" />
+        <HomeSocialMediaIcon type="linkedin" className="size-5" />
+        <HomeSocialMediaIcon type="email" className="size-5" />
+        <ThemeModeToggle />
+      </div>
     </footer>
   );
 }

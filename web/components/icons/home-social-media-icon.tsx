@@ -12,6 +12,13 @@ type Props = {
   className?: string;
 };
 
+const LABELS: Record<keyof typeof socialMediaConfig, string> = {
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  x: 'X',
+  email: 'E-Mail',
+};
+
 function HomeSocialMediaIcon({ type, className }: Props) {
   let Icon: React.ElementType;
 
@@ -34,6 +41,7 @@ function HomeSocialMediaIcon({ type, className }: Props) {
     <Link
       href={socialMediaConfig[type]}
       target="_blank"
+      aria-label={LABELS[type]}
       className="transition-transform duration-200 ease-out hover:scale-110"
     >
       <Icon className={cn('size-9', className)} />

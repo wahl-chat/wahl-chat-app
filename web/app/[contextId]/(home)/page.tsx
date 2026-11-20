@@ -11,6 +11,7 @@ import OpenCallCard, {
 import SupportUsCard from '@/components/home/support-us-card';
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
 import JsonLd from '@/components/seo/json-ld';
+import { GENERAL_CONTEXT_ID } from '@/lib/constants';
 import {
   getContext,
   getHomeInputProposedQuestions,
@@ -21,6 +22,7 @@ import {
 import { buildContextCanonical, buildContextJsonLd } from '@/lib/seo';
 import { IS_EMBEDDED } from '@/lib/utils';
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
 type Props = {
   params: Promise<{
@@ -38,6 +40,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ContextHome({ params }: Props) {
   const { contextId } = await params;
+  // The general context's start page is the chat itself.
+  if (contextId === GENERAL_CONTEXT_ID) redirect('/chat');
 
   // getContext and getPartiesForContext are cached and already resolved by the
   // layout in this render, so these are reads from the same cache entry.

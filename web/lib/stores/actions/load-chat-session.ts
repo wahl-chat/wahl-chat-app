@@ -1,3 +1,4 @@
+import { sanitizeChatAnchor } from '@/lib/chat-anchor';
 import {
   getChatSession,
   getChatSessionMessages,
@@ -25,6 +26,7 @@ export const loadChatSession: ChatStoreActionHandlerFor<'loadChatSession'> =
         currentChatTitle: session.title,
         chatSessionIsPublic: session.is_public,
         partyIds: new Set(session.party_ids ?? []),
+        anchor: sanitizeChatAnchor(session.anchor),
         preSelectedPartyIds: new Set(session.party_ids ?? []),
         currentStreamingMessages: undefined,
         loading: {

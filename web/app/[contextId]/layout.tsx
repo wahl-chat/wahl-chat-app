@@ -1,6 +1,7 @@
 import { ContextProvider } from '@/components/providers/context-provider';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import { looksLikeContextId } from '@/lib/context-id';
+import { electionContexts } from '@/lib/elections';
 import {
   getContext,
   getContexts,
@@ -69,7 +70,7 @@ async function ContextLayout({ children, params }: Props) {
   return (
     <ContextProvider
       context={context}
-      contexts={contexts}
+      contexts={electionContexts(contexts)}
       parties={shuffledParties}
     >
       {children}

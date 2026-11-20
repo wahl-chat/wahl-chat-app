@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { buildCarouselContainerId } from '@/lib/scroll-constants';
 import { buildPartyImageUrl, cn } from '@/lib/utils';
 import Image from 'next/image';
+import ChatToolStatus from './chat-tool-status';
 import CurrentStreamingMessage from './current-streaming-message';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
 import ThinkingMessage from './thinking-message';
@@ -18,6 +19,10 @@ function CurrentStreamingMessages() {
         (key) =>
           state.currentStreamingMessages?.messages[key].content?.length === 0,
       ) && state.loading.newMessage,
+  );
+
+  const toolStatus = useChatStore(
+    (state) => state.currentStreamingMessages?.tool_status,
   );
 
   const id = useChatStore((state) =>
@@ -39,7 +44,11 @@ function CurrentStreamingMessages() {
   });
 
   if (shouldShowThinkingMessage) {
-    return <ThinkingMessage />;
+    return toolStatus?.length ? (
+      <ChatToolStatus lines={toolStatus} />
+    ) : (
+      <ThinkingMessage />
+    );
   }
 
   if (!respondingPartyIds || !messageParties) {
