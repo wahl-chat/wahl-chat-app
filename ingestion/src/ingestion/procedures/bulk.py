@@ -116,7 +116,12 @@ def run(
     for step in PENDING_STEPS:
         work[step] |= store.pending(step)
 
-    def read_drucksachen(of: dict[str, ProcedureRecord], *, reread: bool) -> set[str]:
+    def read_drucksachen(
+        of: dict[str, ProcedureRecord],
+        *,
+        reread: bool,
+        on_batch: Optional[Callable[[list[str], set[str]], None]] = None,
+    ) -> set[str]:
         """Read the procedures' Drucksachen: all of them, or only those not
         stored yet (nor known to have no text worth a chunk). Returns the
         numbers that could not be read."""
@@ -135,6 +140,7 @@ def run(
             procedures=procedures,
             today=today,
             pdfs=pdfs,
+            on_batch=on_batch,
         )
         print(
             f"drucksachen: documents={result.documents} chunks={result.chunks} "
@@ -155,7 +161,13 @@ def run(
         # stored Drucksache may now belong to one more procedure.
         due = work["pending_drucksachen"]
         moved = {v: procedures[v] for v in due if v in procedures}
-        unread = read_drucksachen(moved, reread=True)
+        unread = read_drucksachen(
+            moved,
+            reread=True,
+            on_batch=_clear_as_read(
+                moved, lambda done: store.clear_pending("pending_drucksachen", done)
+            ),
+        )
         unread_new = read_drucksachen(procedures, reread=False)
         failed |= bool(unread or unread_new)
         # An id with no stored record has nothing to read: a failed sync
@@ -243,6 +255,35 @@ def run(
         render(collect(scroll_linkable(qdrant, collection, wahlperioden), procedures))
     )
     return 1 if failed else 0
+
+
+def _clear_as_read(
+    of: dict[str, ProcedureRecord], clear: Callable[[set[str]], None]
+) -> Callable[[list[str], set[str]], None]:
+    """A batch callback that clears each procedure once the last of its
+    Drucksachen is written, so a run stopped mid-step resumes there instead
+    of reading every document again. A procedure with a failed document stays
+    pending."""
+    left = {vid: wanted_numbers({vid: record}) for vid, record in of.items()}
+    owners: dict[str, set[str]] = {}
+    for vid, numbers in left.items():
+        for number in numbers:
+            owners.setdefault(number, set()).add(vid)
+    failed_in: set[str] = set()
+
+    def on_batch(batch: list[str], failed: set[str]) -> None:
+        done: set[str] = set()
+        for number in batch:
+            for vid in owners.get(number, ()):
+                if number in failed:
+                    failed_in.add(vid)
+                left[vid].discard(number)
+                if not left[vid] and vid not in failed_in:
+                    done.add(vid)
+        if done:
+            clear(done)
+
+    return on_batch
 
 
 def _read_through(of: dict[str, ProcedureRecord], unread: set[str]) -> set[str]:
