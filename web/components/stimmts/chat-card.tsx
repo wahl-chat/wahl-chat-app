@@ -1,8 +1,13 @@
 'use client';
 
 import { CARD_SURFACE, FOCUS_RING } from '@/components/daily/card-styles';
+import { trackChatAsked } from '@/lib/stimmts/analytics';
 import { answerStream } from '@/lib/stimmts/chat-answer';
-import { chatChips, stimmtsChatHref } from '@/lib/stimmts/chat-chips';
+import {
+  type ChatChip,
+  chatChips,
+  stimmtsChatHref,
+} from '@/lib/stimmts/chat-chips';
 import {
   type ChatTurn,
   answerText,
@@ -22,6 +27,8 @@ import Link from 'next/link';
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 
 type Props = {
+  /** The puzzle's number, which is the day the game runs on. */
+  day: number;
   puzzle: Puzzle;
   guesses: Guesses;
 };
@@ -32,7 +39,7 @@ type Props = {
  * push the result off the screen. "Im Chat weiter" carries the conversation
  * on in the full chat.
  */
-function ChatCard({ puzzle, guesses }: Props) {
+function ChatCard({ day, puzzle, guesses }: Props) {
   const headingId = useId();
   const inputId = useId();
   const latestQuestionRef = useRef<HTMLParagraphElement>(null);
@@ -59,10 +66,11 @@ function ChatCard({ puzzle, guesses }: Props) {
     latestQuestionRef.current?.focus();
   });
 
-  const ask = async (question: string) => {
+  const ask = async (question: string, chip: ChatChip['id'] | null) => {
     const text = question.trim();
     if (!text || busyRef.current) return;
     busyRef.current = true;
+    trackChatAsked(chip, day);
     const controller = new AbortController();
     abortRef.current = controller;
     const id = nextId.current++;
@@ -92,17 +100,17 @@ function ChatCard({ puzzle, guesses }: Props) {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (busyRef.current || !draft.trim()) return;
-    void ask(draft);
+    void ask(draft, null);
     setDraft('');
   };
 
-  const askChip = (question: string) => {
+  const askChip = (chip: ChatChip) => {
     if (busyRef.current) return;
     // The chip disappears once asked, so focus goes to the question it
     // asked rather than falling back to the page. Not to the input: on a
     // phone that would open the keyboard over the answer.
     focusQuestion.current = true;
-    void ask(question);
+    void ask(chip.question, chip.id);
   };
 
   return (
@@ -202,7 +210,7 @@ function ChatCard({ puzzle, guesses }: Props) {
               key={chip.question}
               type="button"
               aria-disabled={streaming}
-              onClick={() => askChip(chip.question)}
+              onClick={() => askChip(chip)}
               className={cn(
                 'inline-flex min-h-11 max-w-full items-center whitespace-normal rounded-[20px] bg-[var(--daily-surface)] px-4 py-2.5 text-left text-sm leading-5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
                 FOCUS_RING,

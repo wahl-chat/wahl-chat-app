@@ -153,8 +153,8 @@ describe('isStreaming', () => {
 
 describe('remainingChips', () => {
   const chips: ChatChip[] = [
-    { label: 'A', question: 'Frage A?' },
-    { label: 'B', question: 'Frage B?' },
+    { id: 'in_force', label: 'A', question: 'Frage A?' },
+    { id: 'next', label: 'B', question: 'Frage B?' },
   ];
 
   it('drops chips whose question was asked, however it ended', () => {

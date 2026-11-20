@@ -1,3 +1,4 @@
+import type { ChatChipId } from './analytics-props';
 import { chatQuestion } from './chat-question';
 import { ANSWER_LABELS } from './labels';
 import type { Guesses, Puzzle } from './types';
@@ -10,6 +11,11 @@ import type { Guesses, Puzzle } from './types';
 export const STIMMTS_CHAT_ENABLED = false;
 
 export type ChatChip = {
+  /**
+   * Stable across wording changes: what analytics records instead of the
+   * chip's text, which names a party.
+   */
+  id: ChatChipId;
   /** What the chip shows, short enough to sit three to a row on a phone. */
   label: string;
   /** What the chat is asked, in full. */
@@ -38,10 +44,12 @@ export function chatChips(puzzle: Puzzle, guesses: Guesses): ChatChip[] {
   return [
     firstChip(puzzle, guesses),
     {
+      id: 'in_force',
       label: 'Schon in Kraft?',
       question: `Ist „${puzzle.title}“ schon in Kraft?`,
     },
     {
+      id: 'next',
       label: 'Wie geht’s weiter?',
       question: `Wie geht es mit „${puzzle.title}“ nach der Abstimmung weiter?`,
     },
@@ -56,11 +64,13 @@ function firstChip(puzzle: Puzzle, guesses: Guesses): ChatChip {
   )?.answer;
   if (asked.kind === 'wrong-guess' && actual && SHORT_NAMES[partyId]) {
     return {
+      id: 'why_party',
       label: `Warum ${ANSWER_LABELS[actual]}, ${SHORT_NAMES[partyId]}?`,
       question: asked.text,
     };
   }
   return {
+    id: 'surprise',
     label: 'Überraschendste Stimme?',
     question: `Welche Stimme war bei der Abstimmung „${puzzle.title}“ am überraschendsten, und warum?`,
   };

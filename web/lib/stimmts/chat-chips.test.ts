@@ -24,6 +24,27 @@ describe('chatChips', () => {
     expect(STIMMTS_CHAT_ENABLED).toBe(false);
   });
 
+  it('gives each chip an id that does not change with the wording', () => {
+    const wrong = chatChips(votedLike(['no', 'yes', 'no', 'yes', 'no']), {
+      ...guessed(['no', 'yes', 'no', 'yes', 'no']),
+      gruene: 'yes',
+    });
+    expect(wrong.map((chip) => chip.id)).toEqual([
+      'why_party',
+      'in_force',
+      'next',
+    ]);
+    const right = chatChips(
+      votedLike(['no', 'yes', 'no', 'yes', 'no']),
+      guessed(['no', 'yes', 'no', 'yes', 'no']),
+    );
+    expect(right.map((chip) => chip.id)).toEqual([
+      'surprise',
+      'in_force',
+      'next',
+    ]);
+  });
+
   it('puts a short chip for the wrong party first, with the full question behind it', () => {
     const puzzle = votedLike(['no', 'yes', 'no', 'yes', 'no']);
     const [first] = chatChips(puzzle, {

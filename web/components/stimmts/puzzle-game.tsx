@@ -68,6 +68,7 @@ function PuzzleGame({
 }: Props) {
   const game = useProgress((state) => getGame(state.progress, puzzle.id));
   const finish = useProgress((state) => state.finish);
+  const progress = useProgress((state) => state.progress);
   const reduceMotion = useReducedMotion() ?? false;
   const [started, setStarted] = useState(false);
   const startCounted = useRef(false);
@@ -111,11 +112,17 @@ function PuzzleGame({
   useEffect(() => {
     if (finishedHere && !countedFinish.current) {
       countedFinish.current = true;
-      trackPuzzleCompleted(number, scorePuzzle(puzzle, game.guesses).correct);
+      trackPuzzleCompleted(
+        number,
+        scorePuzzle(puzzle, game.guesses).correct,
+        puzzle.id,
+        progress,
+        today,
+      );
       // The feed flies its card into the header icon on the way back.
       markJustPlayed(today, browserSession(), document.documentElement);
     }
-  }, [finishedHere, number, puzzle, game.guesses, today]);
+  }, [finishedHere, number, puzzle, game.guesses, today, progress]);
   useLayoutEffect(() => {
     if (finishedElsewhere) {
       stamped.current = true;
@@ -262,7 +269,13 @@ function PuzzleGame({
             }
             startCounted.current = true;
             setStarted(true);
-            trackPuzzleStarted(number, puzzle.id);
+            trackPuzzleStarted(
+              number,
+              puzzle.id,
+              progress,
+              today,
+              challenge != null,
+            );
             goTop();
           }}
         />

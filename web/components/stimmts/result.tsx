@@ -281,7 +281,7 @@ function Result({
 
         {/* Right under the vote: questions come up while it is on screen. */}
         {sections.chatCard && (
-          <ChatCard puzzle={puzzle} guesses={game.guesses} />
+          <ChatCard day={number} puzzle={puzzle} guesses={game.guesses} />
         )}
 
         <section

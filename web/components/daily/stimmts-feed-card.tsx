@@ -1,6 +1,7 @@
 'use client';
 
 import StimmtsLogo from '@/components/stimmts/stimmts-logo';
+import { rememberEntry } from '@/lib/stimmts/analytics';
 import { berlinDate } from '@/lib/stimmts/berlin-time';
 import { formatCountdown } from '@/lib/stimmts/countdown';
 import {
@@ -49,6 +50,7 @@ function wantsShine(): boolean {
 }
 
 function rememberCardOpened() {
+  rememberEntry('feed_card');
   try {
     window.localStorage.setItem(CARD_OPENED_KEY, '1');
   } catch {

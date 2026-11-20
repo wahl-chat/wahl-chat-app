@@ -1,6 +1,7 @@
 'use client';
 
 import { StimmtsMark } from '@/components/stimmts/stimmts-logo';
+import { rememberEntry } from '@/lib/stimmts/analytics';
 import { berlinDate } from '@/lib/stimmts/berlin-time';
 import { nextFeedTick } from '@/lib/stimmts/feed-entry';
 import { type TodaysResult, todaysResult } from '@/lib/stimmts/todays-result';
@@ -161,6 +162,7 @@ function StimmtsHeaderIcon({ serverEnabled }: { serverEnabled: boolean }) {
       <Link
         href="/stimmts"
         prefetch={false}
+        onClick={() => rememberEntry('header_icon')}
         aria-label={label}
         {...{ [ICON_TARGET_ATTRIBUTE]: '' }}
         className={cn(
