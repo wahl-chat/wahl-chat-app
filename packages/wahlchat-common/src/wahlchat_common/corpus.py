@@ -143,10 +143,17 @@ async def acheck_fingerprint(client: Any, collection_name: str) -> None:
 # Lazy: this module is imported project-wide just for the constants, so a
 # module-level client would leak an unused connection into every process.
 def _make_client() -> QdrantClient:
-    """Construct the default QdrantClient from QDRANT_URL / QDRANT_API_KEY."""
+    """Construct the default QdrantClient from QDRANT_URL / QDRANT_API_KEY.
+
+    The client's own default is a 5 s read timeout. Creating a payload index
+    with ``wait=True`` on a populated collection takes longer than that, and
+    ``setup_collection`` runs before every ingestion job, so a new index
+    would fail every job until Qdrant finished building it.
+    """
     return QdrantClient(
         url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         api_key=os.getenv("QDRANT_API_KEY"),
+        timeout=int(os.getenv("QDRANT_TIMEOUT", "120")),
     )
 
 
