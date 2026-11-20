@@ -64,26 +64,77 @@ export function gridColumns(thumbCount: number): number {
   return thumbCount > 5 ? 3 : 5;
 }
 
-/** Where an arrow key moves in the group, wrapping at both ends. */
+/**
+ * Where an arrow key moves in the group, wrapping at both ends. Disabled
+ * entries are skipped, so focus never rests on a radio that cannot be checked
+ * while the checked one sits elsewhere. Null when the key is not a move or
+ * nothing else can be reached.
+ */
 export function nextIndex(
   current: number,
   key: string,
   count: number,
+  isDisabled: (index: number) => boolean = () => false,
 ): number | null {
+  let step: number;
+  let from: number;
   switch (key) {
     case 'ArrowRight':
     case 'ArrowDown':
-      return (current + 1) % count;
+      step = 1;
+      from = current;
+      break;
     case 'ArrowLeft':
     case 'ArrowUp':
-      return (current - 1 + count) % count;
+      step = -1;
+      from = current;
+      break;
     case 'Home':
-      return 0;
+      step = 1;
+      from = -1;
+      break;
     case 'End':
-      return count - 1;
+      step = -1;
+      from = count;
+      break;
     default:
       return null;
   }
+  for (let taken = 1; taken <= count; taken++) {
+    const index = (((from + step * taken) % count) + count) % count;
+    if (!isDisabled(index)) {
+      return index === current && (key === 'Home' || key === 'End')
+        ? null
+        : index;
+    }
+  }
+  return null;
+}
+
+export type SheetState = {
+  /** The pick, kept local until it is confirmed. */
+  selected: StyleId;
+  /** What was new when the sheet opened; the badges stay until it closes. */
+  freshOnOpen: StyleId[];
+};
+
+/** Opening starts from the style in use and notes what is new. */
+export function openSheet(chosen: StyleId, fresh: StyleId[]): SheetState {
+  return { selected: chosen, freshOnOpen: fresh };
+}
+
+/** A locked style cannot be picked; the state stays as it is. */
+export function selectStyle(
+  state: SheetState,
+  id: StyleId,
+  unlocked: boolean,
+): SheetState {
+  return unlocked ? { ...state, selected: id } : state;
+}
+
+/** The style the primary button hands to the store. */
+export function confirmedStyle(state: SheetState): StyleId {
+  return state.selected;
 }
 
 export function styleName(id: StyleId): string {

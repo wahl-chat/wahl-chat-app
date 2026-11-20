@@ -10,12 +10,16 @@ import {
 } from '@/components/ui/drawer';
 import { berlinMonth } from '@/lib/stimmts/berlin-time';
 import {
+  type SheetState,
   barFill,
   barLabel,
+  confirmedStyle,
   gridColumns,
   isLocked,
   milestoneMarks,
   nextIndex,
+  openSheet,
+  selectStyle,
   styleName,
   thumbLabel,
   thumbSubline,
@@ -41,6 +45,8 @@ const STANDARD_THUMB = {
 } as const;
 
 const GOLD_ACCENT = '#c9a85c';
+const GOLD_RING =
+  'inset 0 0 0 3px #12100b, inset 0 0 0 5px #c9a85c, inset 0 0 0 7px #12100b, inset 0 0 0 8px rgba(201,168,92,0.6)';
 
 function thumbColours(id: StyleId) {
   if (id === 'standard') {
@@ -184,9 +190,7 @@ function Thumb({
         style={{
           background: colours.canvas,
           boxShadow: [
-            id === 'gold'
-              ? `inset 0 0 0 3px ${colours.canvas}, inset 0 0 0 5px ${GOLD_ACCENT}, inset 0 0 0 7px ${colours.canvas}`
-              : `inset 0 0 0 1px ${colours.border}`,
+            id === 'gold' ? GOLD_RING : `inset 0 0 0 1px ${colours.border}`,
             checked
               ? '0 0 0 2px var(--daily-canvas), 0 0 0 4px var(--daily-ink)'
               : null,
@@ -250,10 +254,8 @@ function Thumb({
 function StyleSheet({ open, onOpenChange }: Props) {
   const { style, fresh, daysPlayed } = useStimmtsStyle();
   const styles = visibleStyles(berlinMonth(new Date()));
-  const [selected, setSelected] = useState<StyleId>(style);
-  // Looking at the sheet clears what is new, but the badges stay until it
-  // closes: they are what the player came to see.
-  const [freshOnOpen, setFreshOnOpen] = useState<StyleId[]>([]);
+  const [state, setState] = useState<SheetState>(() => openSheet(style, []));
+  const { selected, freshOnOpen } = state;
   const thumbs = useRef<(HTMLButtonElement | null)[]>([]);
   const latest = useRef({ style, fresh });
   latest.current = { style, fresh };
@@ -263,22 +265,23 @@ function StyleSheet({ open, onOpenChange }: Props) {
       return;
     }
     const { style: current, fresh: unseen } = latest.current;
-    setSelected(current);
-    setFreshOnOpen(unseen);
-    styleStore.getState().markSeen(unseen);
+    const opened = openSheet(current, unseen);
+    setState(opened);
+    styleStore.getState().markSeen(opened.freshOnOpen);
   }, [open]);
 
   const select = (id: StyleId) => {
-    if (!isLocked(id, daysPlayed)) {
-      setSelected(id);
-    }
+    setState((prev) => selectStyle(prev, id, !isLocked(id, daysPlayed)));
   };
 
   const handleKeyDown = (
     event: KeyboardEvent<HTMLButtonElement>,
     index: number,
   ) => {
-    const target = nextIndex(index, event.key, styles.length);
+    const target = nextIndex(index, event.key, styles.length, (i) => {
+      const candidate = styles[i];
+      return !candidate || isLocked(candidate, daysPlayed);
+    });
     if (target === null) {
       return;
     }
@@ -291,7 +294,7 @@ function StyleSheet({ open, onOpenChange }: Props) {
   };
 
   const apply = () => {
-    styleStore.getState().choose(selected);
+    styleStore.getState().choose(confirmedStyle(state));
     onOpenChange(false);
   };
 

@@ -2,13 +2,17 @@ import { describe, expect, test } from 'bun:test';
 import {
   barFill,
   barLabel,
+  confirmedStyle,
   gridColumns,
   milestoneMarks,
   nextIndex,
+  openSheet,
+  selectStyle,
   styleButtonLabel,
   thumbLabel,
   thumbSubline,
 } from './style-sheet-view';
+import { createStyleStore } from './style-store';
 
 describe('thumbSubline', () => {
   test('says when a style comes or that it is always there', () => {
@@ -59,6 +63,55 @@ describe('nextIndex', () => {
     expect(nextIndex(0, 'ArrowLeft', 5)).toBe(4);
     expect(nextIndex(1, 'End', 5)).toBe(4);
     expect(nextIndex(1, 'Tab', 5)).toBeNull();
+  });
+
+  test('skips disabled entries and wraps over them', () => {
+    const locked = (index: number) => index >= 2;
+    expect(nextIndex(1, 'ArrowRight', 5, locked)).toBe(0);
+    expect(nextIndex(0, 'ArrowLeft', 5, locked)).toBe(1);
+    expect(nextIndex(0, 'End', 5, locked)).toBe(1);
+    expect(nextIndex(1, 'Home', 5, locked)).toBe(0);
+  });
+
+  test('stays put when every other entry is disabled', () => {
+    const onlyFirst = (index: number) => index !== 0;
+    expect(nextIndex(0, 'ArrowRight', 5, onlyFirst)).toBe(0);
+    expect(nextIndex(0, 'ArrowUp', 5, onlyFirst)).toBe(0);
+    expect(nextIndex(0, 'Home', 5, onlyFirst)).toBeNull();
+  });
+
+  test('has nowhere to go when everything is disabled', () => {
+    expect(nextIndex(0, 'ArrowRight', 3, () => true)).toBeNull();
+  });
+});
+
+describe('sheet state', () => {
+  const store = () => createStyleStore(null);
+
+  test('opening marks the new styles as seen but keeps the badges', () => {
+    const styles = store();
+    styles.getState().hydrate();
+    const state = openSheet('standard', ['papier']);
+    styles.getState().markSeen(state.freshOnOpen);
+    expect(styles.getState().seen).toEqual(['papier']);
+    expect(state.freshOnOpen).toEqual(['papier']);
+    expect(state.selected).toBe('standard');
+  });
+
+  test('picking is local until confirmed', () => {
+    const styles = store();
+    styles.getState().hydrate();
+    let state = openSheet('standard', []);
+    state = selectStyle(state, 'papier', true);
+    expect(state.selected).toBe('papier');
+    expect(styles.getState().chosen).toBe('standard');
+    styles.getState().choose(confirmedStyle(state));
+    expect(styles.getState().chosen).toBe('papier');
+  });
+
+  test('a locked style cannot be picked', () => {
+    const state = openSheet('standard', []);
+    expect(selectStyle(state, 'gold', false)).toBe(state);
   });
 });
 
