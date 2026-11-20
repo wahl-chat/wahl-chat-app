@@ -53,7 +53,7 @@ function StartScreen({ puzzle, banner, onStart }: Props) {
       >
         {/* The task comes first in reading order, so a screen reader opens on
             it; the brand row only sits above it on screen. */}
-        <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-5">
+        <div className="flex flex-col gap-2.5">
           <h1
             id="stimmts-start-task"
             className="text-[19px] font-bold leading-[25px] md:text-xl md:leading-[26px]"
@@ -62,11 +62,11 @@ function StartScreen({ puzzle, banner, onStart }: Props) {
           </h1>
           <ul
             aria-label="Fünf Fraktionen, noch nicht getippt"
-            className="grid grid-cols-5 gap-1 md:flex md:flex-none md:gap-1.5"
+            className="grid grid-cols-5 gap-1"
           >
             {puzzle.parties.map(({ partyId }) => (
               <li key={partyId} className="flex flex-col items-center gap-1">
-                <PartyTile partyId={partyId} size="sm" />
+                <PartyTile partyId={partyId} size="responsive" />
                 <span className="sr-only">{partyLabel(partyId)}</span>
                 <span
                   aria-hidden

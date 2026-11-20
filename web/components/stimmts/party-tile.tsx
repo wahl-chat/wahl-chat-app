@@ -4,8 +4,15 @@ import Image from 'next/image';
 
 type Props = {
   partyId: string;
-  size?: 'md' | 'sm';
+  /** `responsive` is `sm` on a phone and `md` from md up. */
+  size?: 'md' | 'sm' | 'responsive';
 };
+
+const TILE_SIZE = {
+  md: 'h-11 w-16',
+  sm: 'h-[30px] w-11',
+  responsive: 'h-[30px] w-11 md:h-11 md:w-16',
+} as const;
 
 /** The party's own logo on its colour tile, as on the chamber's markers. */
 function PartyTile({ partyId, size = 'md' }: Props) {
@@ -14,15 +21,15 @@ function PartyTile({ partyId, size = 'md' }: Props) {
       aria-hidden
       className={cn(
         'inline-flex flex-none items-center justify-center overflow-hidden rounded-sm',
-        size === 'md' ? 'h-11 w-16' : 'h-[30px] w-11',
+        TILE_SIZE[size],
         partyTileClass(partyId),
       )}
     >
       <Image
         src={partyLogo(partyId)}
         alt=""
-        width={size === 'md' ? 54 : 38}
-        height={size === 'md' ? 32 : 22}
+        width={size === 'sm' ? 38 : 54}
+        height={size === 'sm' ? 22 : 32}
         className="size-full max-h-[73%] max-w-[85%] object-contain"
       />
     </span>
