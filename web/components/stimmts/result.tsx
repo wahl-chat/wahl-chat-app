@@ -21,9 +21,8 @@ import { cn } from '@/lib/utils';
 import { Pointer } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
 import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import Countdown from './countdown';
-import FeedbackPrompt from './feedback-prompt';
 import PartyTile from './party-tile';
 import PeriodChamber from './period-chamber';
 import ShareButton from './share-button';
@@ -76,14 +75,17 @@ type Props = {
   onReview: () => void;
   /** Opens a past day of this Wahlperiode, already turned over. */
   onOpenDay: (number: number) => void;
+  /** Sits next to the share button in the score card, once the card is cast. */
+  scoreActions?: ReactNode;
 };
 
 /**
  * The end of the day's puzzle, read top to bottom: the stamped Stimmkarte
- * for the player to cast into the urn, sharing, how the Bundestag actually
- * voted, and the Wahlperiode the urn fills. The card leads, so it is on
- * screen the moment the result opens. Once cast, it is gone, the urn rises
- * into its place, and the countdown and a score card take over from it.
+ * for the player to cast into the urn, how the Bundestag actually voted,
+ * the questions about it, and the Wahlperiode the urn fills. The card leads,
+ * so it is on screen the moment the result opens. Once cast, it is gone, the
+ * urn rises into its place, and the countdown and a compact score card, which
+ * also holds sharing, take over from it.
  */
 function Result({
   number,
@@ -93,6 +95,7 @@ function Result({
   stamping,
   onReview,
   onOpenDay,
+  scoreActions,
 }: Props) {
   const progress = useProgress((state) => state.progress);
   const castCard = useProgress((state) => state.cast);
@@ -273,13 +276,13 @@ function Result({
           aria-live="polite"
           className={cn(
             CARD_SURFACE,
-            'flex flex-col gap-3 px-4 py-3.5',
+            'flex flex-col gap-2.5 px-4 py-3',
             justCast &&
               'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
           )}
         >
           <p className="flex items-baseline justify-between gap-2">
-            <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
+            <span className="font-display text-2xl font-extrabold tabular-nums leading-7 tracking-[-0.02em]">
               {score.correct} von {score.total}{' '}
               <span className="font-sans text-[15px] font-semibold tracking-normal text-[var(--daily-muted)]">
                 richtig
@@ -302,36 +305,35 @@ function Result({
                 <span className="sr-only">{partyLabel(entry.partyId)}</span>
                 <Verdict
                   correct={entry.correct}
-                  className="size-[22px] text-xs"
+                  className="size-[18px] text-[11px]"
                 />
               </li>
             ))}
           </ul>
+          <div className="flex flex-wrap items-center gap-2">
+            <ShareButton
+              size="compact"
+              text={buildShareText({
+                puzzleNumber: number,
+                score,
+                title: puzzle.title,
+                url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
+              })}
+              image={{
+                path: shareImagePath('square', {
+                  number,
+                  score: score.correct,
+                  playDate,
+                  period: sharedPeriod,
+                }),
+                name: `stimmts-${number}.png`,
+              }}
+              onShared={(method) => trackResultShared('result', method, number)}
+            />
+            {scoreActions}
+          </div>
         </section>
       )}
-
-      <ShareButton
-        text={buildShareText({
-          puzzleNumber: number,
-          score,
-          title: puzzle.title,
-          url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
-        })}
-        image={{
-          path: shareImagePath('square', {
-            number,
-            score: score.correct,
-            playDate,
-            period: sharedPeriod,
-          }),
-          name: `stimmts-${number}.png`,
-        }}
-        onShared={(method) => trackResultShared('result', method, number)}
-      />
-      {/* Shown with the result rather than after the cast: appearing later,
-          it would land mid-page and push the vote card down under the
-          player's eyes. */}
-      <FeedbackPrompt />
 
       <VoteResultCard puzzle={puzzle} onOpen={onReview} />
 

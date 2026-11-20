@@ -5,6 +5,7 @@ import {
   fetchShareImage,
   shareText,
 } from '@/lib/stimmts/share-action';
+import { cn } from '@/lib/utils';
 import { Share } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PillButton from './pill-button';
@@ -16,13 +17,21 @@ type Props = {
   /** The square share image (see the /stimmts/share route), if any. */
   image?: { path: string; name: string };
   onShared?: (method: ShareMethod) => void;
+  /** Compact is the score card's small pill; its label is just "Teilen". */
+  size?: 'default' | 'compact';
 };
 
 /**
  * "Ergebnis teilen": on phones the share sheet gets the text and the image
  * together; elsewhere the text is copied and the image can be saved.
  */
-function ShareButton({ text, image: shareImage, onShared }: Props) {
+function ShareButton({
+  text,
+  image: shareImage,
+  onShared,
+  size = 'default',
+}: Props) {
+  const compact = size === 'compact';
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
   // Unknown until mounted: guessing either way would flash the save link on
   // the other kind of device. The label stays "teilen" on both: copying the
@@ -70,14 +79,27 @@ function ShareButton({ text, image: shareImage, onShared }: Props) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <PillButton onClick={handleClick}>
+    <div
+      className={cn(
+        'flex flex-col gap-2',
+        compact ? 'items-start' : 'items-center',
+      )}
+    >
+      <PillButton
+        onClick={handleClick}
+        className={cn(
+          compact &&
+            // The pill is 40px tall; the invisible extension brings the tap
+            // target to 44px without growing the card.
+            'relative h-10 gap-2 self-start px-4 text-base after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-[""] [&_svg]:size-4',
+        )}
+      >
         {outcome === 'copied' ? (
           'Kopiert ✓'
         ) : (
           <>
             <Share aria-hidden strokeWidth={2.25} />
-            Ergebnis teilen
+            {compact ? 'Teilen' : 'Ergebnis teilen'}
           </>
         )}
       </PillButton>
