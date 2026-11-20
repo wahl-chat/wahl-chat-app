@@ -151,7 +151,11 @@ Outside the registry (bespoke runner, like the manifesto bulk CLIs):
   (`doc_section` overview/report; law text and Begründung are not stored). The same job links votes (date +
   tally against DIP decisions) and speeches (DIP `aktivitaet`) by writing
   `vorgang_ids`, `sachgebiete` and `procedure_link` payload-only, and attaches
-  procedure summaries to feed items. Runs after the speech and vote ingestion
+  procedure summaries to feed items (`--revalidate` then clears the web cache
+  tag `feed`: the feed build finds those items unchanged and would not). What a
+  synced change still needs from the later steps is kept in
+  `procedures_meta/sync` (`pending_*`) until that step succeeds, so a failed or
+  stopped run leaves it to the next one. Runs after the speech and vote ingestion
   (it links what they wrote) and before the feed build.
   Runner: `ingestion/src/ingestion/procedures/bulk.py`; reader:
   `ai-backend/src/services/procedure_service.py`.

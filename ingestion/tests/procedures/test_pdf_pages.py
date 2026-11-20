@@ -101,6 +101,20 @@ def test_each_chunk_gets_the_pdf_pages_it_sits_on() -> None:
     assert {c.doc_section for c in chunks if c.meta["page_start"] >= 4} == {"report"}
 
 
+def test_a_pdf_whose_text_cannot_be_read_keeps_the_chunks_without_pages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pdf = ProtocolPdf.from_bytes(PDF_8457)
+
+    def unreadable(passage: str, first: int) -> Any:
+        raise ValueError("broken font")
+
+    monkeypatch.setattr(pdf, "pages_of", unreadable)
+    chunks = _chunks(pdf)
+    assert [c.content_hash for c in chunks] == [c.content_hash for c in _chunks()]
+    assert all("page_start" not in (c.meta or {}) for c in chunks)
+
+
 def test_pages_leave_the_content_hash_alone() -> None:
     with_pages = _chunks(ProtocolPdf.from_bytes(PDF_8457))
     without = _chunks()

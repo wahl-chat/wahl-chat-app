@@ -3,9 +3,14 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 from datetime import date
+from typing import Any
 
+import pytest
+
+from ingestion.procedures import drucksachen
 from ingestion.procedures.drucksachen import (
     drucksache_chunks,
+    ingest_drucksachen,
     split_sections,
     wanted_numbers,
 )
@@ -13,6 +18,7 @@ from ingestion.procedures.mapper import build_record
 from ingestion.schemas import AuthorityTier, SourceType
 
 from .conftest import load
+from .fakes import FakeDip, FakeEmbed, FakeQdrant
 
 TODAY = date(2026, 11, 17)
 
@@ -153,3 +159,35 @@ def test_a_committee_bericht_is_the_report_and_read_by_default() -> None:
     assert {s.kind for s in sections if s.path[0] == "Beschlussempfehlung"} == {"body"}
     read = drucksache_chunks(doc, procedures={}, today=TODAY)
     assert {c.doc_section for c in read} == {"overview", "report"}
+
+
+def test_a_document_that_cannot_be_chunked_fails_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def chunks(doc: dict[str, Any], **kw: Any) -> Any:
+        if doc["dokumentnummer"] == "21/7860":
+            raise ValueError("malformed text")
+        return drucksache_chunks(doc, **kw)
+
+    monkeypatch.setattr(drucksachen, "drucksache_chunks", chunks)
+    dip = FakeDip(
+        {},
+        {},
+        texts={
+            "21/7860": load("drucksache_21_7860"),
+            "21/9233": load("drucksache_21_9233"),
+        },
+    )
+    qdrant = FakeQdrant()
+    report = ingest_drucksachen(
+        ["21/7860", "21/9233"],
+        dip=dip,
+        qdrant=qdrant,
+        collection="c",
+        embed=FakeEmbed(),
+        procedures={},
+        today=TODAY,
+    )
+    assert report.failed == ["21/7860"] and report.written == 1
+    parents = {p["source_parent_key"] for p in qdrant.points.values()}
+    assert parents == {"drucksache:BT:21/9233"}

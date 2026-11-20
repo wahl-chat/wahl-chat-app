@@ -4,7 +4,10 @@
 
 from datetime import date
 
+import pytest
+
 from ingestion.procedures.bulk import run
+from ingestion.procedures.link_apply import Linker
 
 from .conftest import load
 from .fakes import FakeDip, FakeEmbed, FakeFirestore, FakeQdrant
@@ -132,3 +135,74 @@ def test_rebuilt_collection_gets_profiles_back_on_backfill(
     assert (
         sum(1 for p in qdrant.points.values() if p["source_type"] == "procedure") == 2
     )
+
+
+def test_a_run_that_stops_after_the_sync_is_followed_up_next_time(
+    vorgaenge, positions, capsys, monkeypatch
+) -> None:
+    db, qdrant = FakeFirestore(), FakeQdrant()
+    trimmed = {**positions, "338366": positions["338366"][:-1]}
+    _run(_dip(vorgaenge, trimmed), db, qdrant)
+    db.collection("feed_items").document("d").set(
+        {
+            "parliament": "bundestag",
+            "debate": {"drucksachen": ["21/7860"]},
+            "procedure_ids": ["338366"],
+            "procedures": [],
+        }
+    )
+    moved = _dip(vorgaenge, positions)
+    moved.updated = {21: {"338366"}}
+
+    def stops(self, wahlperioden) -> None:
+        raise RuntimeError("Qdrant timed out")
+
+    with monkeypatch.context() as patched:
+        patched.setattr(Linker, "link_votes", stops)
+        with pytest.raises(RuntimeError):
+            _run(
+                moved,
+                db,
+                qdrant,
+                backfill=False,
+                link=True,
+                feed=True,
+                today=date(2026, 11, 18),
+            )
+    state = db.data["procedures_meta"]["sync"]
+    assert state["pending_feed"] == ["338366"]
+    assert state["pending_drucksachen"] == []  # that step ran before the stop
+    assert db.data["feed_items"]["d"]["procedures"] == []
+
+    # DIP lists nothing new; the stored record is current. The feed item is
+    # refreshed from the pending work alone, and the web cache cleared.
+    cleared: list[bool] = []
+    again = _dip(vorgaenge, positions)
+    code = _run(
+        again,
+        db,
+        qdrant,
+        backfill=False,
+        link=True,
+        feed=True,
+        today=date(2026, 11, 19),
+        revalidate=lambda: cleared.append(True),
+    )
+    assert code == 0, capsys.readouterr().out
+    item = db.data["feed_items"]["d"]
+    assert [p["vorgang_id"] for p in item["procedures"]] == ["338366"]
+    assert db.data["procedures_meta"]["sync"]["pending_feed"] == []
+    assert cleared == [True]
+
+    # nothing pending, nothing updated: the cache is left alone
+    _run(
+        again,
+        db,
+        qdrant,
+        backfill=False,
+        link=True,
+        feed=True,
+        today=date(2026, 11, 20),
+        revalidate=lambda: cleared.append(True),
+    )
+    assert cleared == [True]
