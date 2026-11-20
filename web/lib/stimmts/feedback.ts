@@ -1,4 +1,5 @@
 import type { Progress } from './progress';
+import type { StorageLike } from './progress-store';
 
 /**
  * Asked once, after this many finished puzzles. The question is whether the
@@ -17,4 +18,51 @@ export function shouldAskForFeedback(
   alreadyAsked: boolean,
 ): boolean {
   return !alreadyAsked && finishedGameCount(progress) >= FEEDBACK_AFTER_GAMES;
+}
+
+// Not the key of the earlier star rating, so a player who was asked that is
+// still asked this.
+const ASKED_KEY = 'stimmts:more-games-asked';
+
+// Without storage this flag still keeps the question from returning in the
+// same visit; only a reload may ask once more.
+let askedThisSession = false;
+
+export function wasAsked(storage: StorageLike | null): boolean {
+  if (askedThisSession) {
+    return true;
+  }
+  try {
+    return storage?.getItem(ASKED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function markAsked(storage: StorageLike | null): void {
+  askedThisSession = true;
+  try {
+    storage?.setItem(ASKED_KEY, '1');
+  } catch {
+    // Nothing to remember it in beyond this visit.
+  }
+}
+
+/**
+ * Only a study status known to be off lets the card show: "not known yet"
+ * could still turn out to be on, and while the study runs its questionnaire is
+ * the only ask. The fly-in visit belongs to the game's result, so the question
+ * waits for the next one.
+ */
+export function shouldShowFeedCard(input: {
+  progress: Progress;
+  asked: boolean;
+  studyRunning: boolean | null;
+  flyingIn: boolean;
+}): boolean {
+  return (
+    input.studyRunning === false &&
+    !input.flyingIn &&
+    shouldAskForFeedback(input.progress, input.asked)
+  );
 }

@@ -53,6 +53,7 @@ import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { FeedFilters, FilterBar, ParliamentSelector } from './daily-filters';
 import DaySkeleton from './day-skeleton';
 import StimmtsFeedCard from './stimmts-feed-card';
+import StimmtsFeedbackCard from './stimmts-feedback-card';
 
 const ITEM_PARAM = 'item';
 
@@ -423,6 +424,7 @@ function DailyFeed({
       </FilterBar>
 
       <StimmtsFeedCard initialStatus={stimmtsStatus} />
+      <StimmtsFeedbackCard />
 
       <div className="flex flex-col gap-12 pt-2">
         {visibleDays.length === 0 ? (

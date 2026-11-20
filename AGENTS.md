@@ -452,7 +452,8 @@ PledgeTracker change users' willingness to engage in political debate?
   study is on, the study questionnaire is the ONLY thing anyone is asked for,
   app-wide: `StudyStatusProvider` holds one kill-switch subscription and
   `useStudyRunning()` suppresses the general feedback banner, the newsletter
-  step after login, and the Wahl-Swiper feedback card. The rule ignores the
+  step after login, the Wahl-Swiper feedback card, and the Stimmt’s? feedback
+  question (once, in the feed). The rule ignores the
   cohort and consent, so no arm is exposed differently, and everything returns
   the moment the kill switch goes off.
 - **Analysis joins**: `study_participants/{uid}` ↔ `chat_sessions.user_id`
