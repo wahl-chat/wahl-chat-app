@@ -1,6 +1,7 @@
 [
   {
     "id": "gebaeudemodernisierungsgesetz",
+    "pollId": 6605,
     "voteDate": "2026-07-10",
     "topic": "Energie",
     "title": "Gebäudemodernisierungsgesetz",
@@ -71,6 +72,7 @@
   },
   {
     "id": "ukraine-unterstuetzung-antrag-gruene",
+    "pollId": 6598,
     "voteDate": "2026-07-08",
     "topic": "Verteidigung",
     "title": "Ukraine zusätzlich militärisch und humanitär unterstützen",
@@ -128,6 +130,7 @@
   },
   {
     "id": "emissionsobergrenzen-2031-2040",
+    "pollId": 6552,
     "voteDate": "2026-06-11",
     "topic": "Umwelt",
     "title": "Neue Emissionsobergrenzen für die Jahre 2031 bis 2040",

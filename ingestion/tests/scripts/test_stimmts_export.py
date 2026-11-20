@@ -11,7 +11,7 @@ from stimmts.drucksachen import (  # noqa: E402
     number_from_url,
     submitter,
 )
-from stimmts.export import slugify  # noqa: E402
+from stimmts.export import draft_puzzle, slugify  # noqa: E402
 from stimmts.votes import (  # noqa: E402
     outcome_problem,
     pattern,
@@ -247,3 +247,30 @@ def test_slugify_spells_out_umlauts_and_stays_short():
         "Anpassung des nationalen Rechts an die Reform des Gemeinsamen Europäischen Asylsystems"
     )
     assert len(long) <= 60 and not long.endswith("-")
+
+
+def test_draft_puzzle_carries_poll_id():
+    poll = {
+        "id": 4711,
+        "date": "2026-07-10",
+        "title": "Ein Gesetz",
+        "topics": ["Energie"],
+        "accepted": True,
+        "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/ein-gesetz",
+        "parties": [
+            {
+                "partyId": "spd",
+                "answer": "yes",
+                "yes": 100,
+                "no": 0,
+                "abstain": 0,
+                "noShow": 0,
+                "unity": 1.0,
+            }
+        ],
+        "unaffiliated": 0,
+        "intro": "",
+        "drucksachen": [],
+    }
+    draft = draft_puzzle(poll, "test", None, None)
+    assert draft["pollId"] == poll["id"]

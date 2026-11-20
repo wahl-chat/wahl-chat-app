@@ -80,6 +80,11 @@ export type KeyPoint = {
 export type Puzzle = {
   /** Stable slug; the schedule refers to puzzles by it. */
   id: string;
+  /**
+   * The vote's id on Abgeordnetenwatch. The chat anchors a vote by it, so it
+   * is unique across puzzles.
+   */
+  pollId: number;
   /** Day of the vote, ISO format (YYYY-MM-DD). */
   voteDate: string;
   topic: string;

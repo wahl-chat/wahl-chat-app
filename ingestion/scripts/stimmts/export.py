@@ -207,6 +207,7 @@ def draft_puzzle(poll: dict, why: str, dip: dict | None, committed: dict | None)
         notes += document_notes
         if found:
             draft["document"] = found
+    draft["pollId"] = poll["id"]
     draft["source"] = {"label": "Abgeordnetenwatch", "url": poll["url"]}
     if committed:
         notes += committed_differences(draft, committed)

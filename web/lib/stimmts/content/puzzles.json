@@ -1,6 +1,7 @@
 [
   {
     "id": "tankrabatt-2026",
+    "pollId": 6682,
     "voteDate": "2026-09-25",
     "topic": "Energie",
     "title": "Tankrabatt für Benzin und Diesel",
@@ -94,6 +95,7 @@
   },
   {
     "id": "wehrdienst-modernisierung",
+    "pollId": 6359,
     "voteDate": "2025-12-05",
     "topic": "Verteidigung",
     "title": "Modernisierung des Wehrdienstes",
@@ -187,6 +189,7 @@
   },
   {
     "id": "mietwuchergesetz",
+    "pollId": 6311,
     "voteDate": "2025-11-06",
     "topic": "Wohnen",
     "title": "Mietwuchergesetz",
@@ -280,6 +283,7 @@
   },
   {
     "id": "tempolimit-130",
+    "pollId": 6600,
     "voteDate": "2026-07-09",
     "topic": "Verkehr",
     "title": "Allgemeines Tempolimit auf Autobahnen",
@@ -375,6 +379,7 @@
   },
   {
     "id": "rentenniveau-kindererziehungszeiten",
+    "pollId": 6356,
     "voteDate": "2025-12-05",
     "topic": "Rente",
     "title": "Rentenniveau und Kindererziehungszeiten",
@@ -468,6 +473,7 @@
   },
   {
     "id": "politikerbeleidigung",
+    "pollId": 6391,
     "voteDate": "2026-01-29",
     "topic": "Recht",
     "title": "Abschaffung des Straftatbestands der Politikerbeleidigung",
@@ -563,6 +569,7 @@
   },
   {
     "id": "gebaeudemodernisierungsgesetz",
+    "pollId": 6605,
     "voteDate": "2026-07-10",
     "topic": "Energie",
     "title": "Gebäudemodernisierungsgesetz",
@@ -656,6 +663,7 @@
   },
   {
     "id": "gkv-beitragssaetze",
+    "pollId": 6601,
     "voteDate": "2026-07-10",
     "topic": "Gesundheit",
     "title": "Reform der Krankenkassenfinanzen",
@@ -749,6 +757,7 @@
   },
   {
     "id": "einbuergerung-fuenf-jahre",
+    "pollId": 6280,
     "voteDate": "2025-10-08",
     "topic": "Migration",
     "title": "Änderung des Staatsangehörigkeitsgesetzes",
@@ -842,6 +851,7 @@
   },
   {
     "id": "emissionsobergrenzen-2031-2040",
+    "pollId": 6552,
     "voteDate": "2026-06-11",
     "topic": "Umwelt",
     "title": "Neue Emissionsobergrenzen für die Jahre 2031 bis 2040",
@@ -935,6 +945,7 @@
   },
   {
     "id": "kryptogewinne-besteuern",
+    "pollId": 6724,
     "voteDate": "2026-10-08",
     "topic": "Steuern",
     "title": "Besteuerung von Kryptogewinnen",
@@ -1025,6 +1036,7 @@
   },
   {
     "id": "sportfoerdergesetz",
+    "pollId": 6606,
     "voteDate": "2026-07-10",
     "topic": "Sport",
     "title": "Sportfördergesetz",
@@ -1118,6 +1130,7 @@
   },
   {
     "id": "verbrenner-verbot",
+    "pollId": 6286,
     "voteDate": "2025-10-16",
     "topic": "Verkehr",
     "title": "Aufhebung des Verbrenner-Verbots",
@@ -1213,6 +1226,7 @@
   },
   {
     "id": "afghanistan-aufnahmezusagen",
+    "pollId": 6353,
     "voteDate": "2025-12-03",
     "topic": "Migration",
     "title": "Visa für Menschen aus Afghanistan mit Aufnahmezusage",
@@ -1303,6 +1317,7 @@
   },
   {
     "id": "bundespolizeigesetz",
+    "pollId": 6662,
     "voteDate": "2026-09-25",
     "topic": "Innere Sicherheit",
     "title": "Modernisierung des Bundespolizeigesetzes",
@@ -1396,6 +1411,7 @@
   },
   {
     "id": "stromsteuer-senkung",
+    "pollId": 6498,
     "voteDate": "2026-04-24",
     "topic": "Energie",
     "title": "Senkung der Stromsteuer für alle",
@@ -1486,6 +1502,7 @@
   },
   {
     "id": "bafoeg-reform",
+    "pollId": 6551,
     "voteDate": "2026-06-11",
     "topic": "Bildung",
     "title": "Umfassende BAföG-Reform",
@@ -1581,6 +1598,7 @@
   },
   {
     "id": "verbrauchervertraege",
+    "pollId": 6373,
     "voteDate": "2025-12-19",
     "topic": "Verbraucherschutz",
     "title": "Neue Regeln für Verbraucherverträge",
@@ -1674,6 +1692,7 @@
   },
   {
     "id": "co2-preis-2027",
+    "pollId": 6733,
     "voteDate": "2026-10-16",
     "topic": "Energie",
     "title": "CO₂-Preis für das Jahr 2027",
@@ -1767,6 +1786,7 @@
   },
   {
     "id": "ukraine-unterstuetzung-antrag-gruene",
+    "pollId": 6598,
     "voteDate": "2026-07-08",
     "topic": "Verteidigung",
     "title": "Ukraine zusätzlich militärisch und humanitär unterstützen",
@@ -1857,6 +1877,7 @@
   },
   {
     "id": "buergergeld-grundsicherung",
+    "pollId": 6422,
     "voteDate": "2026-03-05",
     "topic": "Soziales",
     "title": "Umgestaltung des Bürgergelds zur Grundsicherung",
@@ -1945,6 +1966,7 @@
   },
   {
     "id": "kernkraftwerke-rueckbau",
+    "pollId": 6249,
     "voteDate": "2025-09-11",
     "topic": "Energie",
     "title": "Stopp des Rückbaus abgeschalteter Kernkraftwerke",
@@ -2040,6 +2062,7 @@
   },
   {
     "id": "haushalt-2026",
+    "pollId": 6351,
     "voteDate": "2025-11-28",
     "topic": "Haushalt",
     "title": "Haushaltsgesetz 2026",
@@ -2133,6 +2156,7 @@
   },
   {
     "id": "geas-asylreform",
+    "pollId": 6419,
     "voteDate": "2026-02-27",
     "topic": "Asyl",
     "title": "Umsetzung der EU-Asylreform (GEAS)",
@@ -2221,6 +2245,7 @@
   },
   {
     "id": "uebertragungsnetzkosten-2026",
+    "pollId": 6329,
     "voteDate": "2025-11-13",
     "topic": "Energie",
     "title": "Zuschuss zu den Übertragungsnetzkosten 2026",
@@ -2314,6 +2339,7 @@
   },
   {
     "id": "corona-untersuchungsausschuss",
+    "pollId": 6170,
     "voteDate": "2025-07-10",
     "topic": "Gesundheit",
     "title": "Untersuchungsausschuss zur Corona-Pandemie",
@@ -2409,6 +2435,7 @@
   },
   {
     "id": "schwarzarbeit-digital",
+    "pollId": 6323,
     "voteDate": "2025-11-13",
     "topic": "Arbeit",
     "title": "Digitalisierung der Bekämpfung von Schwarzarbeit",
@@ -2502,6 +2529,7 @@
   },
   {
     "id": "uebergewinnsteuer",
+    "pollId": 6683,
     "voteDate": "2026-09-25",
     "topic": "Steuern",
     "title": "Einführung einer Übergewinnsteuer",
@@ -2582,6 +2610,7 @@
   },
   {
     "id": "familiennachzug-aussetzen",
+    "pollId": 6155,
     "voteDate": "2025-06-27",
     "topic": "Migration",
     "title": "Aussetzung des Familiennachzugs für subsidiär Schutzberechtigte",
@@ -2675,6 +2704,7 @@
   },
   {
     "id": "rotes-meer-aspides",
+    "pollId": 6730,
     "voteDate": "2026-10-15",
     "topic": "Außenpolitik",
     "title": "Bundeswehreinsatz im Roten Meer (ASPIDES)",

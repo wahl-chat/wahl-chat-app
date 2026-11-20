@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'bun:test';
 import { PUZZLES, PUZZLE_COUNT, createSchedule } from './content';
 import puzzlesJson from './content/puzzles.json';
+import { FIXTURE_PUZZLES } from './fixtures';
 import fixturesJson from './fixtures/puzzles.json';
 import type { KeyPoint } from './types';
-import { validatePuzzle, validatePuzzleOrder } from './validate';
+import {
+  validatePollIds,
+  validatePuzzle,
+  validatePuzzleOrder,
+} from './validate';
 
 // The parts of a puzzle the tests below tamper with, loosely typed on purpose:
 // they feed deliberately broken data to the validator.
 type RawPuzzle = {
   id: string;
+  pollId?: unknown;
   title: string;
   voteDate: string;
   source: { url: string };
@@ -397,6 +403,33 @@ describe('validatePuzzle: short name', () => {
     for (const name of ['Tankrabatt', 'Derby', 'Dies ist es']) {
       expect(() => validatePuzzle(withShortName(name))).toThrow('Der, Die');
     }
+  });
+});
+
+describe('validatePuzzle: poll id', () => {
+  it('rejects a puzzle without pollId', () => {
+    const puzzle = firstPuzzle();
+    puzzle.pollId = undefined;
+    expect(() => validatePuzzle(puzzle)).toThrow('"pollId"');
+  });
+
+  it('rejects pollId 0, -1, 1.5 and "123"', () => {
+    for (const bad of [0, -1, 1.5, '123']) {
+      const puzzle = firstPuzzle();
+      puzzle.pollId = bad;
+      expect(() => validatePuzzle(puzzle)).toThrow('"pollId"');
+    }
+  });
+
+  it('rejects two puzzles with the same pollId', () => {
+    const [first, second] = FIXTURE_PUZZLES;
+    expect(() =>
+      validatePollIds([first, { ...second, pollId: first.pollId }]),
+    ).toThrow('pollId');
+  });
+
+  it('accepts the shipped puzzles, whose poll ids are all different', () => {
+    expect(() => validatePollIds(PUZZLES)).not.toThrow();
   });
 });
 

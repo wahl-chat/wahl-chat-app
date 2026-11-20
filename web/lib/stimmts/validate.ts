@@ -76,6 +76,17 @@ function readCount(record: Json, key: string, id: string): number {
   return value;
 }
 
+function readPollId(record: Json, id: string): number {
+  const value = record.pollId;
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    fail(
+      id,
+      '"pollId" must be the positive whole number of the vote on Abgeordnetenwatch',
+    );
+  }
+  return value;
+}
+
 function readDate(record: Json, key: string, id: string): string {
   const value = readString(record, key, id);
   if (!isIsoDate(value)) {
@@ -362,6 +373,7 @@ export function validatePuzzle(data: unknown): Puzzle {
 
   return {
     id,
+    pollId: readPollId(data, id),
     voteDate: readDate(data, 'voteDate', id),
     topic: readTopic(data, id),
     title: readString(data, 'title', id),
@@ -401,4 +413,22 @@ export function validatePuzzleOrder(
     return entry;
   });
   return puzzleIds;
+}
+
+/**
+ * The chat finds a vote by its poll id, so two puzzles sharing one would
+ * open the same debate for different questions.
+ */
+export function validatePollIds(puzzles: Puzzle[]): void {
+  const owners = new Map<number, string>();
+  for (const puzzle of puzzles) {
+    const owner = owners.get(puzzle.pollId);
+    if (owner !== undefined) {
+      fail(
+        puzzle.id,
+        `"pollId" ${puzzle.pollId} is already used by puzzle "${owner}"`,
+      );
+    }
+    owners.set(puzzle.pollId, puzzle.id);
+  }
 }
