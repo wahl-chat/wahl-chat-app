@@ -40,26 +40,30 @@ Wahlperiode, starting on the launch date.
    result sees the challenge banner above it (see Sharing).
 3. **Answers.** The Fraktionen come one at a time in seating order: Die Linke,
    SPD, Bündnis 90/Die Grünen, CDU/CSU, AfD. For each, Ja, Nein or Enthaltung.
-   An answer is final.
-4. **Reveal.** One "Auflösen" button turns all five parties over, left to
-   right; a tap on a party's row turns just that one. Each party's real vote
-   and counts show beside the player's tip. When the last party is turned
-   over, the result follows by itself after a short pause (almost at once with
-   reduced motion). A vote looked at again from the result, without tips, has
-   no such move: it has its own "Zurück zum Ergebnis" button.
-5. **Result.** From the top: the stamped Stimmkarte (the score, a verdict
+   Each tip is saved on tap and can still be changed: from the tip row above
+   the buttons, until the player resolves the game.
+4. **Review.** Once every Fraktion has a tip, "Deine Tipps" lists all five.
+   Tapping a tile changes that tip; the chamber does nothing here. "Auflösen"
+   finishes the game and ends the changes.
+5. **Reveal.** "Auflösen" turns all five parties over, left to right. Each
+   party's real vote and counts show beside the player's tip. When the last
+   party is turned over, the result follows by itself after a short pause
+   (almost at once with reduced motion). A vote looked at again from the
+   result, without tips, has no such move: it has its own "Zurück zum
+   Ergebnis" button.
+6. **Result.** From the top: the stamped Stimmkarte (the score, a verdict
    per party), which the player casts into the urn of this Wahlperiode, and
    the urn; the vote result card, which opens the vote again; the slot for the
    chat card (switched off); the Wahlperiode as 30 seats, where a past day
    opens again. The card leads so it is on screen when the result opens. Once
    it is cast, the countdown to the next puzzle takes its place and a compact
-   score card under the urn keeps the score on screen and holds sharing (and,
-   through a slot, the style button). The goal of the screen is to cast the
+   score card under the urn keeps the score on screen and holds sharing and
+   the style button. The goal of the screen is to cast the
    card, see how the Bundestag voted and ask about it; feedback and old days
    come second.
-6. **After the first finished puzzle,** once: whether we should make more
+7. **After the first finished puzzle,** once: whether we should make more
    small games („Ja, gern" / „Eher nicht").
-7. **After the last day,** a closing screen: the player's Wahlperiode, how many
+8. **After the last day,** a closing screen: the player's Wahlperiode, how many
    days they played and how many tips were right, and "Weitere Quizze sind in
    Arbeit. Bleib dran!"
 
@@ -78,8 +82,10 @@ stateDiagram-v2
   Loading --> Closing: after the last day
   NotStarted --> Start: Berlin midnight of the launch date
   Start --> Answering: "Los geht's"
-  Answering --> Reveal: the fifth answer
+  Answering --> Review: every party has a tip
   Answering --> Result: finished in another tab
+  Review --> Reveal: "Auflösen"
+  Review --> Result: finished in another tab
   Reveal --> Result: the last party turned over, after a pause
   Result --> Start: Berlin midnight, the next puzzle
   Result --> Closing: Berlin midnight after the last day
@@ -91,7 +97,7 @@ stateDiagram-v2
 | Unreachable | "Gerade nicht erreichbar", retry | Firestore silent for 8 s (ad blocker, firewall, offline) |
 | Off | "Kommt bald" | switch off, doc missing, or a malformed launch date |
 | Not started | "Bald geht's los", the date; a countdown on the eve | before the launch date |
-| Start, Answering, Reveal, Result | the game | from the launch date to the last day |
+| Start, Answering, Review, Reveal, Result | the game | from the launch date to the last day |
 | Closing | the Wahlperiode, the numbers, "Weitere Quizze sind in Arbeit" | after the last day |
 
 A page left open past midnight moves to the new day by itself, also when a
@@ -105,8 +111,10 @@ count.
 
 - Federal level only, the five Fraktionen (CDU/CSU is one, stored as `cdu`).
   The validator requires exactly these, in seating order.
-- One shot per party, score 0 to 5. Retries would take the suspense out of the
-  reveal.
+- One tip per party, score 0 to 5. A tip is final once revealed: until
+  "Auflösen" the player can change any of them (from the tip row, or by
+  tapping a tile in the review), because second thoughts before the reveal
+  cost nothing, while nothing can change after the real votes are shown.
 - Players predict what parties did; they are never asked for their own
   position. Political opinions are special-category data (see `AGENTS.md`),
   and a prediction is not an opinion.
@@ -167,16 +175,32 @@ count.
 - Each image has one canonical URL; any other spelling redirects to it, so the
   CDN holds each image once. Its fonts are loaded once per server; if they
   cannot be loaded, the image is drawn in next/og's own face and not cached.
+- The share image can wear the player's style (`t=`). Only a non-standard
+  style is in the URL; an unknown value redirects (308) to the canonical URL
+  without it, so it draws as Standard.
 - The plain `/stimmts` link previews a general card with no number or date,
   which is right whether or not the game is running.
+
+**Stile**
+
+- The player can dress the result screen and the share image in a style:
+  Standard, Papier (3 finished games), Kuppel (5), Nacht (7), Gold (15) and
+  Festlich, which is only available in December. Games are counted as
+  finished games on this device. The choice (`stimmts:style`) and the styles
+  already looked at (`stimmts:styles-seen`) stay in the browser's storage,
+  which may be blocked, in which case the choice holds for the visit.
+- A "Stil ändern" sheet opens from the result screen: it shows each style,
+  how far the player is from unlocking the next, and marks new ones.
+- A style changes the look only. The seat colours are the parties' and never
+  change.
 
 **Measuring**
 
 - Vercel Analytics events: `stimmts_puzzle_started`,
   `stimmts_puzzle_completed` (day, score), `stimmts_result_shared` (screen,
   method, day) and `stimmts_more_games` (answer: yes, no or dismissed;
-  games; placement: feed). Each puzzle is counted once, not again on a reload or in another
-  tab. Only counts leave the device, never the tips.
+  games; placement: feed). Each puzzle is counted once, not again on a reload
+  or in another tab. Only counts leave the device, never the tips.
 - Feedback is one tap, asked once in the feed, as a small card at the bottom of
   the screen on a feed visit after the first finished puzzle (not on the visit
   where the fly-in plays): „Stimmt’s?
@@ -255,10 +279,10 @@ flowchart LR
 - **The Berlin clock.** "Today" is the Berlin calendar date, never the
   player's own. The next midnight is found by bisection, which stays correct
   on the 23-hour and 25-hour days.
-- **Answers are final and saved on tap.** The screen is derived from the saved
-  answers, so a reload resumes where the player was and cannot take an answer
-  back. Every write starts from what is saved, so an older tab cannot
-  overwrite a newer one.
+- **Tips are saved on tap and final once revealed.** The screen is derived from
+  the saved tips, so a reload resumes where the player was. Resolving
+  finishes the game, and a finished game cannot be changed. Every write starts
+  from what is saved, so an older tab cannot overwrite a newer one.
 
 ### Where things live
 
@@ -266,16 +290,17 @@ flowchart LR
 | --- | --- |
 | Contract and content | `types.ts`, `validate.ts`, `content.ts`, `content/puzzles.json`, `content/schedule.json`; test fixtures in `fixtures/` |
 | Switch and launch | `status.ts`, `use-stimmts-status.ts`; the listener in `web/lib/firebase/firebase.ts`, the cached server read in `web/lib/firebase/firebase-server.ts` |
-| Feed and header | `feed-entry.ts` (what the feed card shows), `presence.ts` (the mark on `<html>`), `todays-result.ts`, `flip.ts` (the fly-in's transform); `web/components/daily/stimmts-feed-card.tsx`, `stimmts-header-icon.tsx`, `stimmts-fly-in.tsx` |
+| Feed and header | `feed-entry.ts` (what the feed card shows), `presence.ts` (the mark on `<html>`), `todays-result.ts`, `flip.ts` (the fly-in's transform); `web/components/daily/stimmts-feed-card.tsx`, `stimmts-feedback-card.tsx` (the one-time more-games question), `stimmts-header-icon.tsx`, `stimmts-fly-in.tsx` |
 | Time and schedule | `berlin-time.ts`, `schedule.ts`, `preview.ts`, `countdown.ts` |
 | Game rules | `score.ts`, `progress.ts`, `period.ts` (the Wahlperiode) |
 | State | `progress-store.ts`, `use-progress.ts` |
-| Sharing | `share.ts`, `share-action.ts`, `share-image.ts`, `load-once.ts`, `challenge.ts` (the banner for a shared link) |
+| Sharing | `share.ts`, `share-action.ts`, `share-image.ts`, `load-once.ts`, `challenge.ts` (the banner for a shared link); `web/components/stimmts/share-decor.tsx` (a style's dress on the image) |
+| Styles | `styles.ts` (the styles and their milestones), `style-store.ts`, `style-themes.ts`, `style-sheet-view.ts`; `web/components/stimmts/style-frame`, `style-decor`, `style-button`, `style-sheet` |
 | Start screen and chat | `start-view.ts`, `drucksache.ts` (PDF and source-page links), `chat-chips.ts`, `chat-question.ts` |
 | Measuring | `analytics.ts`, `feedback.ts` |
 | Look | `fonts.ts`, `parties.ts`, `hemicycle.ts`, `chamber-state.ts`, `game-view.ts`, `logo.ts`; logos in `web/public/images/stimmts/logos/` |
 | Wording | `labels.ts` |
-| Screens | `web/components/stimmts/`: `stimmts-game` (switch, clock, store, which state), `puzzle-game` (which screen), `start-screen`, `more-info`, `key-points`, `start-bar`, `guess-step`, `reveal`, `result`, `vote-result-card`, `chat-card`, `closing-screen`, `status-screen`, and their parts |
+| Screens | `web/components/stimmts/`: `stimmts-game` (switch, clock, store, which state), `puzzle-game` (which screen), `start-screen`, `more-info`, `key-points`, `start-bar`, `guess-step`, `tip-row`, `review-step`, `reveal`, `result`, `vote-result-card`, `chat-card`, `closing-screen`, `status-screen`, and their parts |
 | Routes | `web/app/(wide)/stimmts/page.tsx`, in the feed's header and theme (not indexed until launch) and the share image at `web/app/stimmts/share/route.tsx`; `/stimmts` is a static page in `web/middleware.ts` and a reserved segment for page visits |
 
 ### Preview mode
