@@ -12,6 +12,7 @@ import {
   encodePeriod,
 } from '@/lib/stimmts/period';
 import { getGame } from '@/lib/stimmts/progress';
+import { resultSections } from '@/lib/stimmts/result-layout';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import { buildShareText } from '@/lib/stimmts/share';
 import { shareImagePath, sharedResultPath } from '@/lib/stimmts/share-image';
@@ -22,25 +23,24 @@ import { cn } from '@/lib/utils';
 import { Pointer } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
 import dynamic from 'next/dynamic';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Countdown from './countdown';
 import PartyTile from './party-tile';
 import PeriodChamber from './period-chamber';
 import ShareButton from './share-button';
 import Stimmkarte from './stimmkarte';
 import StimmtsLogo from './stimmts-logo';
+import StyleButton from './style-button';
 import StyleFrame from './style-frame';
 import Urn from './urn';
 import { Verdict } from './verdict';
 import VoteResultCard from './vote-result-card';
 
 /**
- * Fetched only when the switch is on, so while the general chat does not
- * exist the card stays out of the result screen's bundle.
+ * Loaded on demand: the card renders only when the chat switch or the
+ * preview is on, so otherwise it stays out of the result screen's bundle.
  */
-const ChatCard = STIMMTS_CHAT_ENABLED
-  ? dynamic(() => import('./chat-card'))
-  : () => null;
+const ChatCard = dynamic(() => import('./chat-card'));
 
 /**
  * The cast, step by step (see the stimmts-fly, -insert and -fall animations):
@@ -76,17 +76,18 @@ type Props = {
   onReview: () => void;
   /** Opens a past day of this Wahlperiode, already turned over. */
   onOpenDay: (number: number) => void;
-  /** Sits next to the share button in the score card, once the card is cast. */
-  scoreActions?: ReactNode;
+  /** The page is in preview mode, which shows the chat card ahead of its switch. */
+  preview: boolean;
 };
 
 /**
  * The end of the day's puzzle, read top to bottom: the stamped Stimmkarte
  * for the player to cast into the urn, how the Bundestag actually voted,
- * the questions about it, and the Wahlperiode the urn fills. The card leads,
- * so it is on screen the moment the result opens. Once cast, it is gone, the
- * urn rises into its place, and the countdown and a compact score card, which
- * also holds sharing, take over from it.
+ * the questions about it, and a closing card with the Wahlperiode the urn
+ * fills and the share and style buttons. The card leads, so it is on screen
+ * the moment the result opens. Once cast, it is gone, the urn rises into its
+ * place, the countdown takes over, and the score row joins the top of the
+ * closing card.
  */
 function Result({
   number,
@@ -96,7 +97,7 @@ function Result({
   stamping,
   onReview,
   onOpenDay,
-  scoreActions,
+  preview,
 }: Props) {
   const progress = useProgress((state) => state.progress);
   const castCard = useProgress((state) => state.cast);
@@ -106,6 +107,11 @@ function Result({
   const [stampOnMount] = useState(stamping);
   const game = getGame(progress, puzzle.id);
   const score = scorePuzzle(puzzle, game.guesses);
+  const sections = resultSections({
+    cast: game.cast,
+    chatEnabled: STIMMTS_CHAT_ENABLED,
+    preview,
+  });
 
   const { cards, period, sharedPeriod } = useMemo(() => {
     const records = dayRecords({
@@ -271,88 +277,64 @@ function Result({
           </div>
         </div>
 
-        {game.cast && (
-          // The Stimmkarte showed the score until it went into the urn; from
-          // then on this card keeps it on screen.
-          <section
-            aria-label="Dein Ergebnis"
-            className={cn(
-              CARD_SURFACE,
-              'flex flex-col gap-2.5 px-4 py-3',
-              justCast &&
-                'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
-            )}
-          >
-            {/* Only the score is live: the buttons below carry their own
-                announcements. */}
-            <p
-              aria-live="polite"
-              className="flex items-baseline justify-between gap-2"
-            >
-              <span className="font-display text-2xl font-extrabold tabular-nums leading-7 tracking-[-0.02em]">
-                {score.correct} von {score.total}{' '}
-                <span className="font-sans text-[15px] font-semibold tracking-normal text-[var(--daily-muted)]">
-                  richtig
-                </span>
-              </span>
-              <span className="text-[13px] text-[var(--daily-muted)]">
-                {feedDate(playDate)}
-              </span>
-            </p>
-            <ul
-              aria-label="Deine Tipps je Partei"
-              className="grid grid-cols-5 gap-1"
-            >
-              {score.parties.map((entry) => (
-                <li
-                  key={entry.partyId}
-                  className="flex flex-col items-center gap-1.5"
-                >
-                  <PartyTile partyId={entry.partyId} size="sm" />
-                  <span className="sr-only">{partyLabel(entry.partyId)}</span>
-                  <Verdict
-                    correct={entry.correct}
-                    className="size-[18px] text-[11px]"
-                  />
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-wrap items-center gap-2">
-              <ShareButton
-                size="compact"
-                text={buildShareText({
-                  puzzleNumber: number,
-                  score,
-                  title: puzzle.title,
-                  url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
-                })}
-                image={{
-                  path: shareImagePath('square', {
-                    number,
-                    score: score.correct,
-                    playDate,
-                    period: sharedPeriod,
-                    style,
-                  }),
-                  name: `stimmts-${number}.png`,
-                }}
-                onShared={(method) =>
-                  trackResultShared('result', method, number)
-                }
-              />
-              {scoreActions}
-            </div>
-          </section>
-        )}
-
         <VoteResultCard puzzle={puzzle} onOpen={onReview} />
 
         {/* Right under the vote: questions come up while it is on screen. */}
-        {STIMMTS_CHAT_ENABLED && (
+        {sections.chatCard && (
           <ChatCard puzzle={puzzle} guesses={game.guesses} />
         )}
 
-        <div className="mt-5">
+        <section
+          aria-label="Dein Ergebnis"
+          className={cn(CARD_SURFACE, 'flex flex-col gap-4 px-4 py-4')}
+        >
+          {sections.scoreRow && (
+            // The Stimmkarte showed the score until it went into the urn;
+            // from then on this row keeps it on screen.
+            <div
+              className={cn(
+                'flex flex-col gap-2.5',
+                justCast &&
+                  'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
+              )}
+            >
+              {/* Only the score is live: the buttons below carry their own
+                  announcements. */}
+              <p
+                aria-live="polite"
+                className="flex items-baseline justify-between gap-2"
+              >
+                <span className="font-display text-2xl font-extrabold tabular-nums leading-7 tracking-[-0.02em]">
+                  {score.correct} von {score.total}{' '}
+                  <span className="font-sans text-[15px] font-semibold tracking-normal text-[var(--daily-muted)]">
+                    richtig
+                  </span>
+                </span>
+                <span className="text-[13px] text-[var(--daily-muted)]">
+                  {feedDate(playDate)}
+                </span>
+              </p>
+              <ul
+                aria-label="Deine Tipps je Partei"
+                className="grid grid-cols-5 gap-1"
+              >
+                {score.parties.map((entry) => (
+                  <li
+                    key={entry.partyId}
+                    className="flex flex-col items-center gap-1.5"
+                  >
+                    <PartyTile partyId={entry.partyId} size="sm" />
+                    <span className="sr-only">{partyLabel(entry.partyId)}</span>
+                    <Verdict
+                      correct={entry.correct}
+                      className="size-[18px] text-[11px]"
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="relative px-6">
             <PeriodChamber
               seats={periodSeats(period.days, false)}
@@ -370,7 +352,29 @@ function Result({
               </span>
             </div>
           </div>
-        </div>
+
+          <ShareButton
+            className="h-11 self-center"
+            text={buildShareText({
+              puzzleNumber: number,
+              score,
+              title: puzzle.title,
+              url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
+            })}
+            image={{
+              path: shareImagePath('square', {
+                number,
+                score: score.correct,
+                playDate,
+                period: sharedPeriod,
+                style,
+              }),
+              name: `stimmts-${number}.png`,
+            }}
+            onShared={(method) => trackResultShared('result', method, number)}
+            actions={<StyleButton className="h-11 self-center" />}
+          />
+        </section>
       </div>
     </StyleFrame>
   );

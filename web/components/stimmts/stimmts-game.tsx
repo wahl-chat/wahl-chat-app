@@ -236,6 +236,7 @@ function StimmtsGame({ previewEnabled }: Props) {
           number={today.number}
           puzzle={today.puzzle}
           schedule={schedule}
+          preview={previewEnabled}
           today={berlinDate(clock.now)}
           challenge={shareChallenge({
             search,

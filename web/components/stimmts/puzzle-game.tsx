@@ -34,7 +34,6 @@ import Reveal from './reveal';
 import ReviewStep from './review-step';
 import ShareBanner from './share-banner';
 import StartScreen from './start-screen';
-import StyleButton from './style-button';
 
 /** "Auflösen" turns the parties over one after another, left to right. */
 const REVEAL_ALL_STEP_MS = 450;
@@ -47,6 +46,8 @@ type Props = {
   today: string;
   /** The challenge from a shared link, shown above the start screen. */
   challenge?: { score: number; text: string } | null;
+  /** Server-decided preview mode: shows parts still switched off. */
+  preview: boolean;
   onOpenDay: (number: number) => void;
 };
 
@@ -62,6 +63,7 @@ function PuzzleGame({
   schedule,
   today,
   challenge,
+  preview,
   onOpenDay,
 }: Props) {
   const game = useProgress((state) => getGame(state.progress, puzzle.id));
@@ -272,7 +274,7 @@ function PuzzleGame({
           schedule={schedule}
           stamping={!stamped.current}
           onOpenDay={onOpenDay}
-          scoreActions={<StyleButton />}
+          preview={preview}
           onReview={() => {
             setRevealed(new Set(puzzle.parties.map((party) => party.partyId)));
             setOpenParty(null);

@@ -53,14 +53,15 @@ Wahlperiode, starting on the launch date.
    Ergebnis" button.
 6. **Result.** From the top: the stamped Stimmkarte (the score, a verdict
    per party), which the player casts into the urn of this Wahlperiode, and
-   the urn; the vote result card, which opens the vote again; the slot for the
-   chat card (switched off); the Wahlperiode as 30 seats, where a past day
-   opens again. The card leads so it is on screen when the result opens. Once
-   it is cast, the countdown to the next puzzle takes its place and a compact
-   score card under the urn keeps the score on screen and holds sharing and
-   the style button. The goal of the screen is to cast the
-   card, see how the Bundestag voted and ask about it; feedback and old days
-   come second.
+   the urn; the vote result card, which opens the vote again; the chat card
+   (switched off, but shown in preview); and a closing card with the
+   Wahlperiode as 30 seats, where a past day opens again, and under it the
+   "Ergebnis teilen" and "Stil ändern" buttons. The card leads so it is on
+   screen when the result opens. Once it is cast, the countdown to the next
+   puzzle takes its place and the closing card gains the score row (score,
+   date, the five verdicts) at its top, since the Stimmkarte no longer shows
+   it. The goal of the screen is to cast the card, see how the Bundestag
+   voted and ask about it; feedback and old days come second.
 7. **After the first finished puzzle,** once: whether we should make more
    small games („Ja, gern" / „Eher nicht").
 8. **After the last day,** a closing screen: the player's Wahlperiode, how many

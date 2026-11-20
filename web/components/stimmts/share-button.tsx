@@ -7,7 +7,7 @@ import {
 } from '@/lib/stimmts/share-action';
 import { cn } from '@/lib/utils';
 import { Share } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import PillButton from './pill-button';
 
 const COPIED_MESSAGE_MS = 2500;
@@ -19,6 +19,13 @@ type Props = {
   onShared?: (method: ShareMethod) => void;
   /** Compact is the score card's small pill; its label is just "Teilen". */
   size?: 'default' | 'compact';
+  /** Classes for the pill, e.g. to match a neighbour's height. */
+  className?: string;
+  /**
+   * Sits beside the pill in one centered row. The save link and the failure
+   * text go below the whole row, so they never push the buttons apart.
+   */
+  actions?: ReactNode;
 };
 
 /**
@@ -30,6 +37,8 @@ function ShareButton({
   image: shareImage,
   onShared,
   size = 'default',
+  className,
+  actions,
 }: Props) {
   const compact = size === 'compact';
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
@@ -88,24 +97,33 @@ function ShareButton({
         compact ? 'items-start' : 'items-center',
       )}
     >
-      <PillButton
-        onClick={handleClick}
+      <div
         className={cn(
-          compact &&
-            // The pill is 40px tall; the invisible extension brings the tap
-            // target to 44px without growing the card.
-            'relative h-10 gap-2 self-start px-4 text-base after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-[""] [&_svg]:size-4',
+          'flex flex-wrap items-center gap-2.5',
+          compact ? 'justify-start' : 'justify-center',
         )}
       >
-        {outcome === 'copied' ? (
-          'Kopiert ✓'
-        ) : (
-          <>
-            <Share aria-hidden strokeWidth={2.25} />
-            {compact ? 'Teilen' : 'Ergebnis teilen'}
-          </>
-        )}
-      </PillButton>
+        <PillButton
+          onClick={handleClick}
+          className={cn(
+            className,
+            compact &&
+              // The pill is 40px tall; the invisible extension brings the tap
+              // target to 44px without growing the card.
+              'relative h-10 gap-2 self-start px-4 text-base after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-[""] [&_svg]:size-4',
+          )}
+        >
+          {outcome === 'copied' ? (
+            'Kopiert ✓'
+          ) : (
+            <>
+              <Share aria-hidden strokeWidth={2.25} />
+              {compact ? 'Teilen' : 'Ergebnis teilen'}
+            </>
+          )}
+        </PillButton>
+        {actions}
+      </div>
       {/* The button's new label alone is not announced. */}
       <p role="status" className="sr-only">
         {outcome === 'copied' ? 'Ergebnis kopiert' : ''}
