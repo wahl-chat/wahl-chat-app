@@ -1,6 +1,16 @@
 import type { Puzzle } from './types';
 
-export type ChatAnswerSource = { label: string; url: string };
+export type ChatAnswerSource = {
+  label: string;
+  url: string;
+  /**
+   * The source's 0-based place in the general chat's own list, which its
+   * "[n]" markers name. Kept because unusable entries are dropped, so a
+   * source's place in this list is not its citation number. Absent when the
+   * answer has no citation markers and every source is meant to be shown.
+   */
+  index?: number;
+};
 
 export type ChatAnswerEvent =
   | { kind: 'text'; delta: string }
@@ -28,7 +38,7 @@ export type AnswerStream = (
 ) => AsyncIterable<ChatAnswerEvent>;
 
 const PLACEHOLDER_SENTENCE =
-  'Hier antwortet bald wahl.chat: kurz, in zwei bis drei Sätzen, und jeder Satz mit Quelle aus Plenarprotokoll oder Drucksache.';
+  'Hier antwortet bald wahl.chat: kurz, in zwei bis drei Sätzen, mit Quellen aus Plenarprotokoll oder Drucksache.';
 
 /**
  * Stands in for the general chat until it exists: words arrive one by one
@@ -71,15 +81,24 @@ const isRecord = (value: unknown): value is ParsedPart =>
  * Only web links: a source URL ends up in an href, and a `javascript:` one
  * would run on tap.
  */
-function toSource(entry: unknown): ChatAnswerSource | null {
+function toSource(entry: unknown, index: number): ChatAnswerSource | null {
   if (!isRecord(entry)) return null;
   const { url, source, source_document } = entry;
   if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return null;
   const label =
     (typeof source === 'string' && source.trim()) ||
     (typeof source_document === 'string' && source_document.trim()) ||
-    new URL(url).hostname;
-  return { label, url };
+    hostOf(url);
+  return label ? { label, url, index } : null;
+}
+
+/** Empty for a link the browser cannot read, which then is not shown. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
 }
 
 /**

@@ -42,12 +42,15 @@ export function applyEvent(turn: ChatTurn, event: ChatAnswerEvent): ChatTurn {
     case 'sources':
       // A later list covers sources a tool found after the text began.
       return { ...turn, sources: event.sources };
-    case 'done':
+    case 'done': {
+      const answer = event.text ? event.text : turn.answer;
       return {
         ...turn,
         status: 'done',
-        answer: event.text ? event.text : turn.answer,
+        answer,
+        sources: citedSources(turn.sources, answer),
       };
+    }
     case 'error':
       return { ...turn, status: 'error' };
   }
@@ -87,6 +90,27 @@ export function turnHistory(
 }
 
 const CITATION = /\s?\[\d+(?:\s*,\s*\d+)*\]/g;
+const CITED_NUMBERS = /\[(\d+(?:\s*,\s*\d+)*)\]/g;
+
+/**
+ * The sources the answer cites, in source order, as the general chat lists
+ * them: its source list holds everything the tools found, cited or not.
+ * Sources without a place in that list (the placeholder's) are all shown.
+ */
+export function citedSources(
+  sources: ChatAnswerSource[],
+  answer: string,
+): ChatAnswerSource[] {
+  if (sources.every((source) => source.index === undefined)) return sources;
+  const cited = new Set(
+    [...answer.matchAll(CITED_NUMBERS)].flatMap((match) =>
+      match[1].split(',').map((number) => Number.parseInt(number, 10)),
+    ),
+  );
+  return sources.filter(
+    (source) => source.index !== undefined && cited.has(source.index),
+  );
+}
 /** A marker cut off at the end of what has streamed so far. */
 const PARTIAL_CITATION = /\s?\[(?:\d+(?:\s*,\s*\d*)*)?$/;
 

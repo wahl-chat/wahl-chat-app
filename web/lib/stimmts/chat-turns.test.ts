@@ -5,6 +5,7 @@ import {
   answerText,
   appendTurn,
   applyEvent,
+  citedSources,
   finishTurn,
   isStreaming,
   remainingChips,
@@ -77,6 +78,49 @@ describe('applyEvent', () => {
     const done = turn({ status: 'done', answer: 'Fertig' });
     expect(applyEvent(done, { kind: 'text', delta: ' mehr' })).toBe(done);
     expect(applyEvent(done, { kind: 'error' })).toBe(done);
+  });
+});
+
+describe('citedSources', () => {
+  // As the general chat lists them: 0-based places in its source list, some
+  // dropped by the parser (no web link), so the places have gaps.
+  const p0 = { label: 'Protokoll', url: 'https://p', index: 0 };
+  const d2 = { label: 'Drucksache', url: 'https://d', index: 2 };
+  const w3 = { label: 'Web', url: 'https://w', index: 3 };
+  const v4 = { label: 'Video', url: 'https://v', index: 4 };
+
+  it('keeps only cited sources, in source order as the general chat lists them', () => {
+    expect(citedSources([p0, d2, w3, v4], 'Erst [4], dann [0, 2].')).toEqual([
+      p0,
+      d2,
+      v4,
+    ]);
+  });
+
+  it('skips a citation of a source the parser dropped, without shifting the others', () => {
+    expect(citedSources([p0, d2, w3], 'Ohne Link [1], mit [2].')).toEqual([d2]);
+  });
+
+  it('shows no sources for an answer without citations', () => {
+    expect(citedSources([p0, d2], 'Keine Quelle.')).toEqual([]);
+  });
+
+  it('keeps sources that carry no place, which are all meant to be shown', () => {
+    const placeholder = { label: 'Abgeordnetenwatch', url: 'https://a' };
+    expect(citedSources([placeholder], 'Kein Marker.')).toEqual([placeholder]);
+  });
+});
+
+describe('applyEvent on done with listed sources', () => {
+  const p0 = { label: 'Protokoll', url: 'https://p', index: 0 };
+  const d1 = { label: 'Drucksache', url: 'https://d', index: 1 };
+
+  it('narrows the sources to what the final answer cites', () => {
+    const streamed = turn({ answer: 'Entwurf [0]', sources: [p0, d1] });
+    expect(
+      applyEvent(streamed, { kind: 'done', text: 'Final [1].' }).sources,
+    ).toEqual([d1]);
+    expect(applyEvent(streamed, { kind: 'done' }).sources).toEqual([p0]);
   });
 });
 

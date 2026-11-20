@@ -172,10 +172,12 @@ describe('parseGeneralChatEvents', () => {
           {
             label: 'Plenarprotokoll 21/30',
             url: 'https://dserver.bundestag.de/btp/21/21030.pdf',
+            index: 0,
           },
           {
             label: 'Abgeordnetenwatch',
             url: 'https://www.abgeordnetenwatch.de/x',
+            index: 1,
           },
         ],
       },
@@ -224,6 +226,29 @@ describe('parseGeneralChatEvents', () => {
         }),
       ]),
     ).toEqual([{ kind: 'done' }]);
+  });
+
+  it('keeps each source at its place in the chat list, skipping unusable ones', () => {
+    expect(
+      parseGeneralChatEvents([
+        chatEvent({
+          type: 'sources_ready',
+          sources: [
+            { source: 'Ohne Link', page: 0 },
+            { source: '', source_document: '', url: 'https://' },
+            { source: '', url: 'https://exa mple.de/x' },
+            { source: 'Drucksache', url: 'https://dip.bundestag.de/d' },
+          ],
+        }),
+      ]),
+    ).toEqual([
+      {
+        kind: 'sources',
+        sources: [
+          { label: 'Drucksache', url: 'https://dip.bundestag.de/d', index: 3 },
+        ],
+      },
+    ]);
   });
 
   it('turns malformed lines into an error and never throws', () => {
