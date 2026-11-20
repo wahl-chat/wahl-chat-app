@@ -25,6 +25,7 @@ records which roster entry wrote it.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import re
 import time
@@ -118,7 +119,7 @@ _SPEECH_REF = "R"
 _CONTEXT_MARKER = "Kontext: "
 # Speakers outside any Fraktion: listed with their speeches, but no position
 # is required, since nobody speaks for them as a group.
-NO_FRAKTION = frozenset({"fraktionslos", "fraktionslose", "unbekannt"})
+NO_FRAKTION = frozenset({"fraktionslos", "fraktionslose", "parteilos", "unbekannt"})
 # How many items are generated at once.
 _CONCURRENCY = 4
 
@@ -184,13 +185,20 @@ class FeedBuilder:
 
     async def acall(self, prompt: str, schema: type[BaseModel]) -> tuple[Any, str]:
         messages: list[BaseMessage] = [HumanMessage(content=prompt)]
+        return await self.bounded(self._fn(messages, schema))
+
+    async def bounded(self, awaitable: Awaitable[T]) -> T:
+        """``awaitable``, cut when the deadline passes: every model call goes
+        through here, not only the structured ones."""
         if self.deadline is None:
-            return await self._fn(messages, schema)
+            return await awaitable
         remaining = self.deadline - time.monotonic()
         if remaining <= 0:
+            if inspect.iscoroutine(awaitable):
+                awaitable.close()
             raise TimeoutError("time budget spent")
         async with asyncio.timeout(remaining):
-            return await self._fn(messages, schema)
+            return await awaitable
 
 
 # ---------------------------------------------------------------------------
@@ -316,6 +324,27 @@ def plan_days(
 # ---------------------------------------------------------------------------
 
 
+_DEBATE_PREFIX = re.compile(
+    r"^(?:Bundestags?-?)?Debatte\s+(?:über|um)\s+(?:(?:die|den|das|der|eine[nm]?)\s+)?",
+    re.IGNORECASE,
+)
+# Below this the rest is no headline of its own ("Debatte über Kitas").
+_MIN_HEADLINE_WORDS = 3
+
+
+def without_debate_prefix(headline: str) -> str:
+    """The headline without a leading "Debatte über …", which the prompt
+    forbids but a model still writes now and then. "zu" stays: its dative
+    leaves a rest that does not read as a headline ("Steigenden Mieten")."""
+    match = _DEBATE_PREFIX.match(headline)
+    if match is None:
+        return headline
+    rest = headline[match.end() :].strip()
+    if len(rest.split()) < _MIN_HEADLINE_WORDS:
+        return headline
+    return rest[0].upper() + rest[1:]
+
+
 def strip_refs(text: str, prefix: str) -> str:
     """Drop ids the model echoed from the prompt ("[S3]", "(S2, S4)") into a
     text; they mean nothing to a reader."""
@@ -436,6 +465,7 @@ def _speaker_facts(speech: Speech) -> dict[str, Any]:
     return {
         "mdb_id": speech.mdb_id,
         "duration": round(speech.duration) if speech.duration else None,
+        "role": speech.role,
     }
 
 
@@ -645,9 +675,9 @@ def speeches_block(
         text = " ".join(speech.text[:keep].split())
         ref = refs.ref(speech) if refs else None
         lead = f"[{ref}] " if ref else ""
-        lines.append(
-            f"- {lead}{speech.speaker or 'Unbekannt'} ({speech.party_id}): {text}"
-        )
+        # A minister speaks for the government, not as one of the Fraktion.
+        who = ", ".join(p for p in (speech.party_id, speech.role) if p)
+        lines.append(f"- {lead}{speech.speaker or 'Unbekannt'} ({who}): {text}")
     return "\n".join(lines)
 
 
@@ -784,7 +814,9 @@ async def build_debate(
             key_point_sources=key_point_sources(key_points, refs, display),
         ),
         content=canonical_content(
-            headline=strip_refs(draft.headline.strip(), _SPEECH_REF),
+            headline=without_debate_prefix(
+                strip_refs(draft.headline.strip(), _SPEECH_REF)
+            ),
             teaser=strip_refs(draft.summary.strip(), _SPEECH_REF),
             key_points=[p.text for p in key_points],
             positions=[

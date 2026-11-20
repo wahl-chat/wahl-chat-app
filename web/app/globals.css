@@ -319,27 +319,11 @@ html[data-stimmts="today"] .stimmts-header-badge {
   display: inline-flex;
 }
 
-/* The icon takes 40 px of a phone's header, so for players the links beside
-   it give up their words before the header would scroll sideways: "Chat"
-   first, then "Meine Woche". Both keep their icon and their accessible
-   name. Keyed on the icon being in the header, not only on the player mark:
-   with the game switched off there is no icon, and the words stay. */
-@media (max-width: 419.98px) {
-  html[data-stimmts]
-    .daily-header:has(.stimmts-header-icon)
-    .daily-header-chat-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
-}
-
+/* The icon takes 40 px of a phone's header, so on the narrowest phones
+   "Meine Woche" gives up its words before the header would scroll sideways.
+   It keeps its icon and its accessible name. Keyed on the icon being in the
+   header, not only on the player mark: with the game switched off there is
+   no icon, and the words stay. */
 @media (max-width: 369.98px) {
   html[data-stimmts]
     .daily-header:has(.stimmts-header-icon)

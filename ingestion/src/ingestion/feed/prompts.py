@@ -20,9 +20,12 @@ from ingestion.feed.topics import DigestTopic, topic_legend
 
 # Recorded on the German texts an item is generated with. A change does not
 # regenerate stored items: rebuild a chosen window with --force after the eval.
-PROMPT_VERSION = "11"
+PROMPT_VERSION = "12"
 # Stored on each translation: bumping it re-translates, never regenerates.
 TRANSLATION_PROMPT_VERSION = "1"
+# Part of each item's terms hash: bumping it looks for terms again. Stored on
+# each glossary definition.
+GLOSSARY_PROMPT_VERSION = "2"
 
 # The shared rulebook.
 _AUDIENCE = "eine tägliche, neutrale Übersicht"
@@ -99,6 +102,16 @@ class PartyPositionDraft(BaseModel):
     sources: list[str] = Field(default_factory=list, description=_SOURCES_DESCRIPTION)
 
 
+# Every card is a debate, so a headline that says so carries no information
+# and makes the feed read the same card after card.
+_DEBATE_HEADLINE_DESCRIPTION = (
+    "Kurze Überschrift, höchstens 10 Wörter. Nennt direkt den Inhalt oder "
+    "Streitpunkt. Nicht mit „Debatte über/zu“, „Bundestag debattiert“ oder "
+    "ähnlichen Formeln beginnen. Gut: „Mehr Geld für Kitas: Streit um die "
+    "Finanzierung“. Schlecht: „Debatte über die Kita-Finanzierung“."
+)
+
+
 class KeyPointDraft(BaseModel):
     text: str = Field(description="Ein kurzer Satz, ohne Kennungen wie R3.")
     sources: list[str] = Field(default_factory=list, description=_SOURCES_DESCRIPTION)
@@ -118,7 +131,7 @@ class OpeningQuoteDraft(BaseModel):
 
 class DebateDraft(BaseModel):
     topics: list[DigestTopic] = Field(description=_TOPICS_DESCRIPTION)
-    headline: str = Field(description="Kurze Überschrift, höchstens 10 Wörter.")
+    headline: str = Field(description=_DEBATE_HEADLINE_DESCRIPTION)
     summary: str = Field(
         description=(
             "1 bis 2 neutrale Sätze: worum ging es in der Debatte. Nur das "
@@ -339,3 +352,196 @@ def format_verify_prompt(
 
 def format_translation_prompt(parliament: str, segments_block: str) -> str:
     return TRANSLATION_PROMPT.format(parliament=parliament, segments=segments_block)
+
+
+# --- glossary ---------------------------------------------------------------
+
+
+class TermDraft(BaseModel):
+    surface: str = Field(
+        description="Der Begriff genau so, wie er im Text steht, Zeichen für Zeichen."
+    )
+    term: str = Field(
+        description=(
+            "Die Grundform im Nominativ Singular, z. B. „Aktuelle Stunde“ für "
+            "„Aktuellen Stunde“, „Parlamentarischer Staatssekretär“ für "
+            "„Parlamentarische Staatssekretärin“."
+        )
+    )
+
+
+class ItemTerms(BaseModel):
+    ref: str = Field(description="Die Kennung des Textes, z. B. 'T2'.")
+    terms: list[TermDraft] = Field(
+        default_factory=list,
+        description="Höchstens 4 Fachbegriffe; leer, wenn keiner vorkommt.",
+    )
+
+
+class TermExtractionBatch(BaseModel):
+    items: list[ItemTerms]
+
+
+# The reason comes before the verdict, so the model reasons before it decides.
+class FormCheck(BaseModel):
+    ref: str = Field(description="Die Kennung der Zuordnung, z. B. 'F2'.")
+    reason: str = Field(
+        description=(
+            "Zuerst, in einem kurzen Satz: ist die Wortform derselbe Begriff wie "
+            "die Grundform?"
+        )
+    )
+    ok: bool = Field(
+        description=(
+            "true nur, wenn die Wortform eine gebeugte Form, die Mehrzahl oder "
+            "die weibliche oder männliche Form genau dieses Begriffs ist. false, "
+            "wenn sie ein anderer, ein engerer oder ein weiterer Begriff ist "
+            "(„Ausschuss“ ist nicht „Petitionsausschuss“). Im Zweifel false."
+        )
+    )
+
+
+class FormCheckBatch(BaseModel):
+    checks: list[FormCheck]
+
+
+class TermDefinition(BaseModel):
+    ref: str = Field(description="Die Kennung des Begriffs, z. B. 'B3'.")
+    definition: str = Field(
+        description=(
+            "1 bis 2 Sätze, höchstens 35 Wörter, in einfacher Sprache: was der "
+            "Begriff im parlamentarischen Alltag bedeutet. Nur, was die Quellen "
+            "des Begriffs sagen."
+        )
+    )
+    sources: list[str] = Field(
+        description=(
+            "Die Kennungen der Quellen, auf denen die Erklärung beruht, z. B. "
+            "['B3-Q1']. Leer, wenn die Quellen den Begriff nicht erklären."
+        )
+    )
+
+
+class TermDefinitionBatch(BaseModel):
+    definitions: list[TermDefinition]
+
+
+# The reason comes before the verdict, so the model reasons before it decides.
+class DefinitionCheck(BaseModel):
+    ref: str = Field(description="Die Kennung des Begriffs, z. B. 'B3'.")
+    reason: str = Field(
+        description=(
+            "Zuerst: jede Aussage der Erklärung einzeln, und ob die Quellen sie "
+            "belegen. Dann: ist sie neutral?"
+        )
+    )
+    ok: bool = Field(
+        description=(
+            "true nur, wenn jede Aussage der Erklärung in den Quellen steht, sie "
+            "nichts wertet, keine Partei und kein aktuelles Beispiel nennt und "
+            "ohne Vorwissen verständlich ist. Eine Zahl, ein Wochentag oder eine "
+            "Regel, die die Quellen nicht nennen, macht sie falsch. Im Zweifel "
+            "false."
+        )
+    )
+
+
+class DefinitionCheckBatch(BaseModel):
+    checks: list[DefinitionCheck]
+
+
+TERMS_PROMPT = f"""\
+Leser:innen ohne politisches Vorwissen lesen {_AUDIENCE} über den \
+{{parliament}}. Unten stehen kurze Texte daraus, jeder mit einer Kennung wie \
+[T1]. Nenne für jeden Text die Fachbegriffe aus dem parlamentarischen \
+Verfahren, dem Staatsaufbau oder der Verwaltung, die so jemand vermutlich \
+nicht kennt: etwa Aktuelle Stunde, Regierungsbefragung, Beschlussempfehlung, \
+Petitionsausschuss, Parlamentarische Staatssekretärin.
+
+Regeln:
+- Nur Begriffe, die wörtlich im Text stehen.
+- Die Grundform ist derselbe Begriff, nur ungebeugt: nie ein anderer, ein \
+engerer oder ein weiterer Begriff.
+- Keine Partei- oder Personennamen, keine Alltagswörter und keine \
+Themenwörter wie „Rente“ oder „Klimaschutz“.
+- Gib jeden Text mit seiner Kennung zurück, auch wenn er keinen Begriff enthält.
+
+Texte:
+{{texts}}
+"""
+
+FORM_CHECK_PROMPT = """\
+Prüfe jede Zuordnung einer Wortform zu einem Fachbegriff aus dem \
+{parliament}. Die Erklärung des Begriffs wird überall gezeigt, wo die \
+Wortform steht: Sie muss genau dieser Begriff sein, nicht ein verwandter. \
+Jede Zuordnung hat eine Kennung wie [F1] und, wo vorhanden, den Satz, in \
+dem die Wortform stand.
+
+Zuordnungen:
+{forms}
+"""
+
+RESEARCH_PROMPT = """\
+Suche, was der Fachbegriff „{term}“ im {parliament} bedeutet. Nutze nur \
+offizielle Erklärungen: zuerst das Glossar auf bundestag.de, dann \
+bundesregierung.de, dann das Politiklexikon der Bundeszentrale für \
+politische Bildung (bpb.de). Fasse in wenigen Sätzen zusammen, was diese \
+Seiten über den Begriff sagen, ohne eigenes Wissen hinzuzufügen.
+{context}"""
+
+DEFINITION_PROMPT = f"""\
+Erkläre die folgenden Fachbegriffe für {_AUDIENCE} über den {{parliament}}, \
+für Leser:innen ohne politisches Vorwissen. Jeder Begriff hat eine Kennung \
+wie [B1], darunter, wo vorhanden, den Satz, in dem er stand, und Auszüge \
+aus offiziellen Quellen mit Kennungen wie [B1-Q1].
+
+Regeln:
+- Erkläre den Begriff nur aus seinen Quellen. Was keine Quelle sagt, gehört \
+nicht in die Erklärung, auch wenn es stimmt. Erklären die Quellen den \
+Begriff nicht, gib keine Quelle an.
+- Erkläre, was der Begriff im parlamentarischen Alltag bedeutet, nicht, wie \
+er politisch zu bewerten ist.
+- {_NEUTRALITY_RULE}
+- Nenne keine Parteien, keine Personen und keine aktuellen Beispiele.
+- Ist ein Begriff ein Amt, erkläre das Amt, nicht die Person.
+
+Begriffe:
+{{terms}}
+"""
+
+DEFINITION_CHECK_PROMPT = f"""\
+Prüfe jede Erklärung eines Fachbegriffs aus dem {{parliament}} gegen die \
+Auszüge aus ihren Quellen. Jede Aussage der Erklärung muss in den Auszügen \
+stehen; was dort fehlt, ist ein Fehler, auch wenn es stimmen mag. Die \
+Erklärung soll außerdem neutral und ohne Vorwissen verständlich sein. \
+{_NEUTRALITY_RULE}
+
+Erklärungen:
+{{definitions}}
+"""
+
+
+def format_terms_prompt(parliament: str, texts_block: str) -> str:
+    return TERMS_PROMPT.format(parliament=parliament, texts=texts_block)
+
+
+def format_definition_prompt(parliament: str, terms_block: str) -> str:
+    return DEFINITION_PROMPT.format(parliament=parliament, terms=terms_block)
+
+
+def format_definition_check_prompt(parliament: str, definitions_block: str) -> str:
+    return DEFINITION_CHECK_PROMPT.format(
+        parliament=parliament, definitions=definitions_block
+    )
+
+
+def format_form_check_prompt(parliament: str, forms_block: str) -> str:
+    return FORM_CHECK_PROMPT.format(parliament=parliament, forms=forms_block)
+
+
+def format_research_prompt(parliament: str, term: str, context: str) -> str:
+    return RESEARCH_PROMPT.format(
+        parliament=parliament,
+        term=term,
+        context=f"\nDer Begriff stand in diesem Satz: „{context}“\n" if context else "",
+    )

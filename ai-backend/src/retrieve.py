@@ -115,6 +115,7 @@ SourceTypeLiteral = Literal[
     "qa_transcript",
     "parliamentary_speech",
     "pledge_record",
+    "procedure",
 ]
 
 AuthorityTierLiteral = Literal[
@@ -211,6 +212,7 @@ async def retrieve(
     query_vector: Optional[list[float]] = None,
     score_threshold: Optional[float] = None,
     with_scores: bool = False,
+    vorgang_id: Optional[str] = None,
     _client: Optional[AsyncQdrantClient] = None,
     _embed_fn: Any = None,
 ) -> Union[list[dict], list[tuple[dict, float]]]:
@@ -293,6 +295,9 @@ async def retrieve(
                         step is skipped entirely — ``_embed_fn`` / ``_get_embed()`` are
                         NOT called. Use this to embed once and reuse across multiple
                         retrieve() calls (single-party and comparison paths).
+        vorgang_id:     Keyword-only: only chunks linked to this Bundestag
+                        procedure (DIP Vorgang id, indexed ``vorgang_ids``).
+                        Selective: a procedure's chunks are few.
         score_threshold: Minimum cosine similarity for a result to be included.
                         When None (default), Qdrant returns results without a score
                         cutoff — identical to the default behaviour so existing
@@ -342,6 +347,7 @@ async def retrieve(
         source_type is not None
         or party_id is not None
         or party_ids_contains is not None
+        or vorgang_id is not None
     )
     if not _is_selective:
         raise ValueError(
@@ -424,6 +430,11 @@ async def retrieve(
                 key="publish_date",
                 range=DatetimeRange(gte=gte_dt),
             )
+        )
+
+    if vorgang_id is not None:
+        must.append(
+            FieldCondition(key="vorgang_ids", match=MatchValue(value=vorgang_id))
         )
 
     if legislature_period_id is not None:

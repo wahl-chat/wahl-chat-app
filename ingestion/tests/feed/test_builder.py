@@ -14,6 +14,7 @@ from ingestion.feed.builder import (
     plan_days,
     speeches_block,
     vote_description,
+    without_debate_prefix,
 )
 from ingestion.feed.items import debate_input_hash
 from ingestion.feed.models import FeedItem, SpeechSource
@@ -474,3 +475,33 @@ def test_a_speech_without_video_is_cited_at_its_placed_protocol_page() -> None:
     found.protocol_page_url = "https://dserver.bundestag.de/btp/21/21045.pdf#page=13"
     [cited] = citations([found], "Wohnungsbau", DISPLAY)
     assert cited.url == found.protocol_page_url
+
+
+@pytest.mark.parametrize(
+    ("headline", "expected"),
+    [
+        (
+            "Debatte über die Finanzierung der Kitas",
+            "Finanzierung der Kitas",
+        ),
+        (
+            "Debatte um längere Laufzeiten für Kraftwerke",
+            "Längere Laufzeiten für Kraftwerke",
+        ),
+        (
+            "Debatte zu steigenden Mieten in Städten",
+            "Debatte zu steigenden Mieten in Städten",
+        ),
+        (
+            "Debatte über Dieselfahrverbote in Innenstädten",
+            "Dieselfahrverbote in Innenstädten",
+        ),
+        # Too little left for a headline of its own.
+        ("Debatte über die Rente", "Debatte über die Rente"),
+        ("Streit um die Kita-Finanzierung", "Streit um die Kita-Finanzierung"),
+    ],
+)
+def test_a_debate_prefix_is_dropped_from_the_headline(
+    headline: str, expected: str
+) -> None:
+    assert without_debate_prefix(headline) == expected

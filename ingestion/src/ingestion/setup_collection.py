@@ -210,6 +210,12 @@ _INDEX_SPECS: list[
     ("pledge_id", models.PayloadSchemaType.KEYWORD),
     ("policy_area", models.PayloadSchemaType.KEYWORD),
     ("context_id", models.PayloadSchemaType.KEYWORD),
+    # Procedure links: every chunk of procedure X is one filter away
+    # (vorgang_ids); sachgebiete are DIP's topic labels; doc_section splits
+    # Drucksache overview from body text.
+    ("vorgang_ids", models.PayloadSchemaType.KEYWORD),
+    ("sachgebiete", models.PayloadSchemaType.KEYWORD),
+    ("doc_section", models.PayloadSchemaType.KEYWORD),
 ]
 
 _REQUIRED_INDEXES: frozenset[str] = frozenset(field for field, _ in _INDEX_SPECS)

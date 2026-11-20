@@ -1,11 +1,14 @@
 import DailyFeed from '@/components/daily/daily-feed';
 import JsonLd from '@/components/seo/json-ld';
 import { parseKindParam } from '@/lib/daily/filter';
+import { getLinkedItem } from '@/lib/daily/linked-item';
 import { getLocalPreviewDigests } from '@/lib/daily/local-preview';
 import { parseStateParam } from '@/lib/daily/region';
+import { itemShareMetadata } from '@/lib/daily/share-metadata';
 import { parseTopicsParam } from '@/lib/daily/topics';
 import {
   getEditionDates,
+  getGlossary,
   getLinkedFeedDay,
   getParliamentFeed,
   getSittingCalendar,
@@ -14,13 +17,16 @@ import {
 import type { FeedPage } from '@/lib/firebase/firebase.types';
 import {
   BASE_URL,
+  LOGO_IMAGE_URL,
   ORGANIZATION_ID,
   WEBSITE_ID,
   productionRobots,
 } from '@/lib/seo';
 import { hasPuzzleToday } from '@/lib/stimmts/feed-entry';
 import type { StimmtsStatus } from '@/lib/stimmts/status';
+import { IS_EMBEDDED } from '@/lib/utils';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 
 // The search terms lead the title, the product name closes it. A results
 // page shows about 60 characters of a title and 155 of a description, so
@@ -52,7 +58,7 @@ const PAGE_JSON_LD = {
     'Bundestag, Plenarsitzung, Debatten, Abstimmungen, Plenarprotokoll, Parteipositionen',
 };
 
-export const metadata: Metadata = {
+const FEED_METADATA: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
   robots: productionRobots,
@@ -64,22 +70,54 @@ export const metadata: Metadata = {
     title: { absolute: TITLE },
     description: DESCRIPTION,
     url: BASE_URL,
+    // This openGraph replaces the root layout's whole, image included.
+    images: [LOGO_IMAGE_URL],
   },
   twitter: {
     title: TITLE,
     description: DESCRIPTION,
+    images: [LOGO_IMAGE_URL],
   },
 };
+
+/** The address this request reached, so a link shared from a preview
+ * deployment previews with that deployment's own image. */
+async function requestOrigin(): Promise<string> {
+  const headersList = await headers();
+  const host = headersList.get('x-forwarded-host') ?? headersList.get('host');
+  if (!host) {
+    return BASE_URL;
+  }
+  const proto =
+    headersList.get('x-forwarded-proto') ??
+    (host.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
+
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+/** A shared item's link previews as the item; the feed itself as the feed. */
+export async function generateMetadata({
+  searchParams,
+}: Props): Promise<Metadata> {
+  const { item: key } = await searchParams;
+  const item = typeof key === 'string' ? await getLinkedItem(key) : undefined;
+  if (!item) {
+    return FEED_METADATA;
+  }
+  return {
+    ...FEED_METADATA,
+    ...itemShareMetadata(item, await requestOrigin(), DESCRIPTION),
+  };
+}
 
 const NO_FEED: FeedPage = {
   editions: [],
   items: [],
   from: null,
   hasOlder: false,
-};
-
-type Props = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 async function HomePage({ searchParams }: Props) {
@@ -93,6 +131,7 @@ async function HomePage({ searchParams }: Props) {
     linkedDay,
     calendar,
     editionDates,
+    glossary,
     stimmtsStatus,
   ] = await Promise.all([
     getParliamentFeed('bundestag'),
@@ -100,6 +139,7 @@ async function HomePage({ searchParams }: Props) {
     item ? getLinkedFeedDay(item) : null,
     getSittingCalendar('bundestag'),
     getEditionDates('bundestag'),
+    getGlossary(),
     getStimmtsStatus(),
   ]);
   // The page renders per request, so it can tell whether a puzzle runs
@@ -131,6 +171,8 @@ async function HomePage({ searchParams }: Props) {
         linkedDay={linkedDay}
         calendar={calendar}
         editionDates={editionDates}
+        glossary={glossary}
+        opinionsEnabled={!IS_EMBEDDED}
         stimmtsStatus={stimmtsCardStatus}
       />
     </>

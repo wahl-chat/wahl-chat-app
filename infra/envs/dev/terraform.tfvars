@@ -158,6 +158,28 @@ jobs = {
   }
 
   # AW election-programme catalogue.
+  # Bundestag procedures (DIP Vorgänge): after speeches (03:00) and votes
+  # (04:00) so it can link what they wrote, before the feed (06:00) that
+  # shows where a procedure stands. The first run is a manual --backfill.
+  "ingest-procedures" = {
+    env = {
+      CONNECTOR_ID = "procedures"
+    }
+    # --revalidate clears the web's feed cache after it moved a feed item's
+    # procedure on; the bypass token lets the POST through dev.wahl.chat's
+    # Deployment Protection.
+    secret_env = {
+      DIP_API_KEY                     = "dip-api-key"
+      REVALIDATE_SECRET               = "revalidate-secret"
+      VERCEL_AUTOMATION_BYPASS_SECRET = "vercel-automation-bypass"
+    }
+    # ENV=dev writes the deployed dev Firestore, which the guard only allows
+    # when asked to explicitly.
+    args            = ["--allow-remote", "--revalidate"]
+    timeout_seconds = 3600
+    schedule        = "15 5 * * *"
+  }
+
   "ingest-manifestos" = {
     env = {
       CONNECTOR_ID             = "manifestos"

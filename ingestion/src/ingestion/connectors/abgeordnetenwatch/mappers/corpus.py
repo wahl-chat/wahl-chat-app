@@ -34,6 +34,7 @@ import uuid
 
 from bs4 import BeautifulSoup
 
+from ingestion.drucksache_numbers import drucksachen_in_links
 from ingestion.ids import make_chunk_key
 from ingestion.schemas import (
     AuthorityTier,
@@ -354,6 +355,7 @@ def chunk_poll(
     meta = VoteMeta(
         vote_results=vote_results,
         motion_outcome=_motion_outcome(poll),
+        drucksachen=drucksachen_in_links(field_intro or "") or None,
     ).model_dump(mode="json", exclude_none=True)
 
     # Relevance levels from the topic taxonomy. Landtag polls routinely carry no

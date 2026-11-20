@@ -11,6 +11,7 @@ import pytest
 from ingestion.feed import bulk
 from ingestion.feed.builder import FeedBuilder, plan_days
 from ingestion.feed.items import MAX_POSITION_ATTEMPTS
+from ingestion.feed.glossary import terms_hash
 from ingestion.feed.models import FEED_FORMAT_VERSION, CardVideo, FeedItem
 from ingestion.feed.parliaments import FEED_PARLIAMENTS
 from ingestion.feed.politicians import RefreshReport
@@ -69,9 +70,13 @@ def _day(
 
 
 def _translated(items: list[FeedItem]) -> dict[str, FeedItem]:
+    """Stored as a finished run leaves them: translated, terms looked for."""
     from tests.feed.test_store import _with_english
 
-    return {i.id: _with_english(i) for i in items}
+    stored = {i.id: _with_english(i) for i in items}
+    for item in stored.values():
+        item.content["de"].terms_hash = terms_hash(item)
+    return stored
 
 
 def _stored_day(llm: Optional[FakeLLM] = None) -> tuple[dict[str, FeedItem], list[str]]:
@@ -578,6 +583,26 @@ def test_stored_debates_learn_who_their_speakers_are_without_a_rebuild() -> None
     # Texts and translation stay as they were.
     assert item.content == stored[TOP1].content
     assert not needs_translation(item, "en")
+
+
+def test_stored_debates_learn_the_office_a_minister_spoke_in() -> None:
+    stored, edition_ids = _stored_day()
+    plan = _plan()
+    for spoken in plan.debates[0].agenda.speeches:
+        if spoken.speaker == "Anna":
+            spoken.role = "Bundesministerin der Finanzen"
+    llm = FakeLLM()
+    day, _ = _day(llm, plan, stored, edition_ids)
+    assert day is not None
+    assert llm.calls == []
+    item = next(i for i in day.items if i.id == TOP1)
+    assert item.debate is not None
+    roles = {s.name: s.role for p in item.debate.parties for s in p.speakers}
+    assert roles == {
+        "Anna": "Bundesministerin der Finanzen",
+        "Bernd": None,
+        "Clara": None,
+    }
 
 
 def test_a_run_without_speaker_ids_never_clears_stored_ones() -> None:

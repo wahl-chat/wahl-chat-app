@@ -22,6 +22,7 @@ import { getTenant } from '@/lib/firebase/firebase-admin';
 import { getUser } from '@/lib/firebase/firebase-server';
 import {
   BASE_URL,
+  LOGO_IMAGE_URL,
   ORGANIZATION_ID,
   WEBSITE_ID,
   productionRobots,
@@ -97,7 +98,7 @@ export const metadata: Metadata = {
       template: '%s | wahl.chat - Politik interaktiv verstehen',
     },
     description: SITE_DESCRIPTION,
-    images: ['https://wahl.chat/images/logo.webp'],
+    images: [LOGO_IMAGE_URL],
     url: 'https://wahl.chat',
     siteName: 'wahl.chat',
     locale: 'de-DE',
@@ -109,7 +110,7 @@ export const metadata: Metadata = {
     creator: '@wahl_chat',
     title: 'wahl.chat - Politik interaktiv verstehen',
     description: SITE_DESCRIPTION,
-    images: ['https://wahl.chat/images/logo.webp'],
+    images: [LOGO_IMAGE_URL],
   },
 };
 

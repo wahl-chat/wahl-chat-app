@@ -176,6 +176,19 @@ def name_from_mdb_entry(name_entry) -> str | None:
     return normalize_whitespace(" ".join(part for part in parts if part))
 
 
+def names_from_mdb_entry(name_entry) -> list[str]:
+    """The name with and without its particles. The Stammdaten keep "de" or
+    "von" apart from NACHNAME, while protocols and openparliament.tv write
+    "Christoph de Vries"; without the long form such a speaker never
+    resolves by name."""
+    short = name_from_mdb_entry(name_entry)
+    parts = [
+        name_entry.findtext(tag) for tag in ("VORNAME", "ADEL", "PRAEFIX", "NACHNAME")
+    ]
+    long = normalize_whitespace(" ".join(part for part in parts if part))
+    return [name for name in dict.fromkeys([short, long]) if name]
+
+
 def latest_fraction_party(mdb) -> str | None:
     parties: list[tuple[int, str]] = []
     for term in mdb.findall("WAHLPERIODEN/WAHLPERIODE"):
@@ -196,7 +209,11 @@ def latest_fraction_party(mdb) -> str | None:
 
 
 def parse_mdb_record(mdb) -> dict:
-    names = [name_from_mdb_entry(name) for name in mdb.findall("NAMEN/NAME")]
+    names = [
+        name
+        for entry in mdb.findall("NAMEN/NAME")
+        for name in names_from_mdb_entry(entry)
+    ]
     party = normalize_party(
         mdb.findtext("BIOGRAFISCHE_ANGABEN/PARTEI_KURZ")
     ) or latest_fraction_party(mdb)

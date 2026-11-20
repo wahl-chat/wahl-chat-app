@@ -8,7 +8,8 @@
         run-manifestos run-manifesto-uploads upload-manifesto-uploads \
         collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats export-prod-slice \
-        build-feed setup-feed-collection backfill-feed eval-feed
+        build-feed setup-feed-collection backfill-feed eval-feed \
+        run-procedures procedures-report eval-procedure-documents
 
 # --- Install dependencies ---
 
@@ -260,6 +261,18 @@ run-speeches: bootstrap-collection fetch-mdb-stammdaten
 	cd ingestion && $(QDRANT_ENV) \
 		uv run python -m ingestion.run --connector bundestag_speeches $(ARGS)
 
+# Procedures (DIP Vorgänge): sync, Drucksache text, links on votes/speeches,
+# feed items, coverage report. First run: ARGS="--backfill". Writes Firestore,
+# so locally it needs FIRESTORE_EMULATOR_HOST=localhost:8081.
+# Requires: DIP_API_KEY in ingestion/.env (or ai-backend/.env).
+run-procedures: bootstrap-collection
+	cd ingestion && $(QDRANT_ENV) \
+		uv run python -m ingestion.procedures.bulk $(ARGS)
+
+procedures-report:
+	cd ingestion && $(QDRANT_ENV) \
+		uv run python -m ingestion.procedures.bulk --report $(ARGS)
+
 # --- Standalone ingestion scripts (NOT registry connectors) ---
 # Manifestos run as their own module (own argparse) — NOT a --connector ID in run.py.
 # Self-loads ingestion/.env (falling back to ai-backend/.env) and defaults
@@ -331,6 +344,13 @@ backfill-feed:
 #   make eval-feed ARGS="--make-gold"   # once: draft gold positions to check by hand
 eval-feed:
 	cd evals && uv run python -m wahlchat_evals.feed $(ARGS)
+
+# Procedures in answers: speeches + votes alone vs. with procedure profiles and
+# Drucksachen, on a fixed question set, side by side for a person to judge.
+# Needs procedures in the local store (make run-procedures).
+#   make eval-procedure-documents ARGS="--out /tmp/procedure-documents.md"
+eval-procedure-documents:
+	cd evals && $(QDRANT_ENV) uv run python -m wahlchat_evals.procedure_documents $(ARGS)
 
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.

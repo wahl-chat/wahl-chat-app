@@ -1,22 +1,13 @@
 import DailyHeader from '@/components/daily/daily-header';
 import Footer from '@/components/footer';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
-import { chatElection } from '@/lib/elections';
-import { getContexts, getStimmtsStatus } from '@/lib/firebase/firebase-server';
-import { SITE_LINKS } from '@/lib/site-links';
+import { getStimmtsStatus } from '@/lib/firebase/firebase-server';
 import { cn } from '@/lib/utils';
 
 /** Header + footer shell like (with-header): one centred column that reads
  * as the phone layout on desktop too, and the home of the feed's theme. */
 async function Layout({ children }: { children: React.ReactNode }) {
-  const [contexts, stimmtsStatus] = await Promise.all([
-    getContexts(),
-    getStimmtsStatus(),
-  ]);
-  const election = chatElection(contexts);
-  // The election's page, which leads into its chat, rather than a session
-  // started straight away.
-  const chatHref = election ? `/${election.context_id}` : SITE_LINKS.chat.href;
+  const stimmtsStatus = await getStimmtsStatus();
   return (
     <div
       className={cn(
@@ -24,7 +15,7 @@ async function Layout({ children }: { children: React.ReactNode }) {
         'relative flex w-full flex-col bg-[var(--daily-canvas)]',
       )}
     >
-      <DailyHeader chatHref={chatHref} stimmtsEnabled={stimmtsStatus.enabled} />
+      <DailyHeader stimmtsEnabled={stimmtsStatus.enabled} />
       <main className="mx-auto min-h-[calc(100vh-var(--header-height)-var(--footer-height))] w-full max-w-screen-sm grow px-4 pb-6">
         {children}
       </main>

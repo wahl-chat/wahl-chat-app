@@ -109,6 +109,11 @@ def vanished_item_ids(previous_ids: list[str], current_ids: list[str]) -> list[s
     return [item_id for item_id in previous_ids if item_id not in current]
 
 
+def commit_writes(db: Any, writes: list[tuple[Any, dict]]) -> None:
+    """Set each document, in batches Firestore accepts."""
+    _commit(db, writes)
+
+
 def _commit(db: Any, writes: list[tuple[Any, dict]]) -> None:
     for start in range(0, len(writes), _BATCH_OPS):
         batch = db.batch()

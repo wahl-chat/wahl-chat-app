@@ -35,6 +35,12 @@ service cloud.firestore {
       allow read;
     }
 
+    // Explanations of the feed's expert terms; written only by the feed
+    // builder and the seed script.
+    match /glossary/{term_id} {
+      allow read;
+    }
+
     match /parties/{document=**} {
       allow read;
     }
@@ -100,11 +106,33 @@ service cloud.firestore {
     }
 
     match /users/{user_id} {
-    	allow read, write: if request.auth != null && request.auth.uid == user_id;
+      function isOwner() {
+        return request.auth != null && request.auth.uid == user_id;
+      }
+
+      // `feed_opinion_consent` records an Art. 9 consent: only the web server
+      // sets or removes it, so a client can neither forge nor drop it. For the
+      // same reason a client cannot delete the doc that holds it.
+      allow read: if isOwner();
+      allow create: if isOwner()
+        && !('feed_opinion_consent' in request.resource.data);
+      allow update: if isOwner()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['feed_opinion_consent']);
+      allow delete: if false;
     }
 
     match /users/{user_id}/chat_sessions/{session_id} {
       allow read, write: if request.auth != null && request.auth.uid == user_id;
+    }
+
+    // A reader's own opinions on feed items: political opinions (GDPR Art. 9).
+    // Only the owner reads them. Writes go through the web server, which
+    // checks consent and keeps the item's counts in step. The counts
+    // (`feed_items/{id}/counts/opinions`) have no rule at all: the server
+    // serves them, withholding any target too few readers answered.
+    match /users/{user_id}/feed_opinions/{item_id} {
+      allow read: if request.auth != null && request.auth.uid == user_id;
     }
 
     // PledgeTracker study participants (consent, cohort, interaction log).
@@ -232,8 +260,17 @@ service cloud.firestore {
       allow delete: if request.auth != null
         && resource.data.user_id == request.auth.uid;
 
+      // A message is user content with no owner field of its own, so it takes
+      // its session's access: readable like the session, writable by its owner.
       match /messages/{message_id} {
-      	allow read, list, create, update: if true
+        function session() {
+          return get(/databases/$(database)/documents/chat_sessions/$(session_id)).data;
+        }
+
+        allow read: if (request.auth != null && session().user_id == request.auth.uid)
+          || session().is_public == true;
+        allow create, update: if request.auth != null
+          && session().user_id == request.auth.uid;
       }
     }
   }

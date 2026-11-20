@@ -31,6 +31,23 @@ describe('feedToDigests', () => {
     expect(section.citations).toEqual(item.debate?.citations ?? []);
   });
 
+  it('shows the Union Fraktion with the CDU/CSU logo, in debates and votes', () => {
+    const digests = feedToDigests(FEED);
+    const positions = digests.flatMap((d) =>
+      (d.session?.sections ?? []).flatMap((s) => s.positions ?? []),
+    );
+    const voteParties = digests.flatMap((d) =>
+      (d.votes ?? []).flatMap((v) => v.parties),
+    );
+    for (const party of [...positions, ...voteParties]) {
+      expect(party.logo_id).toBe(
+        party.party_id === 'cdu' ? 'cdu_csu' : party.party_id,
+      );
+    }
+    expect(positions.some((p) => p.party_id === 'cdu')).toBe(true);
+    expect(voteParties.some((p) => p.party_id === 'cdu')).toBe(true);
+  });
+
   it('passes the card video through, and none where an item has none', () => {
     const first = FEED.editions[0].item_ids[0];
     const card_video = {

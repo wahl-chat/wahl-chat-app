@@ -1,5 +1,10 @@
 import type { WahlChatUser } from '@/components/anonymous-auth';
 import {
+  EMPTY_OPINION,
+  type FeedOpinion,
+  toFeedOpinion,
+} from '@/lib/daily/opinions';
+import {
   getCurrentVisitId,
   getOrLoadPageVisitSnapshot,
 } from '@/lib/page-visit/page-visit';
@@ -315,6 +320,15 @@ export async function setFeedInterest(
   });
 }
 
+/** The reader's own opinion on a feed item. Written only by the server. */
+export async function getFeedOpinion(
+  uid: string,
+  itemId: string,
+): Promise<FeedOpinion> {
+  const snapshot = await getDoc(doc(db, 'users', uid, 'feed_opinions', itemId));
+  return snapshot.exists() ? toFeedOpinion(snapshot.data()) : EMPTY_OPINION;
+}
+
 export async function getChatSession(sessionId: string) {
   const session = await getDoc(doc(db, 'chat_sessions', sessionId));
   return {
@@ -534,6 +548,9 @@ export async function getUser(uid: string) {
           timestamp: firestoreTimestampToDate(data.survey_status.timestamp),
         }
       : undefined,
+    // Always present, so a withdrawn consent overwrites the one the session
+    // still holds: the auth provider merges this doc into its user.
+    feed_opinion_consent: data?.feed_opinion_consent,
   } as WahlChatUser;
 }
 

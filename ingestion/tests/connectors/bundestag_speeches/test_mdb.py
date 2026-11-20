@@ -269,3 +269,31 @@ class TestEnsureMdbFile:
         assert downloads == []
         ensure_mdb_file(path, max_age=timedelta(days=7))
         assert downloads == [path]
+
+
+def test_a_name_with_a_particle_resolves_by_its_full_form(tmp_path: Path) -> None:
+    path = tmp_path / "MDB_STAMMDATEN.XML"
+    path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<DOCUMENT>
+  <MDB>
+    <ID>11004926</ID>
+    <NAMEN>
+      <NAME>
+        <NACHNAME>Vries</NACHNAME>
+        <VORNAME>Christoph</VORNAME>
+        <ADEL/>
+        <PRAEFIX>de</PRAEFIX>
+      </NAME>
+    </NAMEN>
+    <BIOGRAFISCHE_ANGABEN><PARTEI_KURZ>CDU</PARTEI_KURZ></BIOGRAFISCHE_ANGABEN>
+  </MDB>
+</DOCUMENT>""",
+        encoding="utf-8",
+    )
+    lookup = load_mdb_lookup(path)
+    speech = {"speaker_xml_id": None, "speaker_name": "Christoph de Vries"}
+    assert mdb_party_for_speech(speech, lookup) == "CDU"
+    # The short form still resolves, as before.
+    speech["speaker_name"] = "Christoph Vries"
+    assert mdb_party_for_speech(speech, lookup) == "CDU"

@@ -172,6 +172,15 @@ class Speech:
     mdb_id: Optional[str] = None
     # Seconds of the speech's own video; None without aligned sentences.
     duration: Optional[float] = None
+    # The office a member of the government speaks in, and the Fraktion the
+    # protocol names: both from the protocol's ``<redner>``.
+    role: Optional[str] = None
+    protocol_fraktion: Optional[str] = None
+    # The chunk's party when the feed filed the speech under another one
+    # (see ``speaker_parties``); the debate is rebuilt when it is set.
+    reattributed_from: Optional[str] = None
+    # Procedures the speech is linked to (see ingestion.procedures).
+    vorgang_ids: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -279,6 +288,7 @@ def _speech_from_chunks(chunks: list[dict]) -> Optional[Speech]:
         sentences=_spoken_sentences(chunks),
         mdb_id=str(meta["person_id"]) if is_dip and meta.get("person_id") else None,
         duration=_spoken_duration(chunks),
+        vorgang_ids=list(head.get("vorgang_ids") or []),
     )
 
 

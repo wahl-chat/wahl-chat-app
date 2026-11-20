@@ -1,4 +1,4 @@
-import { type VoteItem, itemTeaser } from '@/lib/daily/items';
+import { type VoteItem, itemTeaser, itemTerms } from '@/lib/daily/items';
 import { cn } from '@/lib/utils';
 import { CardFooter, ItemTeaser } from './card-footer';
 import {
@@ -50,6 +50,7 @@ function VoteCard({ item, onOpen, hot = false }: Props) {
       <SeatLegend parties={vote.parties} />
       <ItemTeaser
         text={itemTeaser(item)}
+        terms={itemTerms(item)}
         label={vote.short_title}
         onOpen={onOpen}
       />

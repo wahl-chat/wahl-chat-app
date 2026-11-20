@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ingestion.feed.parliaments import ParliamentId
 from ingestion.feed.topics import DigestTopic
+from wahlchat_common.procedures import ProcedureSummary
 
 
 class DigestVoteParty(BaseModel):
@@ -57,6 +58,9 @@ class DigestSpeaker(BaseModel):
     mdb_id: Optional[str] = None
     # Length of the speech's video in seconds, when op.tv has aligned it.
     duration: Optional[int] = None
+    # The office a member of the government spoke in, as the protocol names
+    # it ("Bundesministerin für …"); None for members of a Fraktion.
+    role: Optional[str] = None
 
 
 class SpeechSource(BaseModel):
@@ -127,7 +131,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field, and migrate the
 # stored items to it. Recorded on each item; it does not trigger a rebuild.
-FEED_FORMAT_VERSION = "5"
+FEED_FORMAT_VERSION = "6"
 
 
 class LocalizedPosition(BaseModel):
@@ -135,6 +139,15 @@ class LocalizedPosition(BaseModel):
 
     party_id: str
     text: str
+
+
+class TermRef(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Keys ``glossary/{term_id}``.
+    term_id: str
+    # The term as the text writes it, inflected: "Aktuellen Stunde".
+    surface: str
 
 
 class LocalizedContent(BaseModel):
@@ -156,6 +169,10 @@ class LocalizedContent(BaseModel):
     prompt_version: str
     generated_by: Optional[str] = None
     generated_at: datetime
+    # Expert terms in the text the glossary explains (see ``glossary``), and
+    # the hash of the text they were found in. German only for now.
+    terms: list[TermRef] = Field(default_factory=list)
+    terms_hash: Optional[str] = None
 
 
 class DebateParty(BaseModel):
@@ -262,6 +279,10 @@ class FeedItem(BaseModel):
     # other text as it was written, so the card does not change from run to run.
     pending_positions: list[str] = Field(default_factory=list)
     position_attempts: int = 0
+    # The Bundestag procedures (DIP Vorgänge) the item is about, and where
+    # each stands; facts from the source, refreshed when a procedure moves.
+    procedure_ids: list[str] = Field(default_factory=list)
+    procedures: list[ProcedureSummary] = Field(default_factory=list)
     format_version: str = FEED_FORMAT_VERSION
     generated_at: datetime
 

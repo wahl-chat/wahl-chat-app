@@ -1,11 +1,15 @@
 'use client';
 
 import {
+  ABSENT_RING,
   type PartyArc,
   type SeatVote,
   VOTE_LABELS,
+  coord,
   isUnaffiliated,
   layoutHemicycle,
+  layoutShare,
+  seatShape,
   voteBreakdown,
   voteTotals,
 } from '@/lib/daily/hemicycle';
@@ -16,8 +20,6 @@ import { useMemo, useState } from 'react';
 
 // Other Fraktionen fade back while one is selected.
 const DIMMED_OPACITY = 0.18;
-
-const ABSENT_RING = '#A1A1AA';
 
 // Faction markers sit just outside the outer row, at the middle of the
 // faction's block, like the seat labels in a printed Sitzverteilung.
@@ -31,12 +33,6 @@ const MARKER_PAD = 0.015;
 // The score sits in the hollow centre, small enough to clear the inner row.
 const SCORE_FONT = 0.13;
 const SCORE_SUB_FONT = 0.075;
-
-// Fixed precision so the server-rendered SVG and the hydrating client agree
-// to the character; raw trig results can differ in their last digits.
-function coord(value: number): string {
-  return value.toFixed(4);
-}
 
 function FactionMarker({
   arc,
@@ -81,7 +77,7 @@ function FactionMarker({
         </text>
       ) : (
         <image
-          href={buildPartyImageUrl(arc.partyId)}
+          href={buildPartyImageUrl(arc.logoId)}
           x={coord(x + MARKER_PAD)}
           y={coord(y + MARKER_PAD)}
           width={MARKER_W - 2 * MARKER_PAD}
@@ -127,32 +123,20 @@ export function Hemicycle({ parties, className, selected, onSelect }: Props) {
       role="img"
       aria-label={label}
     >
-      {layout.seats.map((seat, i) => {
-        const absent = seat.vote === 'absent';
-        return (
-          // Pointer only: the Fraktion list under the chart is the keyboard path.
-          // biome-ignore lint/a11y/useKeyWithClickEvents: see above
-          // biome-ignore lint/nursery/noStaticElementInteractions: see above
-          <circle
-            // Seats have no identity beyond their position in the layout.
-            // biome-ignore lint/suspicious/noArrayIndexKey: stable per layout
-            key={i}
-            onClick={onSelect && (() => onSelect(seat.partyId))}
-            opacity={dimmed(seat.partyId) ? DIMMED_OPACITY : 1}
-            className={cn(onSelect && 'cursor-pointer')}
-            cx={coord(seat.x)}
-            cy={coord(-seat.y)}
-            r={coord(absent ? r * 0.8 : r)}
-            fill={
-              absent
-                ? '#FFFFFF'
-                : SEAT_FILLS[seat.vote as keyof typeof SEAT_FILLS]
-            }
-            stroke={absent ? ABSENT_RING : undefined}
-            strokeWidth={absent ? coord(r * 0.4) : undefined}
-          />
-        );
-      })}
+      {layout.seats.map((seat, i) => (
+        // Pointer only: the Fraktion list under the chart is the keyboard path.
+        // biome-ignore lint/a11y/useKeyWithClickEvents: see above
+        // biome-ignore lint/nursery/noStaticElementInteractions: see above
+        <circle
+          // Seats have no identity beyond their position in the layout.
+          // biome-ignore lint/suspicious/noArrayIndexKey: stable per layout
+          key={i}
+          onClick={onSelect && (() => onSelect(seat.partyId))}
+          opacity={dimmed(seat.partyId) ? DIMMED_OPACITY : 1}
+          className={cn(onSelect && 'cursor-pointer')}
+          {...seatShape(seat, r)}
+        />
+      ))}
 
       {layout.arcs
         .filter((arc) => !isUnaffiliated(arc.partyId))
@@ -272,5 +256,32 @@ export function PartyVoteBreakdown({
         ))}
       </ul>
     </section>
+  );
+}
+
+/** The readers' answers to "Wie hättest du abgestimmt?" as a small chamber,
+ * shown once the reader has answered themselves. */
+export function CommunityHemicycle({
+  accept,
+  reject,
+  className,
+}: {
+  accept: number;
+  reject: number;
+  className?: string;
+}) {
+  const layout = useMemo(() => layoutShare(accept, reject), [accept, reject]);
+  return (
+    <svg
+      viewBox="-1.05 -1.05 2.1 1.1"
+      className={cn('w-full', className)}
+      role="img"
+      aria-label={`Community: ${accept} annehmen, ${reject} ablehnen`}
+    >
+      {layout.seats.map((seat, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: stable per layout
+        <circle key={i} {...seatShape(seat, layout.seatRadius)} />
+      ))}
+    </svg>
   );
 }
