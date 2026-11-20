@@ -429,28 +429,47 @@ them after changing it.
 
 **Done:** the game, the switch, the status and closing screens, the intro,
 sharing, robustness, accessibility, analytics and the more-games question; the
-landing-page card on `/` and the header icon; the exporter;
-the 30 puzzles, reviewed in three batches, and their running order (see
-[puzzle-selection.md](puzzle-selection.md) for why each vote was picked).
+landing-page card on `/` and the header icon; the exporter; the 30 puzzles,
+reviewed in three batches, and their running order (see
+[puzzle-selection.md](puzzle-selection.md) for why each vote was picked). The
+chat card is built and switched off; the game is switched off and stays
+`noindex` until launch.
 
-**Next.**
+**Launch checklist.** In this order.
 
-1. *Review and test:* an independent code and content review and a local
-   test, then the branch as a draft pull request for the team to try.
-2. *The chat card,* built and switched off: enable it once the general chat
-   is in `develop`.
-3. *Launch:* indexing (`productionRobots`, canonical, sitemap) and the
-   production switch doc.
+1. *The chat card.* Only once the general chat is merged into `develop` and
+   `/chat` serves it (today `web/middleware.ts` redirects `/chat` to
+   `/election-chat`, which ignores `q` and `poll_id`):
+   - `web/lib/stimmts/chat-chips.ts`: `STIMMTS_CHAT_ENABLED = true`.
+   - `web/lib/stimmts/chat-answer.ts`: `CHAT_ANSWERS = 'general-chat'`, and
+     replace the local `GENERAL_CONTEXT_ID` with the general chat's own
+     constant.
+   - On a preview deployment, ask one real question per chip with a real
+     `poll_id`. Check how the general chat's anchor card shows a vote that
+     is only a `poll_id`: it may read "Abstimmung Nr. N" unless a feed item
+     matches.
+2. *The production switch.* Firestore console, production project, document
+   `system_status/stimmts`: `{enabled: true, launch_date: "YYYY-MM-DD"}`.
+   Never change `launch_date` once anyone has played. Then bust the cache tag
+   `stimmts-status` through `/api/revalidate`, or wait up to 5 minutes.
+3. *Indexing.* In `web/app/(wide)/stimmts/page.tsx` (`generateMetadata`),
+   replace `robots: 'noindex'` with `productionRobots` from
+   `web/lib/seo.ts` and add `alternates: { canonical: '/stimmts' }`. Add
+   `${BASE_URL}/stimmts` to `staticPages` in `web/app/sitemap.ts`. The
+   share image route keeps its `X-Robots-Tag: noindex`.
 
-**Judging the pilot.** Return rate, completion, shares and the answers to the more-games question over the 30
-days.
+(Written feedback has no form: nothing to configure.)
+
+**Judging the pilot.** Return rate, completion, shares and the answers to the
+more-games question over the 30 days.
 
 ## Risks and open questions
 
 - **Content quality.** Each briefing must be neutral and correct; it is the
   slowest part of the work.
-- **The chat link** depends on the general chat, and whether it reliably finds
-  a vote from 2025 or 2026 is untested.
+- **The chat card** depends on the general chat. Whether it reliably finds a
+  vote from 2025 or 2026 from its `poll_id` alone, and what its anchor card
+  shows for one, is untested until checklist step 1.
 - **Sharing on Instagram** is up to Instagram: a website cannot add an app to
   the share sheet.
 
