@@ -10,11 +10,15 @@ import {
 
 // No test reaches the network: each font loads, or fails, as the test says.
 const failing = new Set<string>();
+const requested: string[] = [];
 mock.module('@/lib/og/google-font', () => ({
-  loadGoogleFont: (spec: string) =>
-    failing.has(spec.split(':')[0])
+  loadGoogleFont: (spec: string) => {
+    const family = spec.split(':')[0];
+    requested.push(family);
+    return failing.has(family)
       ? Promise.reject(new Error('offline'))
-      : Promise.resolve(new ArrayBuffer(8)),
+      : Promise.resolve(new ArrayBuffer(8));
+  },
 }));
 
 type Route = typeof import('./route');
@@ -39,6 +43,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   failing.clear();
+  requested.length = 0;
   mock.restore();
 });
 
@@ -68,6 +73,16 @@ describe('share image route: fonts', () => {
     const response = await request(await freshRoute());
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  test('only a Papier image loads the serif font', async () => {
+    const route = await freshRoute();
+    await request(route, '&t=nacht');
+    expect(requested).not.toContain('Tinos');
+    await request(route);
+    expect(requested).not.toContain('Tinos');
+    await request(route, '&t=papier');
+    expect(requested).toContain('Tinos');
   });
 
   test('a failed serif font leaves the image cacheable', async () => {

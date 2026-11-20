@@ -79,7 +79,12 @@ export async function GET(request: Request) {
 
   // Without the fonts the image still draws, in next/og's own face, and is
   // not cached, so the next request tries the fonts again.
-  const [baseFonts, serif] = await Promise.all([loadFonts(), loadSerif()]);
+  // The serif is fetched only for the style that draws with it: every other
+  // request would wait on a font it never uses.
+  const [baseFonts, serif] = await Promise.all([
+    loadFonts(),
+    data.style === 'papier' ? loadSerif() : null,
+  ]);
   const fonts = baseFonts && (serif ? [...baseFonts, serif] : baseFonts);
   const { width, height } = SHARE_FORMATS[data.format];
   return new ImageResponse(
