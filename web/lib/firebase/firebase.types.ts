@@ -447,6 +447,32 @@ export type FeedItem = {
   content: { de: LocalizedContent } & Partial<
     Record<FeedLocale, LocalizedContent>
   >;
+  /** Bundestag procedures (DIP Vorgänge) the item is about; absent on items
+   * no procedures run has reached yet. */
+  procedure_ids?: string[];
+  procedures?: ProcedureSummary[];
+};
+
+/** Where a procedure stands, as feed items carry it
+ * (`wahlchat_common.procedures.ProcedureSummary`). */
+export type ProcedureSummary = {
+  vorgang_id: string;
+  titel: string;
+  vorgangstyp: string;
+  kind:
+    | 'legislation'
+    | 'motion'
+    | 'debate'
+    | 'questions'
+    | 'report'
+    | 'procedural';
+  beratungsstand: string | null;
+  latest_stage: string | null;
+  /** ISO day, `YYYY-MM-DD`. */
+  latest_stage_on: string | null;
+  stage_changed_on: string | null;
+  milestones: { date: string; chamber: 'BT' | 'BR' | 'BV' | 'EK'; name: string }[];
+  dip_url: string;
 };
 
 export type FeedEdition = {

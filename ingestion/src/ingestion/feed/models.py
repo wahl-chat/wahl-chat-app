@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ingestion.feed.parliaments import ParliamentId
 from ingestion.feed.topics import DigestTopic
+from wahlchat_common.procedures import ProcedureSummary
 
 
 class DigestVoteParty(BaseModel):
@@ -278,6 +279,10 @@ class FeedItem(BaseModel):
     # other text as it was written, so the card does not change from run to run.
     pending_positions: list[str] = Field(default_factory=list)
     position_attempts: int = 0
+    # The Bundestag procedures (DIP Vorgänge) the item is about, and where
+    # each stands; facts from the source, refreshed when a procedure moves.
+    procedure_ids: list[str] = Field(default_factory=list)
+    procedures: list[ProcedureSummary] = Field(default_factory=list)
     format_version: str = FEED_FORMAT_VERSION
     generated_at: datetime
 

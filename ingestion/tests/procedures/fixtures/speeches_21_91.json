@@ -1,0 +1,751 @@
+[
+{
+"key": "0167026b-bb32-5fad-b54c-5b217ad73cb8",
+"source": "op",
+"speaker_name": "Reza Asghari",
+"page": null,
+"order": "7656470"
+},
+{
+"key": "02b65849-5fb1-5ccd-b06b-8274117ab656",
+"source": "op",
+"speaker_name": "Julian Joswig",
+"page": null,
+"order": "7656518"
+},
+{
+"key": "05ac1421-d483-55c6-8e23-80917937d534",
+"source": "op",
+"speaker_name": "Esra Limbacher",
+"page": null,
+"order": "7656466"
+},
+{
+"key": "06e256b4-2df0-5807-9ebb-5d224b7db74a",
+"source": "op",
+"speaker_name": "Carl-Philipp Sassenrath",
+"page": null,
+"order": "7656439"
+},
+{
+"key": "08a30a2a-a742-5afd-a418-6637080fe14b",
+"source": "op",
+"speaker_name": "Katherina Reiche",
+"page": null,
+"order": "7656503"
+},
+{
+"key": "09fd3747-1c96-5e69-91c7-a780582d49ed",
+"source": "op",
+"speaker_name": "Katrin Uhlig",
+"page": null,
+"order": "7656506"
+},
+{
+"key": "0be23162-bee1-54a2-9c03-70c1a01f62e8",
+"source": "op",
+"speaker_name": "Ruben Rupp",
+"page": null,
+"order": "7656483"
+},
+{
+"key": "0e3019c1-9fcf-5736-b234-8144f5cb460b",
+"source": "op",
+"speaker_name": "Karsten Wildberger",
+"page": null,
+"order": "7656482"
+},
+{
+"key": "119e6a8f-09a6-55e7-bad4-7048e3a3526f",
+"source": "op",
+"speaker_name": "Christian Haase",
+"page": null,
+"order": "7656416"
+},
+{
+"key": "11dc292d-fd0b-5be6-b5e1-de8f308a3ead",
+"source": "op",
+"speaker_name": "Sergej Minich",
+"page": null,
+"order": "7656488"
+},
+{
+"key": "14e9abeb-5d75-553c-91a1-c60e6580efa5",
+"source": "op",
+"speaker_name": "Henning Rehbaum",
+"page": null,
+"order": "7656443"
+},
+{
+"key": "15aad307-700e-5e43-8f57-d6e47f705793",
+"source": "op",
+"speaker_name": "Sascha Wagner",
+"page": null,
+"order": "7656486"
+},
+{
+"key": "15b44968-67b8-5c3d-afad-f7650672cf91",
+"source": "op",
+"speaker_name": "Martin Gerster",
+"page": null,
+"order": "7656484"
+},
+{
+"key": "1a48bc3d-c506-5018-8c1e-f59de9ffb006",
+"source": "op",
+"speaker_name": "Armand Zorn",
+"page": null,
+"order": "7656489"
+},
+{
+"key": "1c88d33a-ed74-593b-acf7-ce9c389cf602",
+"source": "dip",
+"speaker_name": "Dr. Carsten Linnemann",
+"page": "11252",
+"order": null
+},
+{
+"key": "222a5b94-1493-509b-9e13-ed2557b7c8ea",
+"source": "op",
+"speaker_name": "Elisabeth Kaiser",
+"page": null,
+"order": "7656422"
+},
+{
+"key": "2d322cda-2fe4-58cc-9996-4e01a9144d28",
+"source": "op",
+"speaker_name": "Stefan Seidler",
+"page": null,
+"order": "7656447"
+},
+{
+"key": "3022d451-d098-5f4d-bb5d-73097dd7daf8",
+"source": "op",
+"speaker_name": "Daniel Bettermann",
+"page": null,
+"order": "7656521"
+},
+{
+"key": "3848335a-116c-5197-8256-f3d60fe7ce2f",
+"source": "op",
+"speaker_name": "Frauke Heiligenstadt",
+"page": null,
+"order": "7656426"
+},
+{
+"key": "3903197d-8592-546f-9287-f2bc1d91cc5a",
+"source": "op",
+"speaker_name": "Rainer Kraft",
+"page": null,
+"order": "7656511"
+},
+{
+"key": "41a0d551-c96c-5627-b061-d7a1e3acc585",
+"source": "op",
+"speaker_name": "Ralph Brinkhaus",
+"page": null,
+"order": "7656487"
+},
+{
+"key": "4a48bb00-2819-5077-889d-ca1854260fb5",
+"source": "op",
+"speaker_name": "Jorrit Bosch",
+"page": null,
+"order": "7656438"
+},
+{
+"key": "4b111d4a-75b2-5018-a902-40a637ad932a",
+"source": "op",
+"speaker_name": "Mathias Middelberg",
+"page": null,
+"order": "7656412"
+},
+{
+"key": "4d5dacf8-32a0-544e-adef-3071ad1cb8aa",
+"source": "op",
+"speaker_name": "Franziska Hoppermann",
+"page": null,
+"order": "7656497"
+},
+{
+"key": "4fdd90a6-e040-5162-8024-81b9fe2f3b56",
+"source": "op",
+"speaker_name": "Erhard Brucker",
+"page": null,
+"order": "7656522"
+},
+{
+"key": "519b8f73-e3d8-528a-9087-35a4323f5ecc",
+"source": "op",
+"speaker_name": "Sebastian Schäfer",
+"page": null,
+"order": "7656413"
+},
+{
+"key": "55a76da8-e2d7-59d9-b521-5d039db343d8",
+"source": "op",
+"speaker_name": "Carsten Schneider",
+"page": null,
+"order": "7656454"
+},
+{
+"key": "5882934c-fe45-5ed9-a5b0-54d3503a8f64",
+"source": "op",
+"speaker_name": "Stephan Stracke",
+"page": null,
+"order": "7656434"
+},
+{
+"key": "5900607d-b24e-57c7-9ee7-e2163931df39",
+"source": "op",
+"speaker_name": "Konrad Körner",
+"page": null,
+"order": "7656494"
+},
+{
+"key": "59aea05b-c87a-5ad1-84b8-d278127dd012",
+"source": "op",
+"speaker_name": "Dietmar Bartsch",
+"page": null,
+"order": "7656415"
+},
+{
+"key": "5a0866b5-d3ca-596f-8c48-e5ca5acccb94",
+"source": "op",
+"speaker_name": "Kathrin Michel",
+"page": null,
+"order": "7656418"
+},
+{
+"key": "5f0852e5-8168-5170-999b-1dbc80e38d50",
+"source": "op",
+"speaker_name": "Lorenz Gösta Beutin",
+"page": null,
+"order": "7656458"
+},
+{
+"key": "6098be27-ea78-587b-9a23-bf6f94e2cb60",
+"source": "op",
+"speaker_name": "Tarek Al-Wazir",
+"page": null,
+"order": "7656432"
+},
+{
+"key": "60b91653-6aab-5e72-ab15-52f1e7e372a2",
+"source": "op",
+"speaker_name": "Matthias Gastel",
+"page": null,
+"order": "7656437"
+},
+{
+"key": "60c841d2-8ced-53ae-8abb-f50d926d59b6",
+"source": "op",
+"speaker_name": "Wolfgang Wiehle",
+"page": null,
+"order": "7656421"
+},
+{
+"key": "64040112-d203-5879-92f0-ea273c44c242",
+"source": "op",
+"speaker_name": "Mechthilde Wittmann",
+"page": null,
+"order": "7656500"
+},
+{
+"key": "6458d8dd-4eca-50a0-af20-58c6fcf661b6",
+"source": "op",
+"speaker_name": "Reza Asghari",
+"page": null,
+"order": "7656468"
+},
+{
+"key": "66faef8f-f2fc-5fd8-9f58-a1c828b180dd",
+"source": "op",
+"speaker_name": "Paul Schmidt",
+"page": null,
+"order": "7656467"
+},
+{
+"key": "66fb687d-3187-53db-8973-dbc8a32f0fe6",
+"source": "op",
+"speaker_name": "Enrico Komning",
+"page": null,
+"order": "7656516"
+},
+{
+"key": "6722215d-f167-5a97-b128-b171f36a9516",
+"source": "op",
+"speaker_name": "Michael Kießling",
+"page": null,
+"order": "7656515"
+},
+{
+"key": "6d01fe17-1f68-50f5-9d42-c16896574817",
+"source": "op",
+"speaker_name": "Violetta Bock",
+"page": null,
+"order": "7656473"
+},
+{
+"key": "6df7cdec-4660-5959-9354-18b683c0593b",
+"source": "op",
+"speaker_name": "Georg Schroeter",
+"page": null,
+"order": "7656455"
+},
+{
+"key": "6e62e9b4-6015-5fca-82a9-36df871f1115",
+"source": "op",
+"speaker_name": "Isabel Cademartori",
+"page": null,
+"order": "7656431"
+},
+{
+"key": "6ffe9cc1-f649-5072-a7b1-2ad2d700ea37",
+"source": "op",
+"speaker_name": "Thomas Gebhart",
+"page": null,
+"order": "7656476"
+},
+{
+"key": "709785ac-69dd-518e-ba38-164a9730e82e",
+"source": "op",
+"speaker_name": "Karsten Hilse",
+"page": null,
+"order": "7656462"
+},
+{
+"key": "735829ee-28e1-57fd-8866-8a36467f186e",
+"source": "dip",
+"speaker_name": "Lars Klingbeil",
+"page": "11253",
+"order": null
+},
+{
+"key": "73c55bf8-23ac-5556-bc8d-418f8723fafe",
+"source": "op",
+"speaker_name": "Daniel Walter",
+"page": null,
+"order": "7656505"
+},
+{
+"key": "749d2799-8162-5c7d-b625-6feac8c97200",
+"source": "op",
+"speaker_name": "Rainer Kraft",
+"page": null,
+"order": "7656444"
+},
+{
+"key": "76db1804-7c1b-53ce-988c-55ff06fb7c32",
+"source": "op",
+"speaker_name": "Michael Kellner",
+"page": null,
+"order": "7656513"
+},
+{
+"key": "778baf87-6236-58a5-8b54-e6ee9e520898",
+"source": "op",
+"speaker_name": "Nina Scheer",
+"page": null,
+"order": "7656510"
+},
+{
+"key": "7c9d7e91-cada-535c-b021-9aad87c37883",
+"source": "op",
+"speaker_name": "Sebastian Roloff",
+"page": null,
+"order": "7656517"
+},
+{
+"key": "7ca4f4cf-3283-5bca-a448-2ba3951feb31",
+"source": "op",
+"speaker_name": "Karsten Hilse",
+"page": null,
+"order": "7656469"
+},
+{
+"key": "7e7c0aed-4b94-5482-93e8-713b40765f4d",
+"source": "op",
+"speaker_name": "Sebastian Maack",
+"page": null,
+"order": "7656491"
+},
+{
+"key": "7eb790fe-28df-5126-ab2c-0e4d338529cc",
+"source": "op",
+"speaker_name": "Steffen Bilger",
+"page": null,
+"order": "7656429"
+},
+{
+"key": "80353313-4311-5a14-bf53-61080873e9c6",
+"source": "op",
+"speaker_name": "Georg Schroeter",
+"page": null,
+"order": "7656417"
+},
+{
+"key": "8544a7a4-b0bf-56e6-8e60-672a0940cb98",
+"source": "op",
+"speaker_name": "Jeanne Dillschneider",
+"page": null,
+"order": "7656492"
+},
+{
+"key": "868a322c-d9db-5d07-8e41-020e3fdc7e39",
+"source": "op",
+"speaker_name": "Parsa Marvi",
+"page": null,
+"order": "7656498"
+},
+{
+"key": "88e2fecd-681d-5456-92f0-e629b0fb56a9",
+"source": "op",
+"speaker_name": "Alexis L. Giersch",
+"page": null,
+"order": "7656449"
+},
+{
+"key": "8ab3ac60-dd4b-591e-96b9-4d66ee9ca907",
+"source": "op",
+"speaker_name": "Wolfgang Wiehle",
+"page": null,
+"order": "7656430"
+},
+{
+"key": "8be03406-68ad-5826-a6b6-e675908ac598",
+"source": "op",
+"speaker_name": "Jan-Niclas Gesenhues",
+"page": null,
+"order": "7656464"
+},
+{
+"key": "8e1b538c-752e-5b5b-8e4b-727946cf2710",
+"source": "op",
+"speaker_name": "Florian Oßner",
+"page": null,
+"order": "7656451"
+},
+{
+"key": "8ec14108-d362-5de6-9a91-c651019d161a",
+"source": "op",
+"speaker_name": "Uwe Schmidt",
+"page": null,
+"order": "7656448"
+},
+{
+"key": "8f76f1df-5439-5e76-bc28-ca451fd94bf8",
+"source": "dip",
+"speaker_name": "Steffen Bilger",
+"page": "11252",
+"order": null
+},
+{
+"key": "8fab801a-64d4-5253-aecf-58e69a0b4569",
+"source": "op",
+"speaker_name": "Ricarda Lang",
+"page": null,
+"order": "7656485"
+},
+{
+"key": "90a0bb2c-f9fe-5502-8e13-4dcfbd985ed3",
+"source": "op",
+"speaker_name": "Claudia Müller",
+"page": null,
+"order": "7656419"
+},
+{
+"key": "9670012a-6060-525e-81e5-c777afd82109",
+"source": "op",
+"speaker_name": "Sascha Wagner",
+"page": null,
+"order": "7656433"
+},
+{
+"key": "971aa740-9db0-5992-bc52-68ee7b7d80a7",
+"source": "op",
+"speaker_name": "Julia Schneider",
+"page": null,
+"order": "7656472"
+},
+{
+"key": "98b344e3-0479-5b48-8d35-4487f31436ec",
+"source": "op",
+"speaker_name": "Donata Vogtschmidt",
+"page": null,
+"order": "7656493"
+},
+{
+"key": "9a2dc059-7d6f-5a2d-91f7-10c338a1f942",
+"source": "op",
+"speaker_name": "Christoph Schmid",
+"page": null,
+"order": "7656461"
+},
+{
+"key": "9c4e891f-656d-5053-ae52-fa959e569c17",
+"source": "op",
+"speaker_name": "Mark Helfrich",
+"page": null,
+"order": "7656456"
+},
+{
+"key": "9cce93d2-f7c7-5fff-803f-dd429ab1d8d3",
+"source": "op",
+"speaker_name": "Carl-Philipp Sassenrath",
+"page": null,
+"order": "7656526"
+},
+{
+"key": "9f7f2e5d-8092-5ec4-ba94-3717202175fb",
+"source": "op",
+"speaker_name": "Malte Kaufmann",
+"page": null,
+"order": "7656524"
+},
+{
+"key": "a0c43cee-4eb2-5599-84f3-e9542ea3efde",
+"source": "op",
+"speaker_name": "Nina Scheer",
+"page": null,
+"order": "7656512"
+},
+{
+"key": "a2b38dd6-3ecf-5b94-a145-bef4074efc85",
+"source": "op",
+"speaker_name": "Marcus Bühl",
+"page": null,
+"order": "7656435"
+},
+{
+"key": "a341ef8d-3afb-5955-8a52-fe18f3992439",
+"source": "op",
+"speaker_name": "Michael Blos",
+"page": null,
+"order": "7656477"
+},
+{
+"key": "a5b872ad-5030-5d9a-aabb-c9ddaca72055",
+"source": "op",
+"speaker_name": "Hans Koller",
+"page": null,
+"order": "7656519"
+},
+{
+"key": "a5da2e45-9f61-5bcc-9219-f2b3695ae987",
+"source": "op",
+"speaker_name": "Christoph Schmid",
+"page": null,
+"order": "7656459"
+},
+{
+"key": "a5f1bbaf-baf5-551c-84d4-9232b9d7ffe4",
+"source": "op",
+"speaker_name": "Thorsten Rudolph",
+"page": null,
+"order": "7656414"
+},
+{
+"key": "aca8d7d3-69a2-5d21-9daa-669b72e11f90",
+"source": "op",
+"speaker_name": "Klaus Wiener",
+"page": null,
+"order": "7656508"
+},
+{
+"key": "ad3229da-add1-5d5f-8101-ff242302f4a1",
+"source": "op",
+"speaker_name": "Julia Klöckner",
+"page": null,
+"order": "7656404"
+},
+{
+"key": "b0b2c322-8ac8-5aa8-8ae2-12b0164a4cc3",
+"source": "op",
+"speaker_name": "Florian Oßner",
+"page": null,
+"order": "7656420"
+},
+{
+"key": "b0e2c51d-ca00-536b-8bf1-8aa7f8408a39",
+"source": "op",
+"speaker_name": "Marcel Queckemeyer",
+"page": null,
+"order": "7656475"
+},
+{
+"key": "b4f47afc-9faf-5ab5-88d7-b042de5894f0",
+"source": "op",
+"speaker_name": "Uwe Feiler",
+"page": null,
+"order": "7656479"
+},
+{
+"key": "ba841838-c435-5c97-a0d6-d4d614b77b29",
+"source": "op",
+"speaker_name": "Christian Moser",
+"page": null,
+"order": "7656463"
+},
+{
+"key": "baba0c20-7b96-50c1-9394-5bea3f769626",
+"source": "op",
+"speaker_name": "Anna Aeikens",
+"page": null,
+"order": "7656474"
+},
+{
+"key": "bae33c77-bdc3-5559-9e56-ea955257188a",
+"source": "op",
+"speaker_name": "Michael Espendiller",
+"page": null,
+"order": "7656411"
+},
+{
+"key": "bca33860-38dd-5747-8d9c-729f91fd5591",
+"source": "op",
+"speaker_name": "Anja Troff-Schaffarzyk",
+"page": null,
+"order": "7656441"
+},
+{
+"key": "bd40070a-b88b-5203-9104-5a77e8bdadcd",
+"source": "op",
+"speaker_name": "Matthias Hiller",
+"page": null,
+"order": "7656424"
+},
+{
+"key": "bd4bd8ad-c1f5-5e58-b512-cb5545419192",
+"source": "op",
+"speaker_name": "Wolfgang Wiehle",
+"page": null,
+"order": "7656509"
+},
+{
+"key": "be9668db-bc06-5e85-abfd-49fe2f06cad8",
+"source": "op",
+"speaker_name": "Jeanne Dillschneider",
+"page": null,
+"order": "7656490"
+},
+{
+"key": "c31ffd8e-e848-5919-899e-d19c831991c0",
+"source": "op",
+"speaker_name": "Stefan Henze",
+"page": null,
+"order": "7656440"
+},
+{
+"key": "c9113850-5dd4-5740-9305-67f05f123053",
+"source": "op",
+"speaker_name": "Leif-Erik Holm",
+"page": null,
+"order": "7656504"
+},
+{
+"key": "cbe42c76-3dad-55f2-98b2-81ccc768ce98",
+"source": "op",
+"speaker_name": "Steffen Kotré",
+"page": null,
+"order": "7656520"
+},
+{
+"key": "d2a9227c-114e-5020-950b-7bbd70fafe08",
+"source": "op",
+"speaker_name": "Carolin Wagner",
+"page": null,
+"order": "7656496"
+},
+{
+"key": "d80672a2-cdcc-5c69-adda-64530496f934",
+"source": "op",
+"speaker_name": "Janine Wissler",
+"page": null,
+"order": "7656507"
+},
+{
+"key": "e043a9f8-e506-556f-a029-4ef2258e4d59",
+"source": "op",
+"speaker_name": "Henning Rehbaum",
+"page": null,
+"order": "7656445"
+},
+{
+"key": "e1af09cd-cd85-5400-a73d-0895708b961b",
+"source": "op",
+"speaker_name": "Omid Nouripour",
+"page": null,
+"order": "7656471"
+},
+{
+"key": "e2bf5454-b24d-504e-9cf3-375582b2bc1f",
+"source": "op",
+"speaker_name": "Fabian Fahl",
+"page": null,
+"order": "7656465"
+},
+{
+"key": "e2c694c6-23c6-5ead-b80c-f5e54b7eb960",
+"source": "op",
+"speaker_name": "René Bochmann",
+"page": null,
+"order": "7656446"
+},
+{
+"key": "e695592d-f1f7-5f94-97d2-9c2e41a01da9",
+"source": "op",
+"speaker_name": "Jörg Cezanne",
+"page": null,
+"order": "7656514"
+},
+{
+"key": "e9ef5c01-79b3-59dc-ac2e-333c528028ef",
+"source": "op",
+"speaker_name": "Katharina Beck",
+"page": null,
+"order": "7656423"
+},
+{
+"key": "f2b7069f-fc57-5b2d-8f44-64dc39bb1b6b",
+"source": "op",
+"speaker_name": "Claudia Müller",
+"page": null,
+"order": "7656457"
+},
+{
+"key": "f90391d2-db95-5748-b51f-c4c8cdb51e56",
+"source": "op",
+"speaker_name": "Carl-Philipp Sassenrath",
+"page": null,
+"order": "7656523"
+},
+{
+"key": "f9d37ae0-816d-5a21-9d32-2e6490d0641b",
+"source": "op",
+"speaker_name": "Truels Reichardt",
+"page": null,
+"order": "7656436"
+},
+{
+"key": "fa3a91e2-e839-5eb9-b7d0-7c96c3272071",
+"source": "op",
+"speaker_name": "Paula Piechotta",
+"page": null,
+"order": "7656442"
+},
+{
+"key": "fc07c337-388e-5d51-b210-b4f7347cec9a",
+"source": "op",
+"speaker_name": "Rainer Kraft",
+"page": null,
+"order": "7656460"
+},
+{
+"key": "ffc2197d-779f-5faa-9804-c37a96c98d20",
+"source": "op",
+"speaker_name": "Robin Jünger",
+"page": null,
+"order": "7656495"
+}
+]

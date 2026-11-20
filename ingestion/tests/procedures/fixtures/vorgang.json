@@ -1,0 +1,549 @@
+[
+ {
+  "id": "338366",
+  "abstract": "Gesetzliche Anpassungen für die umfangreichen Konsolidierungsmaßnahmen im Regierungsentwurf des Bundeshaushalts 2027: Erhöhung der Steuersätze für Alkoholerzeugnisse, Ermöglichung einer einzelplanbezogenen Bestellung von Beauftragten für den Haushalt sowie der Verwendung von Ident-Nummern zur Aufrechnung im Haushaltsvollzug, Wertgrenze von einer Million Euro für eine Einwilligungserfordernis des BMF bei bestimmten Maßnahmen, Anpassung der Tilgungsregelung für die Bundeswehrfinanzierung, Vereinnahmung von Erlösen aus der Versteigerung von Emissionszertifikaten im Klima- und Transformationsfonds sowie im Bundeshaushalt, Abschaffung des Sofortzuschlags im Kinderzuschlag, Minderung beim Bundeszuschuss zur Gesetzlichen Rentenversicherung, Änderungen bei Sozialleistungs-Regelbedarfen;<br />\r\nÄnderung von 9 Gesetzen; Verordnungsermächtigung",
+  "beratungsstand": "Beschlussempfehlung liegt vor",
+  "vorgangstyp": "Gesetzgebung",
+  "gesta": "D050",
+  "sachgebiet": [
+   "Öffentliche Finanzen, Steuern und Abgaben"
+  ],
+  "typ": "Vorgang",
+  "wahlperiode": 21,
+  "zustimmungsbeduerftigkeit": [
+   "Nein, laut Gesetzentwurf (Drs 442/26 (bes.eilbed.))"
+  ],
+  "initiative": [
+   "Bundesregierung"
+  ],
+  "aktualisiert": "2026-11-16T17:13:52+01:00",
+  "deskriptor": [
+   {
+    "fundstelle": false,
+    "name": "Alkoholsteuer",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Alkoholsteuergesetz",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Alkopopsteuergesetz",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": true,
+    "name": "Bundeshaushalt 2027",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Bundeshaushaltsordnung",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Bundeskindergeldgesetz",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Bundeswehrfinanzierungs- und sondervermögensgesetz",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Bundeszuschuss",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Emissionshandel",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Gesetzliche Rentenversicherung",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": true,
+    "name": "Haushaltsbegleitgesetz 2027",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Haushaltskonsolidierung",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Haushaltsrecht",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Kindergeld",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Klima- und Transformationsfonds",
+    "typ": "Institutionen"
+   },
+   {
+    "fundstelle": false,
+    "name": "Klima- und Transformationsfondsgesetz",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Regelbedarfsstufen-Fortschreibungsverordnung",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Regelsatz",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Schaumwein- und Zwischenerzeugnissteuergesetz",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Schaumweinsteuer",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Sondervermögen",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Sozialgesetzbuch VI",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Sozialgesetzbuch XII",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Sozialhilferecht",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Verteidigungsausgaben",
+    "typ": "Sachbegriffe"
+   }
+  ],
+  "titel": "Haushaltsbegleitgesetz 2027",
+  "datum": "2026-11-16"
+ },
+ {
+  "id": "341758",
+  "beratungsstand": "Noch nicht beraten",
+  "vorgangstyp": "Antrag",
+  "sachgebiet": [
+   "Gesellschaftspolitik, soziale Gruppen",
+   "Innere Sicherheit"
+  ],
+  "typ": "Vorgang",
+  "wahlperiode": 21,
+  "initiative": [
+   "Fraktion DIE LINKE"
+  ],
+  "aktualisiert": "2026-11-16T17:37:12+01:00",
+  "deskriptor": [
+   {
+    "fundstelle": false,
+    "name": "Datenerhebung",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Ermittlungsverfahren",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Femizid",
+    "typ": "Freier Deskriptor"
+   },
+   {
+    "fundstelle": true,
+    "name": "Frau",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Frauenhaus",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Gesetzgebung",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Gewaltschutz",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Gewalttäter",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Häusliche Gewalt",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Kriminalprävention",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Mädchen",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": true,
+    "name": "Tötungsdelikt",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Verbrechensopfer",
+    "typ": "Sachbegriffe"
+   }
+  ],
+  "titel": "Femizide in Deutschland beenden",
+  "datum": "2026-11-13"
+ },
+ {
+  "id": "341570",
+  "vorgangstyp": "Vereinbarte Debatte",
+  "sachgebiet": [
+   "Gesellschaftspolitik, soziale Gruppen",
+   "Innere Sicherheit",
+   "Recht"
+  ],
+  "typ": "Vorgang",
+  "wahlperiode": 21,
+  "aktualisiert": "2026-11-13T12:07:06+01:00",
+  "deskriptor": [
+   {
+    "fundstelle": true,
+    "name": "Frau",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": true,
+    "name": "Gewalt",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Gewaltkriminalität",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": true,
+    "name": "Gewaltprävention",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Gewaltschutz",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Gleichstellung der Geschlechter",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Häusliche Gewalt",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Sexualdelikt",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Strafverfolgung",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Verbrechensopfer",
+    "typ": "Sachbegriffe"
+   }
+  ],
+  "titel": "Orange Day - Frauen schützen, Gewalt stoppen",
+  "datum": "2026-11-11"
+ },
+ {
+  "id": "341723",
+  "beratungsstand": "Beantwortet",
+  "vorgangstyp": "Schriftliche Frage",
+  "typ": "Vorgang",
+  "wahlperiode": 21,
+  "aktualisiert": "2026-11-16T14:23:31+01:00",
+  "deskriptor": [
+   {
+    "fundstelle": true,
+    "name": "Führungskraft",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": true,
+    "name": "Generalversammlung der Vereinten Nationen",
+    "typ": "Institutionen"
+   }
+  ],
+  "titel": "Teilnahme der Leitungsebene des Auswärtigen Amts bei der UN-Generalversammlung",
+  "datum": "2026-10-09"
+ },
+ {
+  "id": "320784",
+  "abstract": "Erweiterung des fiskalischen Spielraums zur weiteren Stärkung der Bündnis- und Verteidigungsfähigkeit der Bundeswehr durch eine limitierte Bereichsausnahme im Rahmen der Schuldenregel, Abzug der ein Prozent des nominalen BIP übersteigenden Kreditaufnahme für Verteidigungsausgaben von dem bei der Schuldenbremse zu berücksichtigenden Betrag; zusätzlicher struktureller Verschuldungsspielraum von 0,35 Prozent des nominalen BIP für die Ländergesamtheit unabhängig von der konjunkturellen Lage; Ermächtigung des Bundes zur Errichtung eines auf zehn Jahre befristeten, nicht der Schuldenbremse unterliegenden Sondervermögens mit eigener Kreditermächtigung bis zu 500 Mrd Euro für Investitionen in die gesamtstaatliche Infrastruktur als Basis für nachhaltiges Wirtschaftswachstum;<br />\r\nÄnderung Art. 109 und 115 sowie Einfügung Art. 143h Grundgesetz<br />\r\n<br />\r\n<strong>Beschlussempfehlung des Ausschusses:</strong> Erweiterung der nicht der Schuldenbremse unterliegenden Verteidigungsausgaben um Ausgaben für Zivil- und Bevölkerungsschutz, Nachrichtendienste, Schutz der informationstechnischen Systeme und Hilfe für völkerrechtswidrig angegriffene Staaten; Festlegung der Zusätzlichkeit der aus dem Sondervermögen finanzierten Infrastrukturinvestitionen, Ausweitung der Laufzeit auf zwölf Jahre sowie der Zweckbestimmung auf die Erreichung der Klimaneutralität bis 2045, Zuführungen in den Klima- und Transformationsfonds in Höhe von 100 Mrd Euro<br />\r\n<br />\r\nBezug: Haushaltsgesetz 2025 s. GESTA 21. WP GESTA D005 ; Gesetz zur Ausführung von Artikel 109 Absatz 3 Satz 6 und Satz 7 des Grundgesetzes und zur Änderung anderer Gesetze s. GESTA 21. WP GESTA D008 ; Länder-und-Kommunal-Infrastrukturfinanzierungsgesetz s. GESTA 21. WP GESTA D007 ; Gesetz zur Errichtung eines Sondervermögens Infrastruktur und Klimaneutralität s. GESTA 21. WP GESTA D010 ; Haushaltsbegleitgesetz 2025 s. GESTA 21. WP GESTA D009 ; Erstes Gesetz zur Änderung des Sanierungshilfengesetzes s. GESTA 21. WP D013",
+  "beratungsstand": "Verkündet",
+  "vorgangstyp": "Gesetzgebung",
+  "gesta": "D080",
+  "archiv": "XX/324",
+  "sachgebiet": [
+   "Verteidigung",
+   "Öffentliche Finanzen, Steuern und Abgaben"
+  ],
+  "typ": "Vorgang",
+  "wahlperiode": 20,
+  "zustimmungsbeduerftigkeit": [
+   "Ja, laut Gesetzentwurf (Drs 20/15096)",
+   "Ja, laut Verkündung (BGBl I)"
+  ],
+  "initiative": [
+   "Fraktion der CDU/CSU",
+   "Fraktion der SPD"
+  ],
+  "aktualisiert": "2025-08-19T17:38:04+02:00",
+  "vorgang_verlinkung": [
+   {
+    "verweisung": "Entschließungsantrag der Fraktionen SPD, CDU/CSU und B90/GR",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320843",
+    "wahlperiode": 20
+   },
+   {
+    "verweisung": "Entschließungsantrag der Fraktion der FDP",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320845",
+    "wahlperiode": 20
+   },
+   {
+    "verweisung": "Entschließungsantrag der Fraktion der FDP",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320842",
+    "wahlperiode": 20
+   },
+   {
+    "verweisung": "Entschließungsantrag der Gruppe Die Linke",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320844",
+    "wahlperiode": 20
+   },
+   {
+    "verweisung": "Entschließungsantrag der Gruppe BSW",
+    "titel": "Entschließungsantrag zum Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+    "id": "320829",
+    "wahlperiode": 20
+   }
+  ],
+  "verkuendung": [
+   {
+    "jahrgang": "2025",
+    "heftnummer": "94",
+    "ausfertigungsdatum": "2025-03-22",
+    "verkuendungsdatum": "2025-03-24",
+    "einleitungstext": "Gesetz",
+    "pdf_url": "https://www.recht.bund.de/eli/bund/BGBl_1/2025/94",
+    "verkuendungsblatt_bezeichnung": "Bundesgesetzblatt Teil I",
+    "verkuendungsblatt_kuerzel": "BGBl I",
+    "fundstelle": "BGBl I 2025, 94"
+   }
+  ],
+  "inkrafttreten": [
+   {
+    "datum": "2025-03-25"
+   }
+  ],
+  "deskriptor": [
+   {
+    "fundstelle": false,
+    "name": "Angriffskrieg",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Bundeshaushalt",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Bundesschulden",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Bundeswehr",
+    "typ": "Institutionen"
+   },
+   {
+    "fundstelle": true,
+    "name": "Grundgesetz",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Grundgesetz Art. 109",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Grundgesetz Art. 115",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Grundgesetz Art. 143h",
+    "typ": "Rechtsmaterialien"
+   },
+   {
+    "fundstelle": false,
+    "name": "Haushaltsrecht",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Informations- und Kommunikationstechnik",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Informationssicherheit",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Infrastruktur",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Investitionshaushalt",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Klima- und Transformationsfonds",
+    "typ": "Institutionen"
+   },
+   {
+    "fundstelle": false,
+    "name": "Klimaneutralität",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Klimaschutz",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Kredit",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Landesschulden",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Militärhilfe",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Nachrichtendienst",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Nettokreditaufnahme",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": true,
+    "name": "Schuldenbremse",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Sicherheitspolitik",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Sondervermögen",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Sondervermögen Infrastruktur und Klimaneutralität",
+    "typ": "Institutionen"
+   },
+   {
+    "fundstelle": false,
+    "name": "Verteidigungsausgaben",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Verteidigungspolitik",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Wachstumspolitik",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Zivilschutz",
+    "typ": "Sachbegriffe"
+   },
+   {
+    "fundstelle": false,
+    "name": "Öffentliche Investition",
+    "typ": "Sachbegriffe"
+   }
+  ],
+  "titel": "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)",
+  "datum": "2025-03-21"
+ }
+]
