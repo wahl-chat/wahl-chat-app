@@ -95,9 +95,9 @@ function ShareButton({
         <PillButton
           onClick={handleClick}
           className={cn(
-            // 44px tall and about 156px wide: beside "Stil ändern" the pair
-            // fits one row at 375px.
-            textOnly && 'h-11 px-[18px] font-semibold',
+            // 44px tall and about 150px wide at 16px text: beside "Stil
+            // ändern" the pair fits one row at 375px.
+            textOnly && 'h-11 px-[18px] text-base font-semibold',
             className,
           )}
         >
