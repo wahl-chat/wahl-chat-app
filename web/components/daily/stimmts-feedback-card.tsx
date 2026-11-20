@@ -89,19 +89,6 @@ function StimmtsFeedbackCard() {
     return () => clearTimeout(timer);
   }, [answered]);
 
-  useEffect(() => {
-    if (!shown || !visible) {
-      return;
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        close();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [shown, visible, close]);
-
   if (!shown || !visible) {
     return null;
   }
@@ -113,8 +100,16 @@ function StimmtsFeedbackCard() {
   };
 
   return (
+    // Escape is handled here, not on window: it only counts when focus is in
+    // the card, so closing another dialog never dismisses a question the
+    // reader has not seen.
     <section
       aria-label="Kurze Frage zu Stimmt’s?"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          close();
+        }
+      }}
       className={cn(
         'daily-theme fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-[400px] animate-stimmts-screen flex-col gap-3 p-4 shadow-lg motion-reduce:animate-none',
         CARD_SURFACE,
