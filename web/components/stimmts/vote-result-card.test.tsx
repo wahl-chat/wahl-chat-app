@@ -29,7 +29,27 @@ describe('VoteResultCard', () => {
   });
 
   it('links its source', () => {
-    expect(markup).toContain('Quelle: Abgeordnetenwatch');
     expect(markup).toContain(TANKRABATT_PUZZLE.source.url);
+  });
+
+  it('shows Abgeordnetenwatch by its logo, in both variants', () => {
+    expect(markup).toContain('Quelle');
+    expect(markup).not.toContain('Quelle: ');
+    expect(markup).toContain('abgeordnetenwatch.png');
+    expect(markup).toContain('abgeordnetenwatch-dark.png');
+  });
+
+  it('names any other source', () => {
+    const other = renderToStaticMarkup(
+      <VoteResultCard
+        puzzle={{
+          ...TANKRABATT_PUZZLE,
+          source: { label: 'Bundestag', url: 'https://www.bundestag.de/x' },
+        }}
+        onOpen={() => {}}
+      />,
+    );
+    expect(other).toContain('Quelle: Bundestag');
+    expect(other).not.toContain('abgeordnetenwatch.png');
   });
 });

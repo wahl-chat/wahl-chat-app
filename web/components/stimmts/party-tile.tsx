@@ -6,6 +6,7 @@ type Props = {
   partyId: string;
   /** `responsive` is `sm` on a phone and `md` from md up. */
   size?: 'md' | 'sm' | 'responsive';
+  className?: string;
 };
 
 const TILE_SIZE = {
@@ -15,7 +16,7 @@ const TILE_SIZE = {
 } as const;
 
 /** The party's own logo on its colour tile, as on the chamber's markers. */
-function PartyTile({ partyId, size = 'md' }: Props) {
+function PartyTile({ partyId, size = 'md', className }: Props) {
   return (
     <span
       aria-hidden
@@ -23,6 +24,7 @@ function PartyTile({ partyId, size = 'md' }: Props) {
         'inline-flex flex-none items-center justify-center overflow-hidden rounded-sm',
         TILE_SIZE[size],
         partyTileClass(partyId),
+        className,
       )}
     >
       <Image

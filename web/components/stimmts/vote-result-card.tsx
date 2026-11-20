@@ -15,10 +15,12 @@ import {
   voteCountLabels,
   voteTotals,
 } from '@/lib/stimmts/score';
+import { isAbgeordnetenwatch } from '@/lib/stimmts/source';
 import { feedTopicFor } from '@/lib/stimmts/topic';
 import type { Puzzle, PuzzleOutcome } from '@/lib/stimmts/types';
 import { cn } from '@/lib/utils';
 import { ArrowUpRight } from 'lucide-react';
+import Image from 'next/image';
 import { useId } from 'react';
 import Hemicycle from './hemicycle';
 import VoteDot, { type DotKind } from './vote-dot';
@@ -113,10 +115,44 @@ function VoteResultCard({
           '-mx-4 mt-0.5 flex min-h-10 items-center justify-between gap-3 rounded-b-xl border-t border-[var(--daily-border)] px-4 transition-colors hover:text-[var(--daily-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--daily-ink)]',
         )}
       >
-        {`Quelle: ${puzzle.source.label}`}
+        {isAbgeordnetenwatch(puzzle.source.url) ? (
+          <span className="flex items-center gap-2">
+            Quelle
+            <AbgeordnetenwatchLogo />
+          </span>
+        ) : (
+          `Quelle: ${puzzle.source.label}`
+        )}
         <ArrowUpRight aria-hidden className="size-3.5 flex-none" />
       </a>
     </article>
+  );
+}
+
+/**
+ * Abgeordnetenwatch's logo from its press kit. Its letters are cut out, so the
+ * purple version reads on a light card and the white one on a dark one. Which
+ * card is dark is the style's call, not the site's, so the switch lives in
+ * CSS (`.stimmts-aw-*`), which follows the frame's `data-stimmts-mode`.
+ */
+function AbgeordnetenwatchLogo() {
+  return (
+    <>
+      <Image
+        alt="Abgeordnetenwatch"
+        width={56}
+        height={32}
+        src="/images/stimmts/abgeordnetenwatch.png"
+        className="stimmts-aw-light h-6 w-auto"
+      />
+      <Image
+        alt="Abgeordnetenwatch"
+        width={56}
+        height={32}
+        src="/images/stimmts/abgeordnetenwatch-dark.png"
+        className="stimmts-aw-dark h-6 w-auto"
+      />
+    </>
   );
 }
 

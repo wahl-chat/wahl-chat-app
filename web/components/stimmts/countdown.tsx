@@ -48,7 +48,7 @@ function Countdown({ label = 'Nächstes Quiz in', size = 'large' }: Props) {
         translate="no"
         className={cn(
           'font-display font-extrabold tabular-nums leading-none tracking-[-0.03em]',
-          compact ? 'text-[52px]' : 'text-[min(21vw,7rem)]',
+          compact ? 'text-[min(64px,17vw)]' : 'text-[min(21vw,7rem)]',
         )}
       >
         {formatCountdown(remaining)}

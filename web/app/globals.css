@@ -242,6 +242,34 @@ body {
   font-family: var(--font-daily-body), Arial, Helvetica, sans-serif;
 }
 
+/* The Abgeordnetenwatch logo on the result card: the site's mode by default,
+   the style's own lightness inside a style frame. Later rules win at equal
+   specificity, so the frame's mode comes last. */
+.stimmts-aw-light {
+  display: block;
+}
+.stimmts-aw-dark {
+  display: none;
+}
+.dark .stimmts-aw-light {
+  display: none;
+}
+.dark .stimmts-aw-dark {
+  display: block;
+}
+[data-stimmts-mode="light"] .stimmts-aw-light {
+  display: block;
+}
+[data-stimmts-mode="light"] .stimmts-aw-dark {
+  display: none;
+}
+[data-stimmts-mode="dark"] .stimmts-aw-light {
+  display: none;
+}
+[data-stimmts-mode="dark"] .stimmts-aw-dark {
+  display: block;
+}
+
 .dark .daily-theme {
   --daily-canvas: #09090b;
   --daily-surface: #27272a;

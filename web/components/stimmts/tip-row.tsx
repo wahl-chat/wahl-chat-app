@@ -26,15 +26,16 @@ function TipRow({ puzzle, guesses, current, onEdit }: Props) {
         const isCurrent = partyId === current;
         const face = (
           <>
-            <span
-              className={cn(
-                'rounded-sm',
-                isCurrent &&
-                  'outline outline-2 outline-offset-2 outline-[var(--daily-ink)]',
-              )}
-            >
-              <PartyTile partyId={partyId} size="sm" />
-            </span>
+            {/* The ring hugs the tile, not the 44 px hit area around it. */}
+            <PartyTile
+              partyId={partyId}
+              size="sm"
+              className={
+                isCurrent
+                  ? 'outline outline-2 outline-offset-2 outline-[var(--daily-ink)]'
+                  : undefined
+              }
+            />
             {/* Keeps its place while empty, so the tiles never shift. */}
             <span aria-hidden className="flex h-2.5 items-center">
               {guess && <VoteDot kind={guess} ring />}

@@ -58,6 +58,9 @@ function StyleFrame({
           STYLE_THEMES[style].displayFont === 'document' &&
           DOCUMENT_HEADLINES,
       )}
+      data-stimmts-mode={
+        style === 'standard' ? undefined : STYLE_THEMES[style].mode
+      }
       style={frameStyle(style)}
     >
       <StyleDecor style={style} />
