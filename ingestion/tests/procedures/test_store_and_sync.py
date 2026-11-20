@@ -183,6 +183,10 @@ def test_a_new_stage_is_reported(vorgaenge, positions) -> None:
     )
     assert report.new_stage == ["338366"]
     assert db.data["procedures"]["338366"]["stage_changed_on"] == "2026-11-18"
+    # the later steps' work is kept with the record, for a run that stops early
+    state = db.data["procedures_meta"]["sync"]
+    assert state["pending_feed"] == ["338366"]
+    assert "338366" in state["pending_drucksachen"]
 
 
 def test_single_questions_are_never_stored(vorgaenge, positions) -> None:

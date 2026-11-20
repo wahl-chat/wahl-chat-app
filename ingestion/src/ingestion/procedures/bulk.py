@@ -13,8 +13,12 @@ The collection and its payload indexes come from ``ingestion.setup_collection``
 
 A run, in order: sync procedures (backfill or DIP delta) → Drucksache text →
 link votes and speeches without a link → topics of moved procedures →
-``has_links`` flags → feed items → coverage report. It runs after speech and
+feed items → ``has_links`` flags → coverage report. It runs after speech and
 vote ingestion, which it links, and before the feed build, which shows it.
+
+What a synced change needs from the later steps is saved with it
+(``store.PendingStep``) and cleared only when that step succeeded, so a run
+that fails or is stopped part-way leaves the rest to the next run.
 """
 
 from __future__ import annotations
@@ -31,7 +35,9 @@ import asyncio
 import logging
 import os
 import sys
+from collections.abc import Callable
 from datetime import date, timedelta
+from functools import partial
 from typing import Any, Optional
 
 from qdrant_client import QdrantClient
@@ -51,8 +57,8 @@ from ingestion.procedures.link_apply import Linker, linked_procedure_ids
 from ingestion.procedures.pdf_pages import PdfSource
 from ingestion.procedures.report import collect, render, scroll_linkable
 from ingestion.procedures.step_summaries import Call, summarise_procedures
-from ingestion.procedures.store import ProcedureStore
-from ingestion.procedures.sync import SyncReport, run_sync, sync_ids
+from ingestion.procedures.store import PENDING_STEPS, ProcedureStore
+from ingestion.procedures.sync import SyncReport, follow_up, run_sync, sync_ids
 from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
 from wahlchat_common.procedures import ProcedureRecord
 
@@ -86,8 +92,14 @@ def run(
     summary_call: Optional[Call] = None,
     dry_run: bool = False,
     pdfs: Optional[PdfSource] = None,
+    revalidate: Optional[Callable[[], None]] = None,
 ) -> int:
-    """One job run; returns the process exit code (1 when anything failed)."""
+    """One job run; returns the process exit code (1 when anything failed).
+
+    ``revalidate`` clears the web's feed cache once feed items were updated:
+    the feed build that follows finds them already up to date, so it would
+    not clear it for these changes.
+    """
     store = ProcedureStore(db)
     report = SyncReport()
     failed = False
@@ -111,16 +123,21 @@ def run(
         failed |= bool(report.failed)
 
     procedures = store.all()
-    # New procedures' Drucksachen and those of moved ones are (re-)read: a
-    # stored Drucksache may now belong to one more procedure.
-    changed = (
-        set(report.new_stage) | set(report.changed_sachgebiete) | set(report.created)
-    )
+    # This run's changes plus those an earlier run synced but did not follow
+    # up; a dry run saved none of its own.
+    work = follow_up(report)
+    for step in PENDING_STEPS:
+        work[step] |= store.pending(step)
 
-    def read_drucksachen(of: dict[str, ProcedureRecord], *, reread: bool) -> bool:
+    def read_drucksachen(
+        of: dict[str, ProcedureRecord],
+        *,
+        reread: bool,
+        on_batch: Optional[Callable[[list[str], set[str]], None]] = None,
+    ) -> set[str]:
         """Read the procedures' Drucksachen: all of them, or only those not
-        stored yet (nor known to have no text worth a chunk). Returns whether
-        every document was read."""
+        stored yet (nor known to have no text worth a chunk). Returns the
+        numbers that could not be read."""
         numbers = wanted_numbers(of)
         if not reread:
             numbers -= stored_drucksachen(qdrant, collection) | known_empty(
@@ -135,6 +152,7 @@ def run(
             procedures=procedures,
             today=today,
             pdfs=pdfs,
+            on_batch=on_batch,
         )
         print(
             f"drucksachen: documents={result.documents} chunks={result.chunks} "
@@ -150,14 +168,27 @@ def run(
                     "drucksachen_chunk_rules": CHUNK_RULES,
                 }
             )
-        return not result.failed
+        return set(result.failed)
 
     if not dry_run:
-        moved = {v: procedures[v] for v in changed if v in procedures}
-        complete = read_drucksachen(moved, reread=True) & read_drucksachen(
-            procedures, reread=False
+        # New procedures' Drucksachen and those of moved ones are (re-)read: a
+        # stored Drucksache may now belong to one more procedure.
+        due = work["pending_drucksachen"]
+        moved = {v: procedures[v] for v in due if v in procedures}
+        unread = read_drucksachen(
+            moved,
+            reread=True,
+            on_batch=_clear_as_read(
+                moved, lambda done: store.clear_pending("pending_drucksachen", done)
+            ),
         )
-        failed |= not complete
+        unread_new = read_drucksachen(procedures, reread=False)
+        failed |= bool(unread or unread_new)
+        # An id with no stored record has nothing to read: a failed sync
+        # stores and marks it again.
+        store.clear_pending(
+            "pending_drucksachen", (due - set(moved)) | _read_through(moved, unread)
+        )
 
     if link:
 
@@ -188,7 +219,11 @@ def run(
         )
         linker.link_votes(wahlperioden)
         linker.link_speeches(wahlperioden)
-        linker.refresh_sachgebiete(report.changed_sachgebiete)
+        retopic = work["pending_sachgebiete"]
+        failures = len(linker.report.failed)
+        linker.refresh_sachgebiete(retopic)
+        if not dry_run and len(linker.report.failed) == failures:
+            store.clear_pending("pending_sachgebiete", retopic)
         methods = ", ".join(f"{m}={n}" for m, n in linker.report.methods.most_common())
         print(
             f"links: chunks={linker.report.chunks_written} failed={len(linker.report.failed)} [{methods}]"
@@ -197,7 +232,9 @@ def run(
         procedures = store.all()
         created = {v: procedures[v] for v in linker.report.created if v in procedures}
         if created and not dry_run:
-            failed |= not read_drucksachen(created, reread=True)
+            unread = read_drucksachen(created, reread=True)
+            failed |= bool(unread)
+            store.clear_pending("pending_drucksachen", _read_through(created, unread))
 
     summarised: set[str] = set()
     if summary_call is not None and not dry_run:
@@ -233,12 +270,21 @@ def run(
 
     if feed:
         lookup = FirestoreProcedures(db)
-        only = None if backfill else set(report.new_stage) | summarised
+        moved_on = work["pending_feed"]
+        only = None if backfill else moved_on | summarised
         if only is None or only:
             n = link_feed_items(
                 db, qdrant, collection, lookup=lookup, only_ids=only, dry_run=dry_run
             )
             print(f"feed items: updated={n}")
+            if not dry_run:
+                store.clear_pending("pending_feed", moved_on)
+                if n and revalidate is not None:
+                    try:
+                        revalidate()
+                    except Exception:  # noqa: BLE001 — the items are written; the cache expires on its own
+                        logger.exception("Clearing the web's feed cache failed")
+                        failed = True
 
     if not dry_run:
         linked = linked_procedure_ids(qdrant, collection) | _feed_procedure_ids(db)
@@ -263,6 +309,42 @@ def _publication_call() -> Call:
     )
 
     return structured_output_from_publication_llms
+
+
+def _clear_as_read(
+    of: dict[str, ProcedureRecord], clear: Callable[[set[str]], None]
+) -> Callable[[list[str], set[str]], None]:
+    """A batch callback that clears each procedure once the last of its
+    Drucksachen is written, so a run stopped mid-step resumes there instead
+    of reading every document again. A procedure with a failed document stays
+    pending."""
+    left = {vid: wanted_numbers({vid: record}) for vid, record in of.items()}
+    owners: dict[str, set[str]] = {}
+    for vid, numbers in left.items():
+        for number in numbers:
+            owners.setdefault(number, set()).add(vid)
+    failed_in: set[str] = set()
+
+    def on_batch(batch: list[str], failed: set[str]) -> None:
+        done: set[str] = set()
+        for number in batch:
+            for vid in owners.get(number, ()):
+                if number in failed:
+                    failed_in.add(vid)
+                left[vid].discard(number)
+                if not left[vid] and vid not in failed_in:
+                    done.add(vid)
+        if done:
+            clear(done)
+
+    return on_batch
+
+
+def _read_through(of: dict[str, ProcedureRecord], unread: set[str]) -> set[str]:
+    """The procedures none of whose Drucksachen are among ``unread``."""
+    return {
+        vid for vid, record in of.items() if not wanted_numbers({vid: record}) & unread
+    }
 
 
 def _feed_procedure_ids(db: Any) -> set[str]:
@@ -300,6 +382,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument(
         "--allow-remote", action="store_true", help="write a deployed dev Firestore"
     )
+    parser.add_argument(
+        "--revalidate",
+        action="store_true",
+        help="clear the web's feed cache after feed items changed (needs REVALIDATE_SECRET)",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -329,6 +416,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
     from wahlchat_common.embeddings import get_embeddings  # noqa: PLC0415
 
+    revalidate: Optional[Callable[[], None]] = None
+    if args.revalidate:
+        from ingestion.feed.bulk import post_revalidate  # noqa: PLC0415
+
+        revalidate = partial(post_revalidate, os.getenv("ENV", "dev"))
+
     return run(
         dip=LiveDip(DipClient(_require_dip_key())),
         db=db,
@@ -346,6 +439,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         # Not cached: each PDF is read once per run, and a Cloud Run job's
         # disk is its memory.
         pdfs=PdfSource(),
+        revalidate=revalidate,
     )
 
 

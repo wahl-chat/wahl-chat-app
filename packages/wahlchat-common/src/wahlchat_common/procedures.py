@@ -8,6 +8,11 @@ Firestore ``procedures/{vorgang_id}`` holds the full record: stages, decisions,
 Drucksachen and topics. Qdrant holds one profile vector per procedure for
 search, and every linked vote, speech and Drucksache chunk carries the
 procedure's id in its indexed ``vorgang_ids``.
+
+The models ignore fields they don't know. The chat service, the ingestion
+jobs and the feed (whose items embed ``ProcedureSummary``) are built and
+deployed separately, so a reader can be older than the writer of a record;
+a field a newer writer added must not make the older reader fail.
 """
 
 from __future__ import annotations
@@ -50,7 +55,7 @@ LinkMethod = Literal[
 class StageDecision(BaseModel):
     """What the chamber decided at a stage (DIP ``beschlussfassung``)."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     tenor: str = Field(..., description="e.g. 'Annahme in Ausschussfassung'")
     vote_kind: Optional[str] = Field(
@@ -67,7 +72,7 @@ class StageDecision(BaseModel):
 class ProcedureStage(BaseModel):
     """One dated step of a procedure (DIP ``vorgangsposition``)."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     position_id: str
     date: Date
@@ -95,7 +100,7 @@ class ProcedureStage(BaseModel):
 class DrucksacheRef(BaseModel):
     """A Drucksache of the procedure, without its text."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     number: str = Field(..., description="BT '21/7860' or BR '442/26'")
     chamber: Chamber
@@ -112,10 +117,11 @@ class StepSummary(BaseModel):
     """A short summary of one stage's Drucksache, written once by a model and
     checked against the text before it is stored."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     text: Optional[str] = Field(
-        ..., description="None when no draft passed the check; kept so it is not retried"
+        ...,
+        description="None when no draft passed the check; kept so it is not retried",
     )
     document_number: str
     source_hash: str = Field(..., description="sha256 of the text it was written from")
@@ -126,7 +132,7 @@ class StepSummary(BaseModel):
 class ProcedureRecord(BaseModel):
     """The stored procedure: Firestore ``procedures/{vorgang_id}``."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     vorgang_id: str
     wahlperiode: int
@@ -178,7 +184,7 @@ class ProcedureRecord(BaseModel):
 
 
 class Milestone(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     date: Date
     chamber: Chamber
@@ -188,13 +194,15 @@ class Milestone(BaseModel):
     url: Optional[str] = None
     pdf_page: Optional[int] = Field(None, ge=1)
     decisions: list[StageDecision] = Field(default_factory=list)
-    summary: Optional[str] = Field(None, description="StepSummary.text of its Drucksache")
+    summary: Optional[str] = Field(
+        None, description="StepSummary.text of its Drucksache"
+    )
 
 
 class ProcedureSummary(BaseModel):
     """A procedure as feed items and search results carry it."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
     vorgang_id: str
     titel: str

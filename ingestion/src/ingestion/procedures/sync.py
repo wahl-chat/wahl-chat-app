@@ -19,7 +19,7 @@ from ingestion.procedures.dip import DipReader
 from ingestion.procedures.mapper import build_record, profile_chunk
 from ingestion.procedures.pdf_pages import PdfSource, stage_pdf_pages
 from ingestion.procedures.scope import CORE_TYPES, EXCLUDED_TYPES, in_scope
-from ingestion.procedures.store import ProcedureStore, replace_parents
+from ingestion.procedures.store import PendingStep, ProcedureStore, replace_parents
 from wahlchat_common.procedures import ProcedureRecord
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,24 @@ class SyncReport:
     created: list[str] = field(default_factory=list)
     failed: list[str] = field(default_factory=list)
     changed_sachgebiete: list[str] = field(default_factory=list)
+
+
+def follow_up(
+    report: SyncReport, among: Optional[set[str]] = None
+) -> dict[PendingStep, set[str]]:
+    """The later steps' work for the reported changes (only ``among``, if given)."""
+
+    def of(*lists: list[str]) -> set[str]:
+        ids = {vid for ids in lists for vid in ids}
+        return ids if among is None else ids & among
+
+    return {
+        "pending_drucksachen": of(
+            report.new_stage, report.changed_sachgebiete, report.created
+        ),
+        "pending_sachgebiete": of(report.changed_sachgebiete),
+        "pending_feed": of(report.new_stage),
+    }
 
 
 def _has_bt_plenary_stage(positions: list[dict[str, Any]]) -> bool:
@@ -86,9 +104,11 @@ def sync_ids(
     writer, which re-creates any that are missing from Qdrant (a rebuilt
     collection) and skips the rest by their hashes.
 
-    Per batch the profile chunks are written first and the Firestore records
-    after, so a stored record means its chunk is there too. A batch that
-    fails is reported by id and retried by the next run.
+    Per batch the profile chunks are written first, then the follow-up work
+    (``ProcedureStore.add_pending``), then the Firestore records, so a stored
+    record means its chunk is there and its change will be followed up even
+    if the job stops right after. A batch that fails is reported by id and
+    retried by the next run.
     """
     report = SyncReport()
     for batch in _batches(ids, _BATCH):
@@ -149,6 +169,7 @@ def sync_ids(
         failed = {key.split(":", 1)[1] for key in written.failed_parents}
         ok = [r for r in changed if r.vorgang_id not in failed]
         try:
+            store.add_pending(follow_up(report, {r.vorgang_id for r in ok}))
             store.put(ok)
         except Exception:  # noqa: BLE001 — retried next run
             logger.exception("Firestore write failed for %d procedures", len(ok))
@@ -216,5 +237,6 @@ def run_sync(
         else:
             new_state["dip_updated_through"] = started.isoformat()
         new_state["last_run_at"] = started.isoformat()
-        store.set_sync_state({**state, **new_state})
+        # Re-read: the sync added pending work to the state since ``state``.
+        store.set_sync_state({**store.sync_state(), **new_state})
     return report

@@ -3,9 +3,15 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 from datetime import date
+from functools import partial
 
-from ingestion.procedures.bulk import known_empty, run
-from ingestion.procedures.drucksachen import CHUNK_RULES
+import pytest
+
+from ingestion.procedures import bulk
+from ingestion.procedures.bulk import _clear_as_read, known_empty, run
+from ingestion.procedures.drucksachen import CHUNK_RULES, ingest_drucksachen
+from ingestion.procedures.link_apply import Linker
+from ingestion.procedures.store import ProcedureStore
 
 from .conftest import load
 from .fakes import FakeDip, FakeEmbed, FakeFirestore, FakeQdrant
@@ -137,6 +143,130 @@ def test_rebuilt_collection_gets_profiles_back_on_backfill(
 
 def test_documents_without_chunks_are_read_again_under_new_rules() -> None:
     listed = {"drucksachen_without_chunks": ["21/7868"]}
-    assert known_empty({**listed, "drucksachen_chunk_rules": CHUNK_RULES}) == {"21/7868"}
+    assert known_empty({**listed, "drucksachen_chunk_rules": CHUNK_RULES}) == {
+        "21/7868"
+    }
     assert known_empty({**listed, "drucksachen_chunk_rules": CHUNK_RULES - 1}) == set()
     assert known_empty(listed) == set()
+
+
+def test_a_run_that_stops_after_the_sync_is_followed_up_next_time(
+    vorgaenge, positions, capsys, monkeypatch
+) -> None:
+    db, qdrant = FakeFirestore(), FakeQdrant()
+    trimmed = {**positions, "338366": positions["338366"][:-1]}
+    _run(_dip(vorgaenge, trimmed), db, qdrant)
+    db.collection("feed_items").document("d").set(
+        {
+            "parliament": "bundestag",
+            "debate": {"drucksachen": ["21/7860"]},
+            "procedure_ids": ["338366"],
+            "procedures": [],
+        }
+    )
+    moved = _dip(vorgaenge, positions)
+    moved.updated = {21: {"338366"}}
+
+    def stops(self, wahlperioden) -> None:
+        raise RuntimeError("Qdrant timed out")
+
+    with monkeypatch.context() as patched:
+        patched.setattr(Linker, "link_votes", stops)
+        with pytest.raises(RuntimeError):
+            _run(
+                moved,
+                db,
+                qdrant,
+                backfill=False,
+                link=True,
+                feed=True,
+                today=date(2026, 11, 18),
+            )
+    state = db.data["procedures_meta"]["sync"]
+    assert state["pending_feed"] == ["338366"]
+    assert state["pending_drucksachen"] == []  # that step ran before the stop
+    assert db.data["feed_items"]["d"]["procedures"] == []
+
+    # DIP lists nothing new; the stored record is current. The feed item is
+    # refreshed from the pending work alone, and the web cache cleared.
+    cleared: list[bool] = []
+    again = _dip(vorgaenge, positions)
+    code = _run(
+        again,
+        db,
+        qdrant,
+        backfill=False,
+        link=True,
+        feed=True,
+        today=date(2026, 11, 19),
+        revalidate=lambda: cleared.append(True),
+    )
+    assert code == 0, capsys.readouterr().out
+    item = db.data["feed_items"]["d"]
+    assert [p["vorgang_id"] for p in item["procedures"]] == ["338366"]
+    assert db.data["procedures_meta"]["sync"]["pending_feed"] == []
+    assert cleared == [True]
+
+    # nothing pending, nothing updated: the cache is left alone
+    _run(
+        again,
+        db,
+        qdrant,
+        backfill=False,
+        link=True,
+        feed=True,
+        today=date(2026, 11, 20),
+        revalidate=lambda: cleared.append(True),
+    )
+    assert cleared == [True]
+
+
+def test_a_procedure_is_cleared_once_its_last_document_is_written(
+    vorgaenge, positions, capsys
+) -> None:
+    db, qdrant = FakeFirestore(), FakeQdrant()
+    _run(_dip(vorgaenge, positions), db, qdrant)
+    # 338366 has 21/7860 and 21/9241, 341758 has 21/9233
+    cleared: list[set[str]] = []
+    on_batch = _clear_as_read(ProcedureStore(db).all(), cleared.append)
+    on_batch(["21/7860"], set())
+    assert cleared == []
+    on_batch(["21/9233", "21/9241"], set())
+    assert cleared == [{"338366", "341758"}]
+
+
+def test_a_procedure_with_a_failed_document_stays_pending(
+    vorgaenge, positions, capsys
+) -> None:
+    db, qdrant = FakeFirestore(), FakeQdrant()
+    _run(_dip(vorgaenge, positions), db, qdrant)
+    cleared: list[set[str]] = []
+    on_batch = _clear_as_read(ProcedureStore(db).all(), cleared.append)
+    on_batch(["21/7860"], {"21/7860"})
+    on_batch(["21/9233", "21/9241"], set())
+    assert cleared == [{"341758"}]
+
+
+class _Killed(BaseException):
+    """The job's process ending mid-step, as on running out of memory."""
+
+
+def test_a_run_killed_while_reading_keeps_what_it_read(
+    vorgaenge, positions, capsys, monkeypatch
+) -> None:
+    dip, db, qdrant = _dip(vorgaenge, positions), FakeFirestore(), FakeQdrant()
+    monkeypatch.setattr(
+        bulk, "ingest_drucksachen", partial(ingest_drucksachen, batch_size=1)
+    )
+    read = dip.drucksache_texts
+
+    def killed_at_the_last(numbers):
+        if "21/9241" in numbers:
+            raise _Killed
+        return read(numbers)
+
+    monkeypatch.setattr(dip, "drucksache_texts", killed_at_the_last)
+    with pytest.raises(_Killed):
+        _run(dip, db, qdrant)
+    # 341758's only document was written before the end; 338366's was not
+    assert db.data["procedures_meta"]["sync"]["pending_drucksachen"] == ["338366"]

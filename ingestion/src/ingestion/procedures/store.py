@@ -9,17 +9,33 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 import logging
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from qdrant_client import QdrantClient, models
 
 from ingestion.ids import compute_chunk_id
 from ingestion.run import _embed_texts, _upsert_chunks
 from ingestion.schemas import ChunkRecord
-from wahlchat_common.procedures import PROCEDURES_COLLECTION, ProcedureRecord, StepSummary
+from wahlchat_common.procedures import (
+    PROCEDURES_COLLECTION,
+    ProcedureRecord,
+    StepSummary,
+)
 
 META_COLLECTION = "procedures_meta"
 SYNC_DOC = "sync"
+
+# Work a synced change leaves for the later steps of the job, by step: re-read
+# the procedure's Drucksachen, re-derive the topics on its linked chunks,
+# refresh the feed items that show it. It is kept in the sync state until its
+# step has succeeded, because the next run compares DIP with the records
+# already written and would not see the change again.
+PendingStep = Literal["pending_drucksachen", "pending_sachgebiete", "pending_feed"]
+PENDING_STEPS: tuple[PendingStep, ...] = (
+    "pending_drucksachen",
+    "pending_sachgebiete",
+    "pending_feed",
+)
 
 _FIRESTORE_BATCH = 400
 _GET_BATCH = 100
@@ -77,9 +93,15 @@ class ProcedureStore:
                 writes.update(collection.document(vid), {"has_links": linked})
             writes.commit()
 
-    def set_step_summaries(self, vorgang_id: str, summaries: dict[str, StepSummary]) -> None:
+    def set_step_summaries(
+        self, vorgang_id: str, summaries: dict[str, StepSummary]
+    ) -> None:
         self._db.collection(PROCEDURES_COLLECTION).document(vorgang_id).update(
-            {"step_summaries": {n: s.model_dump(mode="json") for n, s in summaries.items()}}
+            {
+                "step_summaries": {
+                    n: s.model_dump(mode="json") for n, s in summaries.items()
+                }
+            }
         )
 
     def set_stages(self, records: Iterable[ProcedureRecord]) -> None:
@@ -100,6 +122,24 @@ class ProcedureStore:
 
     def set_sync_state(self, state: dict[str, Any]) -> None:
         self._db.collection(META_COLLECTION).document(SYNC_DOC).set(state)
+
+    def pending(self, step: PendingStep) -> set[str]:
+        return set(self.sync_state().get(step) or [])
+
+    def add_pending(self, work: dict[PendingStep, set[str]]) -> None:
+        if not any(work.values()):
+            return
+        state = self.sync_state()
+        for step, ids in work.items():
+            state[step] = sorted(set(state.get(step) or []) | ids)
+        self.set_sync_state(state)
+
+    def clear_pending(self, step: PendingStep, done: Iterable[str]) -> None:
+        state = self.sync_state()
+        before = set(state.get(step) or [])
+        after = before - set(done)
+        if after != before:
+            self.set_sync_state({**state, step: sorted(after)})
 
 
 @dataclass

@@ -1,5 +1,7 @@
 'use client';
 
+import { useAnonymousAuth } from '@/components/anonymous-auth';
+import DeleteOpinionsDialog from '@/components/delete-opinions-dialog';
 import FeedbackDialog from '@/components/feedback-dialog';
 import { type UserDetails, cn } from '@/lib/utils';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -16,6 +18,8 @@ type Props = {
 function MobileNavbar({ userDetails, alwaysVisible = false }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isDeleteOpinionsOpen, setIsDeleteOpinionsOpen] = useState(false);
+  const { user } = useAnonymousAuth();
 
   const handleClose = () => {
     setIsOpen(false);
@@ -24,6 +28,11 @@ function MobileNavbar({ userDetails, alwaysVisible = false }: Props) {
   const handleFeedback = () => {
     setIsOpen(false);
     setIsFeedbackOpen(true);
+  };
+
+  const handleDeleteOpinions = () => {
+    setIsOpen(false);
+    setIsDeleteOpinionsOpen(true);
   };
 
   const hiddenOnDesktop = !alwaysVisible && 'md:hidden';
@@ -68,6 +77,9 @@ function MobileNavbar({ userDetails, alwaysVisible = false }: Props) {
               userDetails={userDetails}
               mobileClose={handleClose}
               onFeedback={handleFeedback}
+              onDeleteOpinions={
+                user?.feed_opinion_consent ? handleDeleteOpinions : undefined
+              }
             />
           </Dialog.Content>
         </Dialog.Portal>
@@ -75,6 +87,10 @@ function MobileNavbar({ userDetails, alwaysVisible = false }: Props) {
 
       {/* Outside the menu, whose content unmounts when it closes. */}
       <FeedbackDialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen} />
+      <DeleteOpinionsDialog
+        open={isDeleteOpinionsOpen}
+        onOpenChange={setIsDeleteOpinionsOpen}
+      />
     </>
   );
 }

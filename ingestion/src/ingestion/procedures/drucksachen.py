@@ -22,7 +22,7 @@ import hashlib
 import json
 import logging
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Literal, Optional
@@ -33,7 +33,7 @@ from ingestion.chunking import chunk_text
 from ingestion.ids import compute_source_item_id, make_chunk_key
 from ingestion.feed.protocol_pages import ProtocolPdf
 from ingestion.procedures.mapper import NO_PARTY, party_ids_of
-from ingestion.procedures.pdf_pages import PdfSource, passage_pages
+from ingestion.procedures.pdf_pages import Pages, PdfSource, passage_pages
 from ingestion.procedures.store import replace_parents
 from ingestion.schemas import (
     AuthorityTier,
@@ -232,11 +232,7 @@ def drucksache_chunks(
         if section.kind != "body"
         for piece in chunk_text(section.text)
     ]
-    pages = (
-        passage_pages([piece for _, piece in pieces], pdf)
-        if pdf is not None
-        else [(None, None)] * len(pieces)
-    )
+    pages = _pages(number, [piece for _, piece in pieces], pdf)
     chunks: list[ChunkRecord] = []
     for (section, piece), (page_start, page_end) in zip(pieces, pages):
         doc_section: DocSection = "overview" if section.kind == "overview" else "report"
@@ -303,6 +299,18 @@ def drucksache_chunks(
     return chunks
 
 
+def _pages(number: str, passages: list[str], pdf: Optional[ProtocolPdf]) -> list[Pages]:
+    """The passages' PDF pages; none when the PDF's text cannot be read.
+    Pages are optional, so an unreadable page must not cost the document
+    its chunks (page_backfill can place them later)."""
+    if pdf is not None:
+        try:
+            return passage_pages(passages, pdf)
+        except Exception:  # noqa: BLE001 — stored without pages
+            logger.warning("Drucksache %s: PDF pages not found", number, exc_info=True)
+    return [(None, None)] * len(passages)
+
+
 def _day(value: Any) -> Optional[date]:
     try:
         return date.fromisoformat(str(value)[:10])
@@ -332,8 +340,13 @@ class DrucksacheReport:
 
 
 def _pdf_of(doc: dict[str, Any], pdfs: Optional[PdfSource]) -> Optional[ProtocolPdf]:
+    """The document's PDF. A text over ``MAX_TEXT_CHARS`` is chunked from its
+    start only, and its PDF can be hundreds of MB, so it is not fetched: those
+    chunks get no pages."""
     url = (doc.get("fundstelle") or {}).get("pdf_url")
-    return pdfs.pdf(url) if pdfs is not None and url else None
+    if pdfs is None or not url or len(str(doc.get("text") or "")) > MAX_TEXT_CHARS:
+        return None
+    return pdfs.pdf(url)
 
 
 def stored_drucksachen(qdrant: Any, collection: str) -> set[str]:
@@ -371,28 +384,39 @@ def ingest_drucksachen(
     today: date,
     batch_size: int = 10,
     pdfs: Optional[PdfSource] = None,
+    on_batch: Optional[Callable[[list[str], set[str]], None]] = None,
 ) -> DrucksacheReport:
     """Read, chunk and write the given Drucksachen, a batch at a time.
 
     A document DIP has no text for yet keeps whatever is stored; a failing
-    batch is reported and retried next run.
+    batch, or a document that cannot be chunked, is reported and retried
+    next run while the others are written. ``on_batch`` gets each batch's
+    numbers and those of it that failed, once the batch is written.
     """
     report = DrucksacheReport()
     ordered = sorted(set(numbers))
     for start in range(0, len(ordered), batch_size):
         batch = ordered[start : start + batch_size]
+        failed: set[str] = set()
         try:
             texts = dip.drucksache_texts(batch)
         except Exception:  # noqa: BLE001 — retried next run
             logger.exception("Drucksache texts failed for %s", batch)
             report.failed.extend(batch)
+            if on_batch is not None:
+                on_batch(batch, set(batch))
             continue
-        parents = {
-            f"{SourceType.DRUCKSACHE.value}:BT:{number}": drucksache_chunks(
-                doc, procedures=procedures, today=today, pdf=_pdf_of(doc, pdfs)
-            )
-            for number, doc in texts.items()
-        }
+        parents: dict[str, list[ChunkRecord]] = {}
+        for number, doc in texts.items():
+            try:
+                parents[f"{SourceType.DRUCKSACHE.value}:BT:{number}"] = (
+                    drucksache_chunks(
+                        doc, procedures=procedures, today=today, pdf=_pdf_of(doc, pdfs)
+                    )
+                )
+            except Exception:  # noqa: BLE001 — retried next run
+                logger.exception("Drucksache %s could not be chunked", number)
+                failed.add(number)
         report.documents += len(parents)
         report.empty.extend(
             k.rsplit(":", 1)[-1] for k, chunks in parents.items() if not chunks
@@ -401,7 +425,10 @@ def ingest_drucksachen(
         written = replace_parents(qdrant, collection, embed, parents)
         report.written += written.written
         report.skipped += written.skipped
-        report.failed.extend(k.rsplit(":", 1)[-1] for k in written.failed_parents)
+        failed.update(k.rsplit(":", 1)[-1] for k in written.failed_parents)
+        report.failed.extend(sorted(failed))
+        if on_batch is not None:
+            on_batch(batch, failed)
         logger.info(
             "Drucksachen %d/%d: %d chunks so far",
             min(start + batch_size, len(ordered)),

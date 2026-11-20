@@ -20,7 +20,12 @@ from pypdf import PdfWriter
 from ingestion.feed import protocol_pages
 from ingestion.feed.protocol_pages import ProtocolPdf
 from ingestion.ids import compute_chunk_id
-from ingestion.procedures.drucksachen import drucksache_chunks
+from ingestion.connectors.bundestag_speeches.client import TooLargeError
+from ingestion.procedures.drucksachen import (
+    MAX_TEXT_CHARS,
+    _pdf_of,
+    drucksache_chunks,
+)
 from ingestion.procedures.mapper import build_record
 from ingestion.procedures.page_backfill import (
     PageReport,
@@ -99,6 +104,20 @@ def test_each_chunk_gets_the_pdf_pages_it_sits_on() -> None:
     pages = [(c.meta.get("page_start"), c.meta.get("page_end")) for c in chunks]
     assert pages == PAGES_8457
     assert {c.doc_section for c in chunks if c.meta["page_start"] >= 4} == {"report"}
+
+
+def test_a_pdf_whose_text_cannot_be_read_keeps_the_chunks_without_pages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pdf = ProtocolPdf.from_bytes(PDF_8457)
+
+    def unreadable(passage: str, first: int) -> Any:
+        raise ValueError("broken font")
+
+    monkeypatch.setattr(pdf, "pages_of", unreadable)
+    chunks = _chunks(pdf)
+    assert [c.content_hash for c in chunks] == [c.content_hash for c in _chunks()]
+    assert all("page_start" not in (c.meta or {}) for c in chunks)
 
 
 def test_pages_leave_the_content_hash_alone() -> None:
@@ -251,6 +270,23 @@ def test_a_failed_download_leaves_nothing_in_the_cache(tmp_path: Path) -> None:
     pdfs, _ = _source(tmp_path, {})
     assert pdfs.pdf(DOC_URL) is None
     assert not list(tmp_path.rglob("*.pdf"))
+
+
+def test_a_pdf_over_the_size_limit_leaves_the_pages_unset(tmp_path: Path) -> None:
+    def too_large(url: str) -> bytes:
+        raise TooLargeError(f"{url} is 284803072 bytes")
+
+    pdfs = PdfSource(tmp_path, fetch=too_large, min_interval=0, sleep=lambda _s: None)
+    assert pdfs.pdf(DOC_URL) is None
+    assert not list(tmp_path.rglob("*.pdf"))
+
+
+def test_the_text_too_long_to_chunk_is_not_downloaded(tmp_path: Path) -> None:
+    pdfs, fetch = _source(tmp_path, {DOC_URL: PDF_8457})
+    doc = load("drucksache_21_8457")
+    huge = {**doc, "text": "x" * (MAX_TEXT_CHARS + 1)}
+    assert _pdf_of(huge, pdfs) is None and fetch.calls == []
+    assert _pdf_of(doc, pdfs) is not None and fetch.calls == [DOC_URL]
 
 
 # --- backfill ---
