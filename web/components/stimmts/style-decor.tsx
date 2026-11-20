@@ -1,4 +1,10 @@
+import {
+  FESTLICH_GROUND,
+  FESTLICH_TREE,
+  GOLD_CORNER,
+} from '@/lib/stimmts/style-themes';
 import type { StyleId } from '@/lib/stimmts/styles';
+import { cn } from '@/lib/utils';
 import type { CSSProperties } from 'react';
 
 // Every piece is drawn behind the result and ignores the pointer, so no
@@ -178,12 +184,17 @@ function FestlichDecor() {
         ))}
       </svg>
       <span
-        className={`${LAYER} inset-x-[-15%] bottom-[-60px] h-[150px] rounded-t-[50%] bg-[#e3eaec]`}
+        className={`${LAYER} inset-x-[-15%] rounded-t-[50%] bg-[#e3eaec]`}
+        style={{
+          bottom: -FESTLICH_GROUND.sink,
+          height: FESTLICH_GROUND.height,
+        }}
       />
       <svg
-        className={`${LAYER} bottom-[50px] right-[34px]`}
-        width="120"
-        height="160"
+        className={`${LAYER} right-[34px]`}
+        style={{ bottom: FESTLICH_TREE.lift }}
+        width={FESTLICH_TREE.width}
+        height={FESTLICH_TREE.height}
         viewBox="0 0 90 120"
       >
         <polygon
@@ -212,12 +223,19 @@ function FestlichDecor() {
 const GOLD = '#c9a85c';
 
 /** One corner of the frame; the other three are this one mirrored. */
-function GoldCorner({ className }: { className: string }) {
+function GoldCorner({
+  className,
+  style,
+}: {
+  className?: string;
+  style: CSSProperties;
+}) {
   return (
     <svg
-      className={`${LAYER} ${className}`}
-      width="64"
-      height="64"
+      className={cn(LAYER, className)}
+      style={style}
+      width={GOLD_CORNER.size}
+      height={GOLD_CORNER.size}
       viewBox="0 0 64 64"
       fill="none"
       stroke={GOLD}
@@ -275,6 +293,7 @@ function Laurel({ className }: { className: string }) {
 
 /** A double gold rule round the panel, ornamented corners and laurels. */
 function GoldDecor() {
+  const inset = GOLD_CORNER.inset;
   return (
     <>
       <span
@@ -283,10 +302,19 @@ function GoldDecor() {
           boxShadow: `inset 0 0 0 7px #12100b, inset 0 0 0 9px ${GOLD}, inset 0 0 0 12px #12100b, inset 0 0 0 13px rgba(201,168,92,0.6)`,
         }}
       />
-      <GoldCorner className="left-4 top-4" />
-      <GoldCorner className="right-4 top-4 -scale-x-100" />
-      <GoldCorner className="bottom-4 left-4 -scale-y-100" />
-      <GoldCorner className="bottom-4 right-4 -scale-100" />
+      <GoldCorner style={{ left: inset, top: inset }} />
+      <GoldCorner
+        className="-scale-x-100"
+        style={{ right: inset, top: inset }}
+      />
+      <GoldCorner
+        className="-scale-y-100"
+        style={{ left: inset, bottom: inset }}
+      />
+      <GoldCorner
+        className="-scale-100"
+        style={{ right: inset, bottom: inset }}
+      />
       <Laurel className="left-[78px] top-[46px]" />
       <Laurel className="right-[78px] top-[46px] -scale-x-100" />
     </>

@@ -12,7 +12,27 @@ export type StyleTheme = {
   mode: 'light' | 'dark';
   /** Headlines in the bill sheet's Tinos instead of the game's display face. */
   displayFont?: 'document';
+  /**
+   * Empty panel below the result, in px, so decoration drawn at the bottom
+   * edge lies under nothing that has to be read or tapped.
+   */
+  bottomRoom: number;
 };
+
+/** Festlich's snowy ground: a hill sunk below the panel's bottom edge. */
+export const FESTLICH_GROUND = { sink: 60, height: 150 } as const;
+
+/** Festlich's tree, standing on the ground. */
+export const FESTLICH_TREE = { lift: 50, width: 120, height: 160 } as const;
+
+/** Gold's ornamented corners, inset from the panel's edges. */
+export const GOLD_CORNER = { inset: 16, size: 64 } as const;
+
+/** Breathing room between the last content and the decoration below it. */
+const DECOR_GAP = 8;
+
+/** The default room under the result, as the panel had before decoration. */
+const BASE_BOTTOM_ROOM = 24;
 
 /**
  * Each style is one fixed palette, whatever the site's light or dark mode,
@@ -27,6 +47,7 @@ export const STYLE_THEMES: Record<Exclude<StyleId, 'standard'>, StyleTheme> = {
     ink: '#2a2116',
     muted: '#65573f',
     mode: 'light',
+    bottomRoom: BASE_BOTTOM_ROOM,
     displayFont: 'document',
   },
   kuppel: {
@@ -36,6 +57,7 @@ export const STYLE_THEMES: Record<Exclude<StyleId, 'standard'>, StyleTheme> = {
     ink: '#0f1b2a',
     muted: '#475b6e',
     mode: 'light',
+    bottomRoom: BASE_BOTTOM_ROOM,
   },
   nacht: {
     canvas: '#0b1226',
@@ -44,6 +66,9 @@ export const STYLE_THEMES: Record<Exclude<StyleId, 'standard'>, StyleTheme> = {
     ink: '#e8edf7',
     muted: '#9aa6c0',
     mode: 'dark',
+    // The dome silhouette is dark on dark and is drawn to stand behind the
+    // chamber; ink and muted stay readable on it.
+    bottomRoom: BASE_BOTTOM_ROOM,
   },
   festlich: {
     canvas: '#0f1a14',
@@ -52,6 +77,7 @@ export const STYLE_THEMES: Record<Exclude<StyleId, 'standard'>, StyleTheme> = {
     ink: '#fbf5e6',
     muted: '#b3bdb5',
     mode: 'dark',
+    bottomRoom: FESTLICH_TREE.lift + FESTLICH_TREE.height + DECOR_GAP,
   },
   gold: {
     canvas: '#12100b',
@@ -60,6 +86,7 @@ export const STYLE_THEMES: Record<Exclude<StyleId, 'standard'>, StyleTheme> = {
     ink: '#f6efdc',
     muted: '#b0a68e',
     mode: 'dark',
+    bottomRoom: GOLD_CORNER.inset + GOLD_CORNER.size + DECOR_GAP,
   },
 };
 

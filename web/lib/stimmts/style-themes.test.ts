@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  FESTLICH_GROUND,
+  FESTLICH_TREE,
+  GOLD_CORNER,
   STYLE_THEMES,
   VERDICT_COLOURS,
   modeVars,
@@ -100,5 +103,27 @@ describe('verdict colours', () => {
 
   it('standard leaves the site colours alone', () => {
     expect(modeVars('standard')).toEqual({});
+  });
+});
+
+describe('bottom room', () => {
+  it('festlich leaves room for the ground and the whole tree', () => {
+    const ground = FESTLICH_GROUND.height - FESTLICH_GROUND.sink;
+    const tree = FESTLICH_TREE.lift + FESTLICH_TREE.height;
+    expect(STYLE_THEMES.festlich.bottomRoom).toBeGreaterThanOrEqual(
+      Math.max(ground, tree),
+    );
+  });
+
+  it('gold leaves room for its bottom corners', () => {
+    expect(STYLE_THEMES.gold.bottomRoom).toBeGreaterThanOrEqual(
+      GOLD_CORNER.inset + GOLD_CORNER.size,
+    );
+  });
+
+  it('no style has less room than the plain panel', () => {
+    for (const id of THEMED) {
+      expect(STYLE_THEMES[id].bottomRoom).toBeGreaterThanOrEqual(24);
+    }
   });
 });

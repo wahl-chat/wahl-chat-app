@@ -9,11 +9,11 @@ import StyleDecor from './style-decor';
  * panel (the dome, the light string, the gold corners and laurels).
  */
 const PANEL_PADDING: Record<Exclude<StyleId, 'standard'>, string> = {
-  papier: 'pt-7 pb-6',
-  kuppel: 'pt-[52px] pb-6',
-  nacht: 'pt-7 pb-6',
-  festlich: 'pt-[58px] pb-6',
-  gold: 'pt-[68px] pb-6',
+  papier: 'pt-7',
+  kuppel: 'pt-[52px]',
+  nacht: 'pt-7',
+  festlich: 'pt-[58px]',
+  gold: 'pt-[68px]',
 };
 
 function frameStyle(style: StyleId): CSSProperties | undefined {
@@ -25,6 +25,7 @@ function frameStyle(style: StyleId): CSSProperties | undefined {
     ...modeVars(style),
     background: 'var(--daily-canvas)',
     color: 'var(--daily-ink)',
+    paddingBottom: STYLE_THEMES[style].bottomRoom,
   } as CSSProperties;
 }
 
