@@ -4,8 +4,9 @@ import type { Guesses, Puzzle } from './types';
 
 /**
  * Off until the general chat is merged into `develop`: the card on the result
- * screen opens that chat, so switching it on earlier would send players to a
- * page that cannot answer.
+ * screen answers inline and its "Im Chat weiter" link opens the general chat,
+ * so both depend on it and switching it on earlier would show players
+ * answers that do not exist. Switch it together with CHAT_ANSWERS.
  */
 export const STIMMTS_CHAT_ENABLED = false;
 

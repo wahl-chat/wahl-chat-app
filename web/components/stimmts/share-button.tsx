@@ -19,8 +19,6 @@ type Props = {
   onShared?: (method: ShareMethod) => void;
   /** Without the icon and with tighter padding, to sit beside another pill. */
   textOnly?: boolean;
-  /** Classes for the pill, e.g. to match a neighbour's height. */
-  className?: string;
   /**
    * Sits beside the pill in one centered row. The save link and the failure
    * text go below the whole row, so they never push the buttons apart.
@@ -37,7 +35,6 @@ function ShareButton({
   image: shareImage,
   onShared,
   textOnly = false,
-  className,
   actions,
 }: Props) {
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
@@ -98,7 +95,6 @@ function ShareButton({
             // 44px tall and about 150px wide at 16px text: beside "Stil
             // ändern" the pair fits one row at 375px.
             textOnly && 'h-11 px-[18px] text-base font-semibold',
-            className,
           )}
         >
           {outcome === 'copied' ? (

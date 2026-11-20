@@ -85,11 +85,17 @@ describe('share image route: fonts', () => {
     expect(requested).toContain('Tinos');
   });
 
-  test('a failed serif font leaves the image cacheable', async () => {
+  test('a Papier image without its serif font is not cached', async () => {
     failing.add('Tinos');
     const response = await request(await freshRoute(), '&t=papier');
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/png');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  test('a failed serif font does not affect the other styles', async () => {
+    failing.add('Tinos');
+    const response = await request(await freshRoute(), '&t=nacht');
     expect(response.headers.get('cache-control')).not.toBe('no-store');
   });
 });

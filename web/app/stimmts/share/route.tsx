@@ -78,7 +78,8 @@ export async function GET(request: Request) {
   };
 
   // Without the fonts the image still draws, in next/og's own face, and is
-  // not cached, so the next request tries the fonts again.
+  // not cached, so the next request tries the fonts again. That includes a
+  // Papier image missing its serif: the CDN must not keep a fallback face.
   // The serif is fetched only for the style that draws with it: every other
   // request would wait on a font it never uses.
   const [baseFonts, serif] = await Promise.all([
@@ -86,6 +87,7 @@ export async function GET(request: Request) {
     data.style === 'papier' ? loadSerif() : null,
   ]);
   const fonts = baseFonts && (serif ? [...baseFonts, serif] : baseFonts);
+  const complete = baseFonts && (data.style !== 'papier' || serif);
   const { width, height } = SHARE_FORMATS[data.format];
   return new ImageResponse(
     <ShareImage format={data.format} result={result} style={data.style} />,
@@ -95,7 +97,7 @@ export async function GET(request: Request) {
       // Left out, not empty: an empty list leaves next/og no font at all.
       ...(fonts && { fonts }),
       headers: {
-        'Cache-Control': baseFonts ? CACHE_CONTROL : 'no-store',
+        'Cache-Control': complete ? CACHE_CONTROL : 'no-store',
         'X-Robots-Tag': 'noindex',
       },
     },

@@ -12,7 +12,7 @@ import StyleSheet from './style-sheet';
  * Opens the style sheet from the result screen. The red dot stays until the
  * sheet has been opened once after a style unlocked.
  */
-function StyleButton({ className }: { className?: string }) {
+function StyleButton() {
   const { fresh } = useStimmtsStyle();
   const [open, setOpen] = useState(false);
   const hasFresh = fresh.length > 0;
@@ -26,7 +26,6 @@ function StyleButton({ className }: { className?: string }) {
         onClick={() => setOpen(true)}
         className={cn(
           'relative h-11 gap-2 self-center border border-[var(--daily-border)] bg-[var(--daily-surface)] px-4 text-[15px] text-[var(--daily-ink)] hover:bg-[var(--daily-surface)] [&_svg]:size-4',
-          className,
         )}
       >
         <Palette aria-hidden strokeWidth={2.25} />

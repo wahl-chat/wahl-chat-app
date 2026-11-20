@@ -36,8 +36,8 @@ type Props = {
 /**
  * Follow-up questions about the day's vote, answered inside the card. Only
  * the latest answer stays open; older ones fold away so the card does not
- * push the result off the screen. "Im Chat weiter" carries the conversation
- * on in the full chat.
+ * push the result off the screen. "Im Chat weiter" opens the full chat with the
+ * latest question only: no session or history travels, so it starts fresh.
  */
 function ChatCard({ day, puzzle, guesses }: Props) {
   const headingId = useId();

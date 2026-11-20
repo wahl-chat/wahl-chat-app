@@ -1,6 +1,7 @@
 import { CARD_SURFACE } from '@/components/daily/card-styles';
 import { BASE_URL } from '@/lib/seo';
 import { trackResultShared } from '@/lib/stimmts/analytics';
+import { CHAT_ANSWERS } from '@/lib/stimmts/chat-answer';
 import { STIMMTS_CHAT_ENABLED } from '@/lib/stimmts/chat-chips';
 import { PUZZLES } from '@/lib/stimmts/content';
 import { feedDate, partyLabel } from '@/lib/stimmts/labels';
@@ -110,6 +111,7 @@ function Result({
   const sections = resultSections({
     cast: game.cast,
     chatEnabled: STIMMTS_CHAT_ENABLED,
+    chatAnswersLive: CHAT_ANSWERS === 'general-chat',
     preview,
   });
 

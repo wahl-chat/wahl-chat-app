@@ -8,6 +8,7 @@ import {
   createPlaceholderAnswer,
   parseGeneralChatEvents,
 } from './chat-answer';
+import { STIMMTS_CHAT_ENABLED } from './chat-chips';
 import { FIXTURE_PUZZLES } from './fixtures';
 
 const puzzle = FIXTURE_PUZZLES[0];
@@ -406,5 +407,11 @@ describe('generalChatAnswer', () => {
     });
     expect(await collect(answer(request, controller.signal))).toEqual([]);
     expect(calls[0].init.signal).toBe(controller.signal);
+  });
+});
+
+describe('the two chat switches', () => {
+  it('are never on while the answers are still the placeholder', () => {
+    expect(!STIMMTS_CHAT_ENABLED || CHAT_ANSWERS === 'general-chat').toBe(true);
   });
 });
