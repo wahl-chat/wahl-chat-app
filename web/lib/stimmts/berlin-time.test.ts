@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   addDays,
   berlinDate,
+  berlinMonth,
   daysBetween,
   isIsoDate,
   nextPuzzleAt,
@@ -105,5 +106,12 @@ describe('nextPuzzleAt', () => {
     const next = nextPuzzleAt(start);
     expect(next.toISOString()).toBe('2026-03-29T22:00:00.000Z'); // 00:00 CEST
     expect((next.getTime() - start.getTime()) / 3_600_000).toBe(23);
+  });
+});
+
+describe('berlinMonth', () => {
+  it('follows the Berlin calendar, not UTC', () => {
+    expect(berlinMonth(at('2026-11-30T23:30:00Z'))).toBe(12);
+    expect(berlinMonth(at('2026-06-15T12:00:00Z'))).toBe(6);
   });
 });

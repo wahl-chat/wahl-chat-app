@@ -85,3 +85,8 @@ export function nextPuzzleAt(now: Date): Date {
   }
   return new Date(nextDay);
 }
+
+/** The calendar month in Berlin at the given moment, 1 to 12. */
+export function berlinMonth(now: Date): number {
+  return Number(berlinDate(now).slice(5, 7));
+}
