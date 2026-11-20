@@ -76,7 +76,7 @@ The dropped puzzle can stay in `puzzles.json` as a spare.
      unique across puzzles (the validator refuses a puzzle without one, or a
      repeat). The exporter writes it. For a puzzle added by hand, it is the
      number in the poll's API URL, `abgeordnetenwatch.de/api/v2/polls/<id>`,
-     and the `poll_id` in the `PICKS` entry from step 2. The chat card
+     and the key of the `PICKS` entry from step 2. The chat card
      anchors the general chat on it.
    - `voteDate`, `outcome`, and per party the counts (`yes`, `no`, `abstain`,
      `noShow`) and the `answer`: copied from the vote's page.
