@@ -522,6 +522,9 @@ from the Qdrant-derived cursor on the next run.
 
 ### Stimmt's? (daily quiz at `/stimmts`)
 
+The game's analytics events and their props are listed in
+`docs/stimmts/DESIGN.md` under "Measuring".
+
 - **Switch**: Firestore doc `system_status/stimmts`
   `{enabled: true, launch_date: "2026-11-15"}` (`launch_date` is a string,
   `YYYY-MM-DD`). The launch date is day 1 in Berlin time, day N is

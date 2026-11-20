@@ -197,11 +197,31 @@ count.
 
 **Measuring**
 
-- Vercel Analytics events: `stimmts_puzzle_started`,
-  `stimmts_puzzle_completed` (day, score), `stimmts_result_shared` (screen,
-  method, day) and `stimmts_more_games` (answer: yes, no or dismissed;
-  games; placement: feed). Each puzzle is counted once, not again on a reload
-  or in another tab. Only counts leave the device, never the tips.
+- Vercel Analytics has no stable visitor id, so the game works out on the
+  device whether a player is new or returning and where they came from, and
+  sends only counts and categories: never the tips, never typed text, never an
+  id. Every value is a string, number, boolean or null. The events:
+  - `stimmts_puzzle_started` (day, entry, games_before, played_yesterday):
+    when the player presses start. Once per puzzle and browser, not again on a
+    reload or in another tab.
+  - `stimmts_puzzle_completed` (day, score, games_before, played_yesterday):
+    when the player finishes the game on this page.
+  - `stimmts_result_shared` (screen: result or closing; method: share or copy;
+    day, or null from the closing screen).
+  - `stimmts_more_games` (answer: yes, no or dismissed; games; placement:
+    feed).
+  - `stimmts_chat_asked` (kind: chip or typed; chip: why_party, surprise,
+    in_force, next, or null for a typed question; day): once per question
+    asked in the chat card. Never the question's text.
+- `games_before` is how many games this device had finished before this one
+  (0 is a first game ever). `played_yesterday` is true when a saved game was
+  finished on the previous Berlin day, with the preview clock when it runs.
+  Both leave out the puzzle itself, so start and completion agree.
+- `entry` is where the player came from: `shared_link` (opened with a valid
+  challenge link), `feed_card` or `header_icon` (a click leaves a short-lived
+  marker in sessionStorage, read and cleared at the start; one older than ten
+  minutes counts as direct), otherwise `direct`. A shared link wins over a
+  marker.
 - Feedback is one tap, asked once in the feed, as a small card at the bottom of
   the screen on a feed visit after the first finished puzzle (not on the visit
   where the fly-in plays): „Stimmt’s?
@@ -457,8 +477,6 @@ chat card is built and switched off; the game is switched off and stays
    `web/lib/seo.ts` and add `alternates: { canonical: '/stimmts' }`. Add
    `${BASE_URL}/stimmts` to `staticPages` in `web/app/sitemap.ts`. The
    share image route keeps its `X-Robots-Tag: noindex`.
-
-(Written feedback has no form: nothing to configure.)
 
 **Judging the pilot.** Return rate, completion, shares and the answers to the
 more-games question over the 30 days.
