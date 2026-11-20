@@ -328,7 +328,7 @@ function StyleSheet({ open, onOpenChange }: Props) {
             <b className="text-[22px] font-extrabold text-[var(--daily-ink)]">
               {daysPlayed}
             </b>{' '}
-            Tage gespielt
+            {daysPlayed === 1 ? 'Tag' : 'Tage'} gespielt
           </p>
           <ProgressBar daysPlayed={daysPlayed} />
         </div>

@@ -16,6 +16,7 @@ import { getGame } from '@/lib/stimmts/progress';
 import { STORAGE_KEY } from '@/lib/stimmts/progress-store';
 import { getTodaysPuzzle, puzzleForDay } from '@/lib/stimmts/schedule';
 import { resolveLaunch } from '@/lib/stimmts/status';
+import { styleStore } from '@/lib/stimmts/style-store';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { useStimmtsStatus } from '@/lib/stimmts/use-stimmts-status';
 import { RotateCw } from 'lucide-react';
@@ -116,6 +117,9 @@ function StimmtsGame({ previewEnabled }: Props) {
   // browser's first render are identical.
   useEffect(() => {
     hydrate();
+    // The result screen draws in the saved style from its first paint, so the
+    // style is read with the progress, not when the result mounts.
+    styleStore.getState().hydrate();
     refreshClock();
   }, [hydrate, refreshClock]);
 

@@ -49,6 +49,9 @@ function ShareButton({
   const imageName = shareImage?.name;
   useEffect(() => {
     setCanShare('share' in navigator);
+    // A file for the previous path must not go out while the new one is
+    // still being rendered.
+    image.current = null;
     if (!imagePath || !imageName) {
       return;
     }

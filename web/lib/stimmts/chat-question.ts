@@ -11,7 +11,7 @@ export type ChatQuestionKind =
 export type ChatQuestion = {
   kind: ChatQuestionKind;
   text: string;
-  /** The Fraktionen the question names, so the chat can scope its search. */
+  /** The Fraktionen the question names, which party the first chip names. */
   partyIds: string[];
 };
 

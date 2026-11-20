@@ -12,7 +12,7 @@ import { browserStorage } from '@/lib/stimmts/progress-store';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CARD_SURFACE, FOCUS_RING } from './card-styles';
 
 // The card waits a moment so it never competes with the feed's first paint.
@@ -35,6 +35,7 @@ function StimmtsFeedbackCard() {
   const studyRunning = useStudyRunning();
   const progress = useProgress((state) => state.progress);
   const hydrated = useProgress((state) => state.hydrated);
+  const hydrate = useProgress((state) => state.hydrate);
   // Unknown until mounted, so it never flashes up for someone already asked
   // or on the visit the game's fly-in plays.
   const [mounted, setMounted] = useState<{
@@ -44,13 +45,15 @@ function StimmtsFeedbackCard() {
   const [visible, setVisible] = useState(false);
   const [answered, setAnswered] = useState(false);
   const [closed, setClosed] = useState(false);
+  const closeButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    hydrate();
     setMounted({
       asked: wasAsked(browserStorage()),
       flyingIn: document.documentElement.dataset.stimmtsFly !== undefined,
     });
-  }, []);
+  }, [hydrate]);
 
   const eligible =
     hydrated &&
@@ -85,6 +88,8 @@ function StimmtsFeedbackCard() {
     if (!answered) {
       return;
     }
+    // The answer buttons just unmounted, which would drop focus to the page.
+    closeButton.current?.focus();
     const timer = setTimeout(() => setClosed(true), THANKS_MS);
     return () => clearTimeout(timer);
   }, [answered]);
@@ -128,6 +133,7 @@ function StimmtsFeedbackCard() {
         )}
         <button
           type="button"
+          ref={closeButton}
           onClick={close}
           aria-label="Schließen"
           className={cn(

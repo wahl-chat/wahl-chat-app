@@ -21,7 +21,7 @@ export type MoreGamesAnswer = 'yes' | 'no' | 'dismissed';
 /**
  * Whether players want more small games, asked once after the first finished
  * puzzle. A close without an answer is 'dismissed', so skips count too. The
- * placement tells answers given on the old result screen from the feed's.
+ * rows without a `placement` came from the result screen.
  */
 export function trackMoreGames(
   answer: MoreGamesAnswer,

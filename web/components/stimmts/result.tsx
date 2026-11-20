@@ -36,8 +36,7 @@ import VoteResultCard from './vote-result-card';
 
 /**
  * Fetched only when the switch is on, so while the general chat does not
- * exist the card and its placeholder answer stay out of the result screen's
- * bundle.
+ * exist the card stays out of the result screen's bundle.
  */
 const ChatCard = STIMMTS_CHAT_ENABLED
   ? dynamic(() => import('./chat-card'))
@@ -277,7 +276,6 @@ function Result({
           // then on this card keeps it on screen.
           <section
             aria-label="Dein Ergebnis"
-            aria-live="polite"
             className={cn(
               CARD_SURFACE,
               'flex flex-col gap-2.5 px-4 py-3',
@@ -285,7 +283,12 @@ function Result({
                 'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
             )}
           >
-            <p className="flex items-baseline justify-between gap-2">
+            {/* Only the score is live: the buttons below carry their own
+                announcements. */}
+            <p
+              aria-live="polite"
+              className="flex items-baseline justify-between gap-2"
+            >
               <span className="font-display text-2xl font-extrabold tabular-nums leading-7 tracking-[-0.02em]">
                 {score.correct} von {score.total}{' '}
                 <span className="font-sans text-[15px] font-semibold tracking-normal text-[var(--daily-muted)]">
