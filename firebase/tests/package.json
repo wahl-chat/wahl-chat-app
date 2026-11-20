@@ -1,0 +1,18 @@
+{
+  "name": "firebase-rules-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
+    "firebase": "^12.16.0",
+    "vitest": "^4.1.10"
+  },
+  "trustedDependencies": [
+    "@firebase/util",
+    "protobufjs"
+  ]
+}

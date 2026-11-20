@@ -23,6 +23,7 @@ firebase/
 ├── firestore.rules      # Firestore security rules
 ├── firestore.indexes.json
 ├── storage.rules        # Storage security rules
+├── tests/               # Firestore rules tests (emulator)
 └── .firebaserc          # Project aliases (dev/prod)
 ```
 
@@ -43,6 +44,14 @@ rules and indexes and the Storage rules via `.github/workflows/firebase-rules.ym
 the `ingest` functions via `.github/workflows/ingest-functions.yml`. Indexes
 removed from `firestore.indexes.json` are not deleted from the project. A manual
 deploy is for testing a branch.
+
+The rules tests in `tests/` run before every rules deploy and on PRs that touch
+the rules. Run them locally with the emulator stopped (it uses port 8081):
+
+```bash
+(cd tests && bun install)
+firebase emulators:exec --only firestore --project demo-wahl-chat "cd tests && bun run test"
+```
 
 First select your target environment:
 
