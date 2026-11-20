@@ -15,6 +15,7 @@ import { getGame } from '@/lib/stimmts/progress';
 import { scorePuzzle } from '@/lib/stimmts/score';
 import { buildShareText } from '@/lib/stimmts/share';
 import { shareImagePath, sharedResultPath } from '@/lib/stimmts/share-image';
+import { useStimmtsStyle } from '@/lib/stimmts/style-store';
 import type { Puzzle, Schedule } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,7 @@ import PeriodChamber from './period-chamber';
 import ShareButton from './share-button';
 import Stimmkarte from './stimmkarte';
 import StimmtsLogo from './stimmts-logo';
+import StyleFrame from './style-frame';
 import Urn from './urn';
 import { Verdict } from './verdict';
 import VoteResultCard from './vote-result-card';
@@ -100,6 +102,7 @@ function Result({
   const progress = useProgress((state) => state.progress);
   const castCard = useProgress((state) => state.cast);
   const reduceMotion = useReducedMotion() ?? false;
+  const { style } = useStimmtsStyle();
   // Read once, so a later render cannot cut the stamp's bounce short.
   const [stampOnMount] = useState(stamping);
   const game = getGame(progress, puzzle.id);
@@ -176,192 +179,196 @@ function Result({
   const cardsInUrn = castStep && castStep !== 'flying' ? cards + 1 : cards;
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-10">
-        {!game.cast && (
-          // The card's space closes once it is in the urn, so the urn rises
-          // into its place instead of jumping.
-          <div
-            className={cn(
-              'grid transition-[grid-template-rows,margin] duration-300 ease-out',
-              castStep === 'closing'
-                ? '-mb-10 grid-rows-[0fr]'
-                : 'grid-rows-[1fr]',
-            )}
-          >
+    <StyleFrame style={style}>
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-10">
+          {!game.cast && (
+            // The card's space closes once it is in the urn, so the urn rises
+            // into its place instead of jumping.
             <div
               className={cn(
-                'relative min-h-0',
-                castStep === 'closing' && 'overflow-hidden',
+                'grid transition-[grid-template-rows,margin] duration-300 ease-out',
+                castStep === 'closing'
+                  ? '-mb-10 grid-rows-[0fr]'
+                  : 'grid-rows-[1fr]',
               )}
             >
-              {!castStep && (
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 animate-stimmts-pulse rounded-xl border-2 border-[var(--daily-ink)] motion-reduce:hidden"
-                />
-              )}
-              <Stimmkarte
-                ref={cardRef}
-                number={number}
-                playDate={playDate}
-                title={puzzle.title}
-                topic={puzzle.topic}
-                score={score.correct}
-                verdicts={score.parties}
-                stamping={stampOnMount && !reduceMotion}
-                onCast={cast}
+              <div
                 className={cn(
-                  castStep === 'flying' &&
-                    'pointer-events-none z-[5] animate-stimmts-fly',
-                  castStep === 'fading' &&
-                    'pointer-events-none opacity-0 transition-opacity duration-300',
-                  castStep &&
-                    castStep !== 'flying' &&
-                    castStep !== 'fading' &&
-                    'invisible',
+                  'relative min-h-0',
+                  castStep === 'closing' && 'overflow-hidden',
                 )}
+              >
+                {!castStep && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 animate-stimmts-pulse rounded-xl border-2 border-[var(--daily-ink)] motion-reduce:hidden"
+                  />
+                )}
+                <Stimmkarte
+                  ref={cardRef}
+                  number={number}
+                  playDate={playDate}
+                  title={puzzle.title}
+                  topic={puzzle.topic}
+                  score={score.correct}
+                  verdicts={score.parties}
+                  stamping={stampOnMount && !reduceMotion}
+                  onCast={cast}
+                  className={cn(
+                    castStep === 'flying' &&
+                      'pointer-events-none z-[5] animate-stimmts-fly',
+                    castStep === 'fading' &&
+                      'pointer-events-none opacity-0 transition-opacity duration-300',
+                    castStep &&
+                      castStep !== 'flying' &&
+                      castStep !== 'fading' &&
+                      'invisible',
+                  )}
+                />
+              </div>
+            </div>
+          )}
+
+          {game.cast && (
+            // Once the card, which carries the score, is in the urn.
+            <div className="flex flex-col items-center gap-1">
+              <StimmtsLogo className="text-[19px]" />
+              <Countdown size="compact" />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4">
+            {/* While the card waits, the urn sits a little lower, leaving the
+              hint room between the two. */}
+            <div className={cn('relative', !game.cast && 'mt-8')}>
+              {!game.cast && !castStep && <CastHint />}
+              <Urn
+                cards={cardsInUrn}
+                casting={
+                  castStep === 'inserting' || castStep === 'falling'
+                    ? castStep
+                    : castStep === 'fading'
+                      ? 'appearing'
+                      : null
+                }
+                slotRef={slotRef}
               />
             </div>
+            {game.cast && (
+              <p
+                className={cn(
+                  'text-center text-sm text-[var(--daily-muted)]',
+                  justCast &&
+                    'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
+                )}
+              >
+                <span className="font-display text-2xl font-extrabold tabular-nums text-[var(--daily-ink)]">
+                  {cards}/{PERIOD_LENGTH}
+                </span>{' '}
+                Stimmkarten abgegeben
+              </p>
+            )}
           </div>
-        )}
+        </div>
 
         {game.cast && (
-          // Once the card, which carries the score, is in the urn.
-          <div className="flex flex-col items-center gap-1">
-            <StimmtsLogo className="text-[19px]" />
-            <Countdown size="compact" />
-          </div>
+          // The Stimmkarte showed the score until it went into the urn; from
+          // then on this card keeps it on screen.
+          <section
+            aria-label="Dein Ergebnis"
+            aria-live="polite"
+            className={cn(
+              CARD_SURFACE,
+              'flex flex-col gap-2.5 px-4 py-3',
+              justCast &&
+                'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
+            )}
+          >
+            <p className="flex items-baseline justify-between gap-2">
+              <span className="font-display text-2xl font-extrabold tabular-nums leading-7 tracking-[-0.02em]">
+                {score.correct} von {score.total}{' '}
+                <span className="font-sans text-[15px] font-semibold tracking-normal text-[var(--daily-muted)]">
+                  richtig
+                </span>
+              </span>
+              <span className="text-[13px] text-[var(--daily-muted)]">
+                {feedDate(playDate)}
+              </span>
+            </p>
+            <ul
+              aria-label="Deine Tipps je Partei"
+              className="grid grid-cols-5 gap-1"
+            >
+              {score.parties.map((entry) => (
+                <li
+                  key={entry.partyId}
+                  className="flex flex-col items-center gap-1.5"
+                >
+                  <PartyTile partyId={entry.partyId} size="sm" />
+                  <span className="sr-only">{partyLabel(entry.partyId)}</span>
+                  <Verdict
+                    correct={entry.correct}
+                    className="size-[18px] text-[11px]"
+                  />
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-wrap items-center gap-2">
+              <ShareButton
+                size="compact"
+                text={buildShareText({
+                  puzzleNumber: number,
+                  score,
+                  title: puzzle.title,
+                  url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
+                })}
+                image={{
+                  path: shareImagePath('square', {
+                    number,
+                    score: score.correct,
+                    playDate,
+                    period: sharedPeriod,
+                  }),
+                  name: `stimmts-${number}.png`,
+                }}
+                onShared={(method) =>
+                  trackResultShared('result', method, number)
+                }
+              />
+              {scoreActions}
+            </div>
+          </section>
         )}
 
-        <div className="flex flex-col gap-4">
-          {/* While the card waits, the urn sits a little lower, leaving the
-              hint room between the two. */}
-          <div className={cn('relative', !game.cast && 'mt-8')}>
-            {!game.cast && !castStep && <CastHint />}
-            <Urn
-              cards={cardsInUrn}
-              casting={
-                castStep === 'inserting' || castStep === 'falling'
-                  ? castStep
-                  : castStep === 'fading'
-                    ? 'appearing'
-                    : null
-              }
-              slotRef={slotRef}
-            />
-          </div>
-          {game.cast && (
-            <p
-              className={cn(
-                'text-center text-sm text-[var(--daily-muted)]',
-                justCast &&
-                  'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
-              )}
-            >
-              <span className="font-display text-2xl font-extrabold tabular-nums text-[var(--daily-ink)]">
-                {cards}/{PERIOD_LENGTH}
-              </span>{' '}
-              Stimmkarten abgegeben
-            </p>
-          )}
-        </div>
-      </div>
+        <VoteResultCard puzzle={puzzle} onOpen={onReview} />
 
-      {game.cast && (
-        // The Stimmkarte showed the score until it went into the urn; from
-        // then on this card keeps it on screen.
-        <section
-          aria-label="Dein Ergebnis"
-          aria-live="polite"
-          className={cn(
-            CARD_SURFACE,
-            'flex flex-col gap-2.5 px-4 py-3',
-            justCast &&
-              'animate-stimmts-screen [animation-delay:0.5s] motion-reduce:animate-none',
-          )}
-        >
-          <p className="flex items-baseline justify-between gap-2">
-            <span className="font-display text-2xl font-extrabold tabular-nums leading-7 tracking-[-0.02em]">
-              {score.correct} von {score.total}{' '}
-              <span className="font-sans text-[15px] font-semibold tracking-normal text-[var(--daily-muted)]">
-                richtig
+        {/* Right under the vote: questions come up while it is on screen. */}
+        {STIMMTS_CHAT_ENABLED && (
+          <ChatCard puzzle={puzzle} guesses={game.guesses} />
+        )}
+
+        <div className="mt-5">
+          <div className="relative px-6">
+            <PeriodChamber
+              seats={periodSeats(period.days, false)}
+              complete={period.complete}
+              today={number}
+              onOpen={onOpenDay}
+              className="mx-auto max-w-[300px]"
+            />
+            <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 flex-col items-center whitespace-nowrap">
+              <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
+                Tag {period.day}
               </span>
-            </span>
-            <span className="text-[13px] text-[var(--daily-muted)]">
-              {feedDate(playDate)}
-            </span>
-          </p>
-          <ul
-            aria-label="Deine Tipps je Partei"
-            className="grid grid-cols-5 gap-1"
-          >
-            {score.parties.map((entry) => (
-              <li
-                key={entry.partyId}
-                className="flex flex-col items-center gap-1.5"
-              >
-                <PartyTile partyId={entry.partyId} size="sm" />
-                <span className="sr-only">{partyLabel(entry.partyId)}</span>
-                <Verdict
-                  correct={entry.correct}
-                  className="size-[18px] text-[11px]"
-                />
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-wrap items-center gap-2">
-            <ShareButton
-              size="compact"
-              text={buildShareText({
-                puzzleNumber: number,
-                score,
-                title: puzzle.title,
-                url: `${BASE_URL}${sharedResultPath({ number, score: score.correct, playDate })}`,
-              })}
-              image={{
-                path: shareImagePath('square', {
-                  number,
-                  score: score.correct,
-                  playDate,
-                  period: sharedPeriod,
-                }),
-                name: `stimmts-${number}.png`,
-              }}
-              onShared={(method) => trackResultShared('result', method, number)}
-            />
-            {scoreActions}
-          </div>
-        </section>
-      )}
-
-      <VoteResultCard puzzle={puzzle} onOpen={onReview} />
-
-      {/* Right under the vote: questions come up while it is on screen. */}
-      {STIMMTS_CHAT_ENABLED && (
-        <ChatCard puzzle={puzzle} guesses={game.guesses} />
-      )}
-
-      <div className="mt-5">
-        <div className="relative px-6">
-          <PeriodChamber
-            seats={periodSeats(period.days, false)}
-            complete={period.complete}
-            today={number}
-            onOpen={onOpenDay}
-            className="mx-auto max-w-[300px]"
-          />
-          <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 flex-col items-center whitespace-nowrap">
-            <span className="font-display text-[30px] font-extrabold tabular-nums leading-[34px] tracking-[-0.02em]">
-              Tag {period.day}
-            </span>
-            <span className="text-xs font-medium text-[var(--daily-muted)]">
-              von {PERIOD_LENGTH}
-            </span>
+              <span className="text-xs font-medium text-[var(--daily-muted)]">
+                von {PERIOD_LENGTH}
+              </span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </StyleFrame>
   );
 }
 
