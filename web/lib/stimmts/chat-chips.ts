@@ -1,4 +1,3 @@
-import type { ChatChipId } from './analytics-props';
 import { chatQuestion } from './chat-question';
 import { ANSWER_LABELS } from './labels';
 import type { Guesses, Puzzle } from './types';
@@ -9,6 +8,8 @@ import type { Guesses, Puzzle } from './types';
  * page that cannot answer.
  */
 export const STIMMTS_CHAT_ENABLED = false;
+
+export type ChatChipId = 'why_party' | 'surprise' | 'in_force' | 'next';
 
 export type ChatChip = {
   /**

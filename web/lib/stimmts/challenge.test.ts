@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { shareChallenge } from './challenge';
+import { isSharedLink, shareChallenge } from './challenge';
 
 const TODAY = '2026-11-19';
 const challenge = (search: string, playedToday = false) =>
@@ -39,5 +39,24 @@ describe('shareChallenge', () => {
   it('stays quiet without a shared result', () => {
     expect(challenge('')).toBeNull();
     expect(challenge('?f=link')).toBeNull();
+  });
+});
+
+describe('isSharedLink', () => {
+  const shared = (search: string) => isSharedLink(search, TODAY);
+
+  it('counts a valid link from today', () => {
+    expect(shared('?n=5&s=4&d=2026-11-19')).toBe(true);
+  });
+
+  it('counts a valid link from an earlier day, which shows no banner', () => {
+    expect(shared('?n=5&s=4&d=2026-11-18')).toBe(true);
+    expect(challenge('?n=5&s=4&d=2026-11-18')).toBeNull();
+  });
+
+  it('does not count a link that is missing or invalid', () => {
+    expect(shared('')).toBe(false);
+    expect(shared('?n=5&s=9&d=2026-11-19')).toBe(false);
+    expect(shared('?n=5&s=4&d=nope')).toBe(false);
   });
 });

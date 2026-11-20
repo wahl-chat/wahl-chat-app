@@ -1,4 +1,5 @@
 import { addDays } from './berlin-time';
+import type { ChatChipId } from './chat-chips';
 import { finishedGameCount } from './feedback';
 import type { Progress } from './progress';
 
@@ -109,8 +110,6 @@ export function resolveEntry(input: {
   }
   return marked ?? 'direct';
 }
-
-export type ChatChipId = 'why_party' | 'surprise' | 'in_force' | 'next';
 
 export type ChatAskedProps = {
   kind: 'chip' | 'typed';

@@ -7,7 +7,7 @@ import {
   daysBetween,
   nextPuzzleAt,
 } from '@/lib/stimmts/berlin-time';
-import { shareChallenge } from '@/lib/stimmts/challenge';
+import { isSharedLink, shareChallenge } from '@/lib/stimmts/challenge';
 import { PUZZLES, PUZZLE_COUNT, createSchedule } from '@/lib/stimmts/content';
 import { formatDate, weekdayName } from '@/lib/stimmts/labels';
 import { dayRecords } from '@/lib/stimmts/period';
@@ -238,6 +238,7 @@ function StimmtsGame({ previewEnabled }: Props) {
           schedule={schedule}
           preview={previewEnabled}
           today={berlinDate(clock.now)}
+          sharedLink={isSharedLink(search, berlinDate(clock.now))}
           challenge={shareChallenge({
             search,
             today: berlinDate(clock.now),

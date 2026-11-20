@@ -46,6 +46,8 @@ type Props = {
   today: string;
   /** The challenge from a shared link, shown above the start screen. */
   challenge?: { score: number; text: string } | null;
+  /** Opened from any valid shared result: independent of the banner. */
+  sharedLink?: boolean;
   /** Server-decided preview mode: shows parts still switched off. */
   preview: boolean;
   onOpenDay: (number: number) => void;
@@ -63,6 +65,7 @@ function PuzzleGame({
   schedule,
   today,
   challenge,
+  sharedLink = false,
   preview,
   onOpenDay,
 }: Props) {
@@ -269,13 +272,7 @@ function PuzzleGame({
             }
             startCounted.current = true;
             setStarted(true);
-            trackPuzzleStarted(
-              number,
-              puzzle.id,
-              progress,
-              today,
-              challenge != null,
-            );
+            trackPuzzleStarted(number, puzzle.id, progress, today, sharedLink);
             goTop();
           }}
         />

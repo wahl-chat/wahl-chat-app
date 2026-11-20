@@ -2,6 +2,18 @@ import { PUZZLE_COUNT } from './content';
 import { MAX_SCORE, parseShareParams } from './share-image';
 
 /**
+ * Whether the page was opened from a shared result, whatever day it is from.
+ * Unlike the challenge this has no day check: a friend who opens a link
+ * shared yesterday was still brought by it, even though no banner shows.
+ */
+export function isSharedLink(search: string, today: string): boolean {
+  return (
+    parseShareParams(new URLSearchParams(search), PUZZLE_COUNT, today)
+      ?.result != null
+  );
+}
+
+/**
  * The line that challenges a friend who opens a shared result, or null when
  * there is nothing to challenge. Only a result from today's puzzle counts:
  * another day's score is a different quiz, so beating it means nothing. The

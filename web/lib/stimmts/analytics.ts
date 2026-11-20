@@ -1,13 +1,13 @@
 import { track } from '@vercel/analytics/react';
 import {
   type ChatAskedProps,
-  type ChatChipId,
   type EntrySource,
   chatAskedProps,
   markEntry,
   resolveEntry,
   retentionProps,
 } from './analytics-props';
+import type { ChatChipId } from './chat-chips';
 import { claimOnce } from './claim-once';
 import type { Progress } from './progress';
 import { browserStorage } from './progress-store';

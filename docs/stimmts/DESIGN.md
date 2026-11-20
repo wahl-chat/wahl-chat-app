@@ -217,8 +217,8 @@ count.
   (0 is a first game ever). `played_yesterday` is true when a saved game was
   finished on the previous Berlin day, with the preview clock when it runs.
   Both leave out the puzzle itself, so start and completion agree.
-- `entry` is where the player came from: `shared_link` (opened with a valid
-  challenge link), `feed_card` or `header_icon` (a click leaves a short-lived
+- `entry` is where the player came from: `shared_link` (opened with any valid
+  shared result link, from any day, whether or not the challenge banner shows), `feed_card` or `header_icon` (a click leaves a short-lived
   marker in sessionStorage, read and cleared at the start; one older than ten
   minutes counts as direct), otherwise `direct`. A shared link wins over a
   marker.
