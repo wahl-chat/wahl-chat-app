@@ -44,9 +44,12 @@ permissions:
   id-token: write # WIF token exchange
 
 # A deploy is never cancelled halfway; a newer merge waits for the running one.
+# PR checks get a group of their own: GitHub keeps only one pending run per group,
+# so a PR check sharing the deploy group would replace a merge's pending deploy.
+# A new push to a PR cancels that PR's outdated check.
 concurrency:
-  group: ingest-functions-${{ github.base_ref || github.ref_name }}
-  cancel-in-progress: false
+  group: ingest-functions-${{ github.event_name == 'push' && github.ref_name || format('pr-{0}', github.event.pull_request.number) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # main (or a PR into main) targets prod; everything else targets dev.
