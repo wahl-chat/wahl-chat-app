@@ -57,10 +57,9 @@ export function recordAnswer(
   puzzle: Puzzle,
   partyId: string,
   answer: VoteAnswer,
-  // An answer carries no date; only finishGame stamps one. Taken anyway, so
-  // every game action is called with the day it happens on.
+  // Unused: an answer carries no date, only finishGame stamps one.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  today: string,
+  _today: string,
 ): Progress {
   const game = getGame(progress, puzzle.id);
   const inPuzzle = puzzle.parties.some((party) => party.partyId === partyId);

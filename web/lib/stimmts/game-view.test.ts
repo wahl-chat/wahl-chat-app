@@ -90,6 +90,32 @@ describe('chamberStates', () => {
     expect(Object.values(states).every((s) => s.mode === 'guessed')).toBe(true);
   });
 
+  it('marks the party being edited as asked, while answering and on the review', () => {
+    const answering = chamberStates(
+      puzzle,
+      'answering',
+      TWO_ANSWERS,
+      NONE,
+      'linke',
+    );
+    expect(answering.linke).toEqual({ mode: 'active' });
+    expect(answering.spd).toEqual({
+      mode: 'guessed',
+      guess: 'yes',
+      tappable: false,
+    });
+    // The first party without a tip waits its turn like the rest.
+    expect(answering.gruene).toEqual({ mode: 'pending', dim: true });
+
+    const review = chamberStates(puzzle, 'review', ALL_ANSWERS, NONE, 'afd');
+    expect(review.afd).toEqual({ mode: 'active' });
+    expect(review.linke).toEqual({
+      mode: 'guessed',
+      guess: 'no',
+      tappable: false,
+    });
+  });
+
   it('lets unrevealed parties be tapped on the reveal', () => {
     const states = chamberStates(
       puzzle,
@@ -124,6 +150,16 @@ describe('chamberCenter', () => {
   it('counts all the parties on the review', () => {
     expect(chamberCenter(puzzle, 'review', ALL_ANSWERS, NONE)).toEqual({
       big: '5 / 5',
+      small: 'Parteien',
+    });
+  });
+
+  it('counts up to the party being edited', () => {
+    expect(
+      chamberCenter(puzzle, 'answering', TWO_ANSWERS, NONE, 'linke'),
+    ).toEqual({ big: '1 / 5', small: 'Parteien' });
+    expect(chamberCenter(puzzle, 'review', ALL_ANSWERS, NONE, 'cdu')).toEqual({
+      big: '4 / 5',
       small: 'Parteien',
     });
   });

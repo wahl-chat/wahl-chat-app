@@ -39,18 +39,35 @@ export function currentPartyIndex(puzzle: Puzzle, guesses: Guesses): number {
 }
 
 /**
+ * The party the guess card asks, by seating index: the one being edited if
+ * any, else the first without a tip (-1 on the review, where none is left).
+ */
+export function askedIndex(
+  puzzle: Puzzle,
+  guesses: Guesses,
+  edited?: string,
+): number {
+  return edited
+    ? puzzle.parties.findIndex((party) => party.partyId === edited)
+    : currentPartyIndex(puzzle, guesses);
+}
+
+/**
  * What the chamber shows on each screen. While answering, the party being
  * asked stands out and the ones still to come are dimmed; on the review
- * every tip shows, none dimmed; on the reveal, a party not yet turned over
- * shows the player's tip and can be tapped.
+ * every tip shows, none dimmed, unless a party is being edited; on the
+ * reveal, a party not yet turned over shows the player's tip and can be
+ * tapped. `edited` is an answered party the card asks again.
  */
 export function chamberStates(
   puzzle: Puzzle,
   phase: Phase,
   guesses: Guesses,
   revealed: ReadonlySet<string>,
+  edited?: string,
 ): Record<string, PartyState> {
-  const asked = currentPartyIndex(puzzle, guesses);
+  const asking = phase === 'answering' || phase === 'review';
+  const asked = asking ? askedIndex(puzzle, guesses, edited) : -1;
   return Object.fromEntries(
     puzzle.parties.map((party, index): [string, PartyState] => {
       const guess = guesses[party.partyId];
@@ -63,14 +80,14 @@ export function chamberStates(
           { mode: 'revealed', tappable: phase === 'reveal' },
         ];
       }
+      if (index === asked) {
+        return [party.partyId, { mode: 'active' }];
+      }
       if (guess) {
         return [
           party.partyId,
           { mode: 'guessed', guess, tappable: phase === 'reveal' },
         ];
-      }
-      if (phase === 'answering' && index === asked) {
-        return [party.partyId, { mode: 'active' }];
       }
       return [party.partyId, { mode: 'pending', dim: phase === 'answering' }];
     }),
@@ -99,6 +116,7 @@ export function chamberCenter(
   phase: Phase,
   guesses: Guesses,
   revealed: ReadonlySet<string>,
+  edited?: string,
 ): { big: string; small: string } {
   if (phase === 'briefing') {
     const seats =
@@ -107,8 +125,8 @@ export function chamberCenter(
     return { big: String(seats), small: 'Sitze' };
   }
   if (phase === 'answering' || phase === 'review') {
-    // On the review no party is left to ask: every one has its tip.
-    const asked = currentPartyIndex(puzzle, guesses);
+    // On the review no party is left to ask unless one is being edited.
+    const asked = askedIndex(puzzle, guesses, edited);
     const count = asked === -1 ? puzzle.parties.length : asked + 1;
     return {
       big: `${count} / ${puzzle.parties.length}`,

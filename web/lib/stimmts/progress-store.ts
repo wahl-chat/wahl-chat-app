@@ -47,8 +47,11 @@ export type ProgressState = {
     answer: VoteAnswer,
     today: string,
   ) => void;
-  /** "Auflösen": finishes a game once every party has a guess. */
-  finish: (puzzle: Puzzle, today: string) => void;
+  /**
+   * "Auflösen": finishes a game once every party has a guess. True only
+   * when this call finished it.
+   */
+  finish: (puzzle: Puzzle, today: string) => boolean;
 };
 
 function readSaved(storage: StorageLike | null): unknown {
@@ -138,14 +141,18 @@ export function createProgressStore(storage: StorageLike | null) {
           recordAnswer(before, puzzle, partyId, answer, today),
         ),
 
-      finish: (puzzle, today) =>
+      finish: (puzzle, today) => {
+        let finished = false;
         update((before) => {
           const after = finishGame(before, puzzle, today);
           if (after !== before) {
+            finished = true;
             set({ finishedHere: [...get().finishedHere, puzzle.id] });
           }
           return after;
-        }),
+        });
+        return finished;
+      },
     };
   });
 }

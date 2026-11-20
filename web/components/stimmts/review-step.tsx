@@ -15,13 +15,12 @@ type Props = {
  */
 function ReviewStep({ puzzle, guesses, onEdit, onReveal }: Props) {
   return (
-    <section
-      aria-labelledby="review-tips"
-      className="flex flex-col gap-4 rounded-lg border border-[var(--daily-border)] bg-[var(--daily-canvas)] p-4"
-    >
-      <h2 id="review-tips" className="text-xl font-semibold">
+    <div className="flex flex-col gap-4 rounded-lg border border-[var(--daily-border)] bg-[var(--daily-canvas)] p-4">
+      {/* The page's own heading already says it to screen readers, and the
+          focus lands there when the review opens. */}
+      <p aria-hidden className="text-xl font-semibold">
         Deine Tipps
-      </h2>
+      </p>
       <TipRow
         puzzle={puzzle}
         guesses={guesses}
@@ -32,7 +31,7 @@ function ReviewStep({ puzzle, guesses, onEdit, onReveal }: Props) {
         Tippe auf eine Partei, um den Tipp zu ändern.
       </p>
       <PillButton onClick={onReveal}>Auflösen</PillButton>
-    </section>
+    </div>
   );
 }
 

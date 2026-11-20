@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { currentPartyIndex } from '@/lib/stimmts/game-view';
+import { askedIndex } from '@/lib/stimmts/game-view';
 import { seatCount } from '@/lib/stimmts/hemicycle';
 import {
   ANSWER_LABELS,
@@ -49,13 +49,10 @@ function GuessStep({
   onAnswered,
 }: Props) {
   const saveAnswer = useProgress((state) => state.answer);
-  const editIndex = editing
-    ? puzzle.parties.findIndex((party) => party.partyId === editing)
-    : -1;
-  const index = editIndex >= 0 ? editIndex : currentPartyIndex(puzzle, guesses);
+  const index = askedIndex(puzzle, guesses, editing);
   const next = index >= 0 ? puzzle.parties[index] : undefined;
   const nextId = next?.partyId;
-  const selected = editIndex >= 0 && nextId ? guesses[nextId] : undefined;
+  const selected = editing && nextId ? guesses[nextId] : undefined;
 
   const answer = useCallback(
     (partyId: string, option: VoteAnswer) => {
@@ -120,21 +117,6 @@ function GuessStep({
         current={next.partyId}
         onEdit={onEdit}
       />
-      <div aria-hidden className="flex gap-1">
-        {puzzle.parties.map((party, i) => (
-          <span
-            key={party.partyId}
-            className={cn(
-              'h-1 flex-1 rounded-full',
-              i === index
-                ? 'bg-[var(--daily-muted)]'
-                : guesses[party.partyId] !== undefined
-                  ? 'bg-[var(--daily-ink)]'
-                  : 'bg-[var(--daily-border)]',
-            )}
-          />
-        ))}
-      </div>
       <p aria-live="polite" className="sr-only">
         Partei {index + 1} von {puzzle.parties.length}:{' '}
         {partyLabel(next.partyId)}

@@ -266,20 +266,20 @@ describe('finishedHere', () => {
       null,
     );
 
-    store.getState().finish(puzzle, TODAY);
+    expect(store.getState().finish(puzzle, TODAY)).toBe(true);
     expect(store.getState().finishedHere).toEqual([puzzle.id]);
     expect(JSON.parse(data[STORAGE_KEY]).games[puzzle.id].finishedOn).toBe(
       TODAY,
     );
-    // A second "Auflösen" lists it once.
-    store.getState().finish(puzzle, TODAY);
+    // A second "Auflösen" lists it once, and finishes nothing.
+    expect(store.getState().finish(puzzle, TODAY)).toBe(false);
     expect(store.getState().finishedHere).toEqual([puzzle.id]);
   });
 
   it('does not finish a game that still lacks a guess', () => {
     const store = createProgressStore(fakeStorage().storage);
     store.getState().answer(puzzle, 'linke', 'yes', TODAY);
-    store.getState().finish(puzzle, TODAY);
+    expect(store.getState().finish(puzzle, TODAY)).toBe(false);
     expect(getGame(store.getState().progress, puzzle.id).finishedOn).toBeNull();
     expect(store.getState().finishedHere).toEqual([]);
   });

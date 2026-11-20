@@ -208,8 +208,11 @@ function PuzzleGame({
   // "Auflösen" on the review ends the game and starts turning the parties
   // over, so the reveal plays without a second tap.
   const revealFromReview = () => {
-    finish(puzzle, today);
-    revealAll();
+    // Only a game this tap finished plays its reveal; one already finished
+    // in another tab goes straight to its result instead.
+    if (finish(puzzle, today)) {
+      revealAll();
+    }
   };
 
   // With tips, the result follows once the last party is turned over, however
@@ -298,8 +301,20 @@ function PuzzleGame({
       <Hemicycle
         parties={puzzle.parties}
         unaffiliated={puzzle.unaffiliated}
-        states={chamberStates(puzzle, phase, tips, revealed)}
-        center={chamberCenter(puzzle, phase, tips, revealed)}
+        states={chamberStates(
+          puzzle,
+          phase,
+          tips,
+          revealed,
+          editing ?? undefined,
+        )}
+        center={chamberCenter(
+          puzzle,
+          phase,
+          tips,
+          revealed,
+          editing ?? undefined,
+        )}
         onPartyClick={phase === 'reveal' ? select : undefined}
       />
       {phase === 'reveal' && (
