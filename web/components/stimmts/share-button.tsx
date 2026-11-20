@@ -17,8 +17,8 @@ type Props = {
   /** The square share image (see the /stimmts/share route), if any. */
   image?: { path: string; name: string };
   onShared?: (method: ShareMethod) => void;
-  /** Compact is the score card's small pill; its label is just "Teilen". */
-  size?: 'default' | 'compact';
+  /** Without the icon and with tighter padding, to sit beside another pill. */
+  textOnly?: boolean;
   /** Classes for the pill, e.g. to match a neighbour's height. */
   className?: string;
   /**
@@ -36,11 +36,10 @@ function ShareButton({
   text,
   image: shareImage,
   onShared,
-  size = 'default',
+  textOnly = false,
   className,
   actions,
 }: Props) {
-  const compact = size === 'compact';
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
   // Unknown until mounted: guessing either way would flash the save link on
   // the other kind of device. The label stays "teilen" on both: copying the
@@ -91,34 +90,23 @@ function ShareButton({
   };
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-2',
-        compact ? 'items-start' : 'items-center',
-      )}
-    >
-      <div
-        className={cn(
-          'flex flex-wrap items-center gap-2.5',
-          compact ? 'justify-start' : 'justify-center',
-        )}
-      >
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2.5">
         <PillButton
           onClick={handleClick}
           className={cn(
+            // 44px tall and about 156px wide: beside "Stil ändern" the pair
+            // fits one row at 375px.
+            textOnly && 'h-11 px-[18px] font-semibold',
             className,
-            compact &&
-              // The pill is 40px tall; the invisible extension brings the tap
-              // target to 44px without growing the card.
-              'relative h-10 gap-2 self-start px-4 text-base after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-[""] [&_svg]:size-4',
           )}
         >
           {outcome === 'copied' ? (
             'Kopiert ✓'
           ) : (
             <>
-              <Share aria-hidden strokeWidth={2.25} />
-              {compact ? 'Teilen' : 'Ergebnis teilen'}
+              {!textOnly && <Share aria-hidden strokeWidth={2.25} />}
+              Ergebnis teilen
             </>
           )}
         </PillButton>

@@ -25,7 +25,7 @@ function StyleButton({ className }: { className?: string }) {
         aria-label={styleButtonLabel(hasFresh)}
         onClick={() => setOpen(true)}
         className={cn(
-          "relative h-10 gap-2 self-start border border-[var(--daily-border)] bg-[var(--daily-surface)] px-4 text-base text-[var(--daily-ink)] after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-[''] hover:bg-[var(--daily-surface)] [&_svg]:size-4",
+          "relative h-11 gap-2 self-center border border-[var(--daily-border)] bg-[var(--daily-surface)] px-4 text-[15px] text-[var(--daily-ink)] after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-[''] hover:bg-[var(--daily-surface)] [&_svg]:size-4",
           className,
         )}
       >

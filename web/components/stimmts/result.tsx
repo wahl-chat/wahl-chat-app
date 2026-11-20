@@ -285,7 +285,7 @@ function Result({
         )}
 
         <section
-          aria-label="Dein Ergebnis"
+          aria-label={sections.scoreRow ? 'Dein Ergebnis' : 'Deine Wahlperiode'}
           className={cn(CARD_SURFACE, 'flex flex-col gap-4 px-4 py-4')}
         >
           {sections.scoreRow && (
@@ -354,7 +354,7 @@ function Result({
           </div>
 
           <ShareButton
-            className="h-11 self-center"
+            textOnly
             text={buildShareText({
               puzzleNumber: number,
               score,
@@ -372,7 +372,7 @@ function Result({
               name: `stimmts-${number}.png`,
             }}
             onShared={(method) => trackResultShared('result', method, number)}
-            actions={<StyleButton className="h-11 self-center" />}
+            actions={<StyleButton />}
           />
         </section>
       </div>
