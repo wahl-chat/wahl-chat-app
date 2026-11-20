@@ -8,7 +8,12 @@ import {
   encodePeriod,
   summarizePeriod,
 } from './period';
-import { EMPTY_PROGRESS, type Progress, recordAnswer } from './progress';
+import {
+  EMPTY_PROGRESS,
+  type Progress,
+  finishGame,
+  recordAnswer,
+} from './progress';
 import type { Schedule, VoteAnswer } from './types';
 
 const SCHEDULE: Schedule = {
@@ -22,11 +27,12 @@ function play(
   answer: VoteAnswer = 'no',
 ): Progress {
   const puzzle = PUZZLES[index];
-  return puzzle.parties.reduce(
+  const answered = puzzle.parties.reduce(
     (state, party) =>
       recordAnswer(state, puzzle, party.partyId, answer, '2026-11-01'),
     progress,
   );
+  return finishGame(answered, puzzle, '2026-11-01');
 }
 
 /** A long run of records from a pattern: P played (score 4), x missed. */

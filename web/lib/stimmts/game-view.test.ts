@@ -7,6 +7,7 @@ import {
   chamberCenter,
   chamberStates,
   currentPartyIndex,
+  gamePhase,
   selectParty,
 } from './game-view';
 
@@ -29,6 +30,34 @@ describe('currentPartyIndex', () => {
   });
 });
 
+describe('gamePhase', () => {
+  const at = (
+    started: boolean,
+    complete: boolean,
+    finished: boolean,
+    showResult = false,
+  ) => gamePhase({ started, complete, finished, showResult });
+
+  it('opens on the briefing', () => {
+    expect(at(false, false, false)).toBe('briefing');
+  });
+
+  it('asks the parties once started', () => {
+    expect(at(true, false, false)).toBe('answering');
+  });
+
+  it('reviews the tips once every party has one, until the reveal', () => {
+    expect(at(true, true, false)).toBe('review');
+    // A reload during the review resumes there.
+    expect(at(false, true, false)).toBe('review');
+  });
+
+  it('reveals a finished game, then shows the result', () => {
+    expect(at(true, true, true)).toBe('reveal');
+    expect(at(false, true, true, true)).toBe('result');
+  });
+});
+
 describe('chamberStates', () => {
   it('leaves the chamber neutral on the briefing', () => {
     const states = chamberStates(puzzle, 'briefing', {}, NONE);
@@ -44,6 +73,21 @@ describe('chamberStates', () => {
     });
     expect(states.gruene).toEqual({ mode: 'active' });
     expect(states.afd).toEqual({ mode: 'pending', dim: true });
+  });
+
+  it('shows every tip on the review, none dimmed and none tappable', () => {
+    const states = chamberStates(puzzle, 'review', ALL_ANSWERS, NONE);
+    expect(states.linke).toEqual({
+      mode: 'guessed',
+      guess: 'no',
+      tappable: false,
+    });
+    expect(states.afd).toEqual({
+      mode: 'guessed',
+      guess: 'no',
+      tappable: false,
+    });
+    expect(Object.values(states).every((s) => s.mode === 'guessed')).toBe(true);
   });
 
   it('lets unrevealed parties be tapped on the reveal', () => {
@@ -75,6 +119,13 @@ describe('chamberCenter', () => {
     expect(
       chamberCenter(puzzle, 'reveal', ALL_ANSWERS, new Set(['spd', 'linke'])),
     ).toEqual({ big: '116 : 54', small: 'Ja : Nein' });
+  });
+
+  it('counts all the parties on the review', () => {
+    expect(chamberCenter(puzzle, 'review', ALL_ANSWERS, NONE)).toEqual({
+      big: '5 / 5',
+      small: 'Parteien',
+    });
   });
 
   it('names the outcome once every party is turned over', () => {

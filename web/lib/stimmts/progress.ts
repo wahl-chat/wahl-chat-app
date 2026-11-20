@@ -11,7 +11,7 @@ export const PROGRESS_VERSION = 1;
 
 type GameProgress = {
   guesses: Guesses;
-  /** Berlin date the last answer was given; null while the game is open. */
+  /** Berlin date the player pressed "Auflösen"; null while the game is open. */
   finishedOn: string | null;
   /**
    * True once the player has cast the day's Stimmkarte into the urn. A reload
@@ -43,17 +43,23 @@ export function getGame(progress: Progress, puzzleId: string): GameProgress {
 }
 
 /**
- * Records one answer. Answers are final: once a party has been answered, or
- * the game is finished, nothing changes, so reloading the page cannot be used
- * to take an answer back. Returns the same object when nothing changed.
+ * Records one answer, or changes it. Guesses stay open until the reveal; once
+ * the game is finished nothing changes, so reloading the page cannot be used
+ * to take back an answer that has been revealed. Returns the same object when
+ * nothing changed: the same answer again, a party not in the puzzle, or a
+ * finished game.
  *
- * Giving the last answer finishes the game.
+ * Answering never finishes the game, not even the last party: the player
+ * reviews the tips first and finishes with finishGame.
  */
 export function recordAnswer(
   progress: Progress,
   puzzle: Puzzle,
   partyId: string,
   answer: VoteAnswer,
+  // An answer carries no date; only finishGame stamps one. Taken anyway, so
+  // every game action is called with the day it happens on.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   today: string,
 ): Progress {
   const game = getGame(progress, puzzle.id);
@@ -61,22 +67,41 @@ export function recordAnswer(
   if (
     !inPuzzle ||
     game.finishedOn !== null ||
-    game.guesses[partyId] !== undefined
+    game.guesses[partyId] === answer
   ) {
     return progress;
   }
-
-  const guesses = { ...game.guesses, [partyId]: answer };
-  const finished = isComplete(puzzle, guesses);
   return {
     ...progress,
     games: {
       ...progress.games,
       [puzzle.id]: {
-        guesses,
-        finishedOn: finished ? today : null,
+        guesses: { ...game.guesses, [partyId]: answer },
+        finishedOn: null,
         cast: false,
       },
+    },
+  };
+}
+
+/**
+ * "Auflösen": finishes a game on today's date once every party has a guess.
+ * An incomplete or already finished game returns the same object.
+ */
+export function finishGame(
+  progress: Progress,
+  puzzle: Puzzle,
+  today: string,
+): Progress {
+  const game = getGame(progress, puzzle.id);
+  if (game.finishedOn !== null || !isComplete(puzzle, game.guesses)) {
+    return progress;
+  }
+  return {
+    ...progress,
+    games: {
+      ...progress.games,
+      [puzzle.id]: { ...game, finishedOn: today },
     },
   };
 }
@@ -118,17 +143,24 @@ export function removeGame(progress: Progress, puzzleId: string): Progress {
  * left open, or one the browser restores on "back") must never rewrite
  * answers that were given since. Games the saved copy lacks are kept, so a
  * visit whose writes failed (storage full or blocked) loses nothing.
+ *
+ * The one exception is a game this page has finished while the saved copy
+ * still holds it open: the finish could not be saved, and letting the open
+ * copy win would take back a reveal the player has already seen.
  */
 export function mergeProgress(saved: Progress, current: Progress): Progress {
-  const missing = Object.entries(current.games).filter(
-    ([puzzleId]) => !(puzzleId in saved.games),
-  );
-  if (missing.length === 0) {
+  const kept = Object.entries(current.games).filter(([puzzleId, game]) => {
+    const savedGame = saved.games[puzzleId];
+    return (
+      !savedGame || (savedGame.finishedOn === null && game.finishedOn !== null)
+    );
+  });
+  if (kept.length === 0) {
     return saved;
   }
   return {
     ...saved,
-    games: { ...saved.games, ...Object.fromEntries(missing) },
+    games: { ...saved.games, ...Object.fromEntries(kept) },
   };
 }
 

@@ -4,7 +4,32 @@ import { OUTCOME_LABELS } from './labels';
 import type { Guesses, Puzzle } from './types';
 
 /** The screens of one puzzle, in the order a player meets them. */
-export type Phase = 'briefing' | 'answering' | 'reveal' | 'result';
+export type Phase = 'briefing' | 'answering' | 'review' | 'reveal' | 'result';
+
+/**
+ * Which screen a puzzle is on, from what is saved and what this page has
+ * done. Every party with a tip means the review even without `started`, so a
+ * reload during the review resumes there.
+ */
+export function gamePhase({
+  started,
+  complete,
+  finished,
+  showResult,
+}: {
+  started: boolean;
+  complete: boolean;
+  finished: boolean;
+  showResult: boolean;
+}): Phase {
+  if (finished) {
+    return showResult ? 'result' : 'reveal';
+  }
+  if (complete) {
+    return 'review';
+  }
+  return started ? 'answering' : 'briefing';
+}
 
 /** The party being asked: the first one, in seating order, without a tip. */
 export function currentPartyIndex(puzzle: Puzzle, guesses: Guesses): number {
@@ -15,8 +40,9 @@ export function currentPartyIndex(puzzle: Puzzle, guesses: Guesses): number {
 
 /**
  * What the chamber shows on each screen. While answering, the party being
- * asked stands out and the ones still to come are dimmed; on the reveal, a
- * party not yet turned over shows the player's tip and can be tapped.
+ * asked stands out and the ones still to come are dimmed; on the review
+ * every tip shows, none dimmed; on the reveal, a party not yet turned over
+ * shows the player's tip and can be tapped.
  */
 export function chamberStates(
   puzzle: Puzzle,
@@ -80,10 +106,12 @@ export function chamberCenter(
       puzzle.unaffiliated;
     return { big: String(seats), small: 'Sitze' };
   }
-  if (phase === 'answering') {
+  if (phase === 'answering' || phase === 'review') {
+    // On the review no party is left to ask: every one has its tip.
     const asked = currentPartyIndex(puzzle, guesses);
+    const count = asked === -1 ? puzzle.parties.length : asked + 1;
     return {
-      big: `${asked + 1} / ${puzzle.parties.length}`,
+      big: `${count} / ${puzzle.parties.length}`,
       small: 'Parteien',
     };
   }

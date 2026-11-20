@@ -10,11 +10,12 @@ import {
   autoResultDelay,
   chamberCenter,
   chamberStates,
+  gamePhase,
   selectParty,
 } from '@/lib/stimmts/game-view';
 import { browserSession, markJustPlayed } from '@/lib/stimmts/presence';
 import { getGame } from '@/lib/stimmts/progress';
-import { scorePuzzle } from '@/lib/stimmts/score';
+import { isComplete, scorePuzzle } from '@/lib/stimmts/score';
 import type { Puzzle, Schedule } from '@/lib/stimmts/types';
 import { useProgress } from '@/lib/stimmts/use-progress';
 import { useReducedMotion } from 'motion/react';
@@ -30,6 +31,7 @@ import GuessStep from './guess-step';
 import Hemicycle from './hemicycle';
 import Result from './result';
 import Reveal from './reveal';
+import ReviewStep from './review-step';
 import ShareBanner from './share-banner';
 import StartScreen from './start-screen';
 
@@ -62,6 +64,7 @@ function PuzzleGame({
   onOpenDay,
 }: Props) {
   const game = useProgress((state) => getGame(state.progress, puzzle.id));
+  const finish = useProgress((state) => state.finish);
   const reduceMotion = useReducedMotion() ?? false;
   const [started, setStarted] = useState(false);
   const startCounted = useRef(false);
@@ -98,7 +101,7 @@ function PuzzleGame({
   );
   const finishedElsewhere = finished && !finishedHere && !alreadyFinished;
 
-  // Counted when this page gives the last answer, and only then: not again
+  // Counted when this page finishes the game, and only then: not again
   // when the page is reloaded or comes back from a past day, and not for a
   // game finished in another tab, which counted it there.
   const countedFinish = useRef(finishedHere);
@@ -117,13 +120,18 @@ function PuzzleGame({
       setShowResult(true);
     }
   }, [finishedElsewhere, puzzle]);
-  const phase: Phase = finished
-    ? showResult
-      ? 'result'
-      : 'reveal'
-    : started || hasAnswers
-      ? 'answering'
-      : 'briefing';
+  const phase: Phase = gamePhase({
+    started: started || hasAnswers,
+    complete: isComplete(puzzle, game.guesses),
+    finished,
+    showResult,
+  });
+
+  // An answered party asked again from the row of tips. Ends with its next
+  // answer: the card then goes on to the first party without a tip, or back
+  // to the review when every party has one.
+  const [editing, setEditing] = useState<string | null>(null);
+  const endEdit = useCallback(() => setEditing(null), []);
 
   // Every screen but the start screen (whose task is its visible h1) opens on
   // a heading for screen readers, and the focus moves to it when the screen
@@ -136,6 +144,15 @@ function PuzzleGame({
       screenHeading.current?.focus({ preventScroll: true });
     }
   }, [phase]);
+  // The same for the way back from an edit to the review, whose card has
+  // replaced the one the focus was on.
+  const wasEditing = useRef(false);
+  useEffect(() => {
+    if (wasEditing.current && editing === null && phase === 'review') {
+      screenHeading.current?.focus({ preventScroll: true });
+    }
+    wasEditing.current = editing !== null;
+  }, [editing, phase]);
   const heading = (text: string) => (
     <h1 ref={screenHeading} tabIndex={-1} className="sr-only">
       Stimmt’s? Nr. {number}: {text}
@@ -186,6 +203,13 @@ function PuzzleGame({
         reduceMotion ? 0 : i * REVEAL_ALL_STEP_MS,
       ),
     );
+  };
+
+  // "Auflösen" on the review ends the game and starts turning the parties
+  // over, so the reveal plays without a second tap.
+  const revealFromReview = () => {
+    finish(puzzle, today);
+    revealAll();
   };
 
   // With tips, the result follows once the last party is turned over, however
@@ -257,15 +281,19 @@ function PuzzleGame({
   }
 
   const tips = votesOnly ? {} : game.guesses;
+  const asking =
+    phase === 'answering' || (phase === 'review' && editing !== null);
 
   return (
     <div className="flex flex-col gap-4 py-6">
       {heading(
-        phase === 'answering'
+        asking
           ? 'Tipps abgeben'
-          : votesOnly
-            ? 'So wurde abgestimmt'
-            : 'Auflösung',
+          : phase === 'review'
+            ? 'Deine Tipps'
+            : votesOnly
+              ? 'So wurde abgestimmt'
+              : 'Auflösung',
       )}
       <Hemicycle
         parties={puzzle.parties}
@@ -281,11 +309,27 @@ function PuzzleGame({
         />
       )}
       <div
-        key={phase}
+        // An edit from the review swaps the whole card, so it animates in;
+        // an edit while answering keeps the card, and the focus on it.
+        key={phase === 'review' && editing ? 'edit' : phase}
         className="animate-stimmts-screen motion-reduce:animate-none"
       >
-        {phase === 'answering' ? (
-          <GuessStep puzzle={puzzle} guesses={game.guesses} today={today} />
+        {asking ? (
+          <GuessStep
+            puzzle={puzzle}
+            guesses={game.guesses}
+            today={today}
+            editing={editing ?? undefined}
+            onEdit={setEditing}
+            onAnswered={endEdit}
+          />
+        ) : phase === 'review' ? (
+          <ReviewStep
+            puzzle={puzzle}
+            guesses={game.guesses}
+            onEdit={setEditing}
+            onReveal={revealFromReview}
+          />
         ) : (
           <Reveal
             puzzle={puzzle}

@@ -3,7 +3,7 @@ import {
   EMPTY_PROGRESS,
   type Progress,
   castCard,
-  getGame,
+  finishGame,
   isNewerSave,
   mergeProgress,
   parseProgress,
@@ -26,7 +26,7 @@ export type ProgressState = {
    */
   hydrated: boolean;
   /**
-   * Puzzles whose last answer was given on this page. A puzzle that finishes
+   * Puzzles finished ("Auflösen") on this page. A puzzle that finishes
    * without being in here was finished in another tab, where the player has
    * already seen the reveal.
    */
@@ -47,6 +47,8 @@ export type ProgressState = {
     answer: VoteAnswer,
     today: string,
   ) => void;
+  /** "Auflösen": finishes a game once every party has a guess. */
+  finish: (puzzle: Puzzle, today: string) => void;
 };
 
 function readSaved(storage: StorageLike | null): unknown {
@@ -97,7 +99,7 @@ export function createProgressStore(storage: StorageLike | null) {
     const update = (change: (before: Progress) => Progress) => {
       // Always start from what is saved, never from this page's memory
       // alone: an older copy of the page would otherwise overwrite answers
-      // given since, and answers are final.
+      // given since, and a revealed game is final.
       get().hydrate();
       const before = current();
       const after = change(before);
@@ -130,14 +132,16 @@ export function createProgressStore(storage: StorageLike | null) {
 
       cast: (puzzleId) => update((before) => castCard(before, puzzleId)),
 
-      // Saved the moment it is tapped, so a reload cannot undo an answer.
+      // Saved the moment it is tapped, so a reload resumes with it.
       answer: (puzzle, partyId, answer, today) =>
+        update((before) =>
+          recordAnswer(before, puzzle, partyId, answer, today),
+        ),
+
+      finish: (puzzle, today) =>
         update((before) => {
-          const after = recordAnswer(before, puzzle, partyId, answer, today);
-          if (
-            getGame(before, puzzle.id).finishedOn === null &&
-            getGame(after, puzzle.id).finishedOn !== null
-          ) {
+          const after = finishGame(before, puzzle, today);
+          if (after !== before) {
             set({ finishedHere: [...get().finishedHere, puzzle.id] });
           }
           return after;

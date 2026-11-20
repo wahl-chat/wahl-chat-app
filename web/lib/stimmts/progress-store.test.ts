@@ -64,10 +64,25 @@ describe('createProgressStore', () => {
     });
   });
 
-  it('keeps answers final across a reload', () => {
+  it('lets a guess be changed after a reload while the game is open', () => {
     const { storage } = fakeStorage();
     const store = createProgressStore(storage);
     store.getState().answer(puzzle, 'linke', 'no', TODAY);
+
+    const reloaded = createProgressStore(storage);
+    reloaded.getState().answer(puzzle, 'linke', 'yes', TODAY);
+    expect(getGame(reloaded.getState().progress, puzzle.id).guesses.linke).toBe(
+      'yes',
+    );
+  });
+
+  it('keeps a revealed game final across a reload', () => {
+    const { storage } = fakeStorage();
+    const store = createProgressStore(storage);
+    for (const party of puzzle.parties) {
+      store.getState().answer(puzzle, party.partyId, 'no', TODAY);
+    }
+    store.getState().finish(puzzle, TODAY);
 
     const reloaded = createProgressStore(storage);
     reloaded.getState().answer(puzzle, 'linke', 'yes', TODAY);
@@ -114,6 +129,7 @@ describe('casting the Stimmkarte', () => {
     for (const party of puzzle.parties) {
       store.getState().answer(puzzle, party.partyId, 'yes', TODAY);
     }
+    store.getState().finish(puzzle, TODAY);
   };
 
   it('keeps the card in the urn across a reload', () => {
@@ -150,6 +166,7 @@ describe('an older copy of the page', () => {
     for (const party of puzzle.parties) {
       store.getState().answer(puzzle, party.partyId, answer, TODAY);
     }
+    store.getState().finish(puzzle, TODAY);
   };
 
   // A tab left open, or a page the browser restores on "back", still holds
@@ -238,14 +255,33 @@ describe('finishedHere', () => {
     }
   };
 
-  it('lists a puzzle once this page gives its last answer', () => {
-    const { storage } = fakeStorage();
+  it('finish adds the puzzle to finishedHere and saves', () => {
+    const { storage, data } = fakeStorage();
     const store = createProgressStore(storage);
     store.getState().hydrate();
-    store.getState().answer(puzzle, 'linke', 'yes', TODAY);
-    expect(store.getState().finishedHere).toEqual([]);
     answerAll(store);
+    // Every party answered is the review, not yet the end of the game.
+    expect(store.getState().finishedHere).toEqual([]);
+    expect(JSON.parse(data[STORAGE_KEY]).games[puzzle.id].finishedOn).toBe(
+      null,
+    );
+
+    store.getState().finish(puzzle, TODAY);
     expect(store.getState().finishedHere).toEqual([puzzle.id]);
+    expect(JSON.parse(data[STORAGE_KEY]).games[puzzle.id].finishedOn).toBe(
+      TODAY,
+    );
+    // A second "Auflösen" lists it once.
+    store.getState().finish(puzzle, TODAY);
+    expect(store.getState().finishedHere).toEqual([puzzle.id]);
+  });
+
+  it('does not finish a game that still lacks a guess', () => {
+    const store = createProgressStore(fakeStorage().storage);
+    store.getState().answer(puzzle, 'linke', 'yes', TODAY);
+    store.getState().finish(puzzle, TODAY);
+    expect(getGame(store.getState().progress, puzzle.id).finishedOn).toBeNull();
+    expect(store.getState().finishedHere).toEqual([]);
   });
 
   it('leaves out a puzzle finished in another tab', () => {
@@ -255,6 +291,7 @@ describe('finishedHere', () => {
     here.getState().hydrate();
     otherTab.getState().hydrate();
     answerAll(otherTab);
+    otherTab.getState().finish(puzzle, TODAY);
 
     here.getState().refresh();
     expect(getGame(here.getState().progress, puzzle.id).finishedOn).toBe(TODAY);

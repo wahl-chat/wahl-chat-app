@@ -4,6 +4,7 @@ import {
   EMPTY_PROGRESS,
   type Progress,
   castCard,
+  finishGame,
   getGame,
   mergeProgress,
   parseProgress,
@@ -28,6 +29,16 @@ function answerAll(
   );
 }
 
+/** Every party answered, then "Auflösen". */
+function playAll(
+  progress: Progress,
+  puzzle: (typeof PUZZLES)[number],
+  today: string,
+  answer: VoteAnswer = 'yes',
+): Progress {
+  return finishGame(answerAll(progress, puzzle, today, answer), puzzle, today);
+}
+
 describe('recordAnswer', () => {
   it('saves an answer and leaves the game open until the last party', () => {
     let progress = recordAnswer(
@@ -45,13 +56,7 @@ describe('recordAnswer', () => {
     });
   });
 
-  it('finishes with the last answer, the card still in hand', () => {
-    const progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
-    expect(getGame(progress, first.id).finishedOn).toBe('2026-11-01');
-    expect(getGame(progress, first.id).cast).toBe(false);
-  });
-
-  it('treats answers as final', () => {
+  it('changes a guess while the game is open', () => {
     const once = recordAnswer(
       EMPTY_PROGRESS,
       first,
@@ -59,9 +64,19 @@ describe('recordAnswer', () => {
       'no',
       '2026-11-01',
     );
-    const again = recordAnswer(once, first, 'linke', 'yes', '2026-11-01');
-    expect(again).toBe(once);
-    expect(getGame(again, first.id).guesses.linke).toBe('no');
+    const changed = recordAnswer(once, first, 'linke', 'yes', '2026-11-01');
+    expect(getGame(changed, first.id).guesses.linke).toBe('yes');
+    expect(getGame(once, first.id).guesses.linke).toBe('no'); // not mutated
+    // The same answer again is no change at all.
+    expect(recordAnswer(changed, first, 'linke', 'yes', '2026-11-01')).toBe(
+      changed,
+    );
+  });
+
+  it('the fifth guess does not finish the game', () => {
+    const progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
+    expect(getGame(progress, first.id).finishedOn).toBeNull();
+    expect(Object.keys(getGame(progress, first.id).guesses)).toHaveLength(5);
   });
 
   it('ignores a party that is not in the puzzle', () => {
@@ -76,7 +91,7 @@ describe('recordAnswer', () => {
   });
 
   it('ignores answers once the game is finished', () => {
-    const finished = answerAll(EMPTY_PROGRESS, first, '2026-11-01', 'no');
+    const finished = playAll(EMPTY_PROGRESS, first, '2026-11-01', 'no');
     const after = recordAnswer(finished, first, 'afd', 'yes', '2026-11-02');
     expect(after).toBe(finished);
   });
@@ -103,9 +118,46 @@ describe('recordAnswer', () => {
   });
 });
 
+describe('finishGame', () => {
+  it('finishGame finishes a complete game on today', () => {
+    const complete = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
+    const finished = finishGame(complete, first, '2026-11-02');
+    expect(getGame(finished, first.id)).toEqual({
+      guesses: getGame(complete, first.id).guesses,
+      finishedOn: '2026-11-02',
+      cast: false,
+    });
+    expect(getGame(complete, first.id).finishedOn).toBeNull(); // not mutated
+    expect(finishGame(finished, first, '2026-11-03')).toBe(finished);
+  });
+
+  it('finishGame leaves an incomplete game alone (same object)', () => {
+    const open = recordAnswer(
+      EMPTY_PROGRESS,
+      first,
+      'linke',
+      'no',
+      '2026-11-01',
+    );
+    expect(finishGame(open, first, '2026-11-01')).toBe(open);
+    expect(finishGame(EMPTY_PROGRESS, first, '2026-11-01')).toBe(
+      EMPTY_PROGRESS,
+    );
+  });
+
+  it('no guess changes after finishGame (same object)', () => {
+    const finished = playAll(EMPTY_PROGRESS, first, '2026-11-01', 'no');
+    for (const partyId of PARTIES) {
+      expect(recordAnswer(finished, first, partyId, 'yes', '2026-11-01')).toBe(
+        finished,
+      );
+    }
+  });
+});
+
 describe('castCard', () => {
   it('casts the card of a finished game, once', () => {
-    const finished = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
+    const finished = playAll(EMPTY_PROGRESS, first, '2026-11-01');
     const cast = castCard(finished, first.id);
     expect(getGame(cast, first.id).cast).toBe(true);
     expect(getGame(finished, first.id).cast).toBe(false); // not mutated
@@ -128,7 +180,7 @@ describe('castCard', () => {
 describe('parseProgress', () => {
   it('round-trips what recordAnswer and castCard produce', () => {
     const progress = castCard(
-      answerAll(EMPTY_PROGRESS, first, '2026-11-01'),
+      playAll(EMPTY_PROGRESS, first, '2026-11-01'),
       first.id,
     );
     expect(parseProgress(JSON.parse(JSON.stringify(progress)))).toEqual(
@@ -173,6 +225,32 @@ describe('parseProgress', () => {
     });
   });
 
+  it('a save with 3 guesses and finishedOn null still parses and resumes', () => {
+    const progress = parseProgress({
+      version: 1,
+      games: {
+        [first.id]: {
+          guesses: { linke: 'no', spd: 'yes', gruene: 'abstain' },
+          finishedOn: null,
+          cast: false,
+        },
+      },
+    });
+    expect(getGame(progress, first.id).guesses).toEqual({
+      linke: 'no',
+      spd: 'yes',
+      gruene: 'abstain',
+    });
+    // The open guesses can still be changed, and the rest added and revealed.
+    const changed = recordAnswer(progress, first, 'linke', 'yes', '2026-11-01');
+    expect(getGame(changed, first.id).guesses.linke).toBe('yes');
+    let resumed = recordAnswer(changed, first, 'cdu', 'yes', '2026-11-01');
+    resumed = recordAnswer(resumed, first, 'afd', 'no', '2026-11-01');
+    expect(
+      getGame(finishGame(resumed, first, '2026-11-01'), first.id).finishedOn,
+    ).toBe('2026-11-01');
+  });
+
   it('never treats an open game as cast', () => {
     const progress = parseProgress({
       version: 1,
@@ -184,8 +262,8 @@ describe('parseProgress', () => {
 
 describe('removeGame', () => {
   it('forgets one puzzle and keeps the other puzzles', () => {
-    let progress = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
-    progress = answerAll(progress, second, '2026-11-02');
+    let progress = playAll(EMPTY_PROGRESS, first, '2026-11-01');
+    progress = playAll(progress, second, '2026-11-02');
 
     const after = removeGame(progress, second.id);
     expect(getGame(after, second.id)).toEqual({
@@ -204,7 +282,7 @@ describe('removeGame', () => {
 
 describe('mergeProgress', () => {
   it('lets the saved copy win for every game it holds', () => {
-    const saved = answerAll(EMPTY_PROGRESS, first, '2026-11-01', 'no');
+    const saved = playAll(EMPTY_PROGRESS, first, '2026-11-01', 'no');
     const stale = recordAnswer(
       EMPTY_PROGRESS,
       first,
@@ -216,7 +294,7 @@ describe('mergeProgress', () => {
   });
 
   it('keeps games only this page knows about', () => {
-    const saved = answerAll(EMPTY_PROGRESS, first, '2026-11-01');
+    const saved = playAll(EMPTY_PROGRESS, first, '2026-11-01');
     const current = recordAnswer(
       EMPTY_PROGRESS,
       second,
@@ -227,5 +305,18 @@ describe('mergeProgress', () => {
     const merged = mergeProgress(saved, current);
     expect(getGame(merged, first.id).finishedOn).toBe('2026-11-01');
     expect(getGame(merged, second.id).guesses).toEqual({ linke: 'no' });
+  });
+
+  it('mergeProgress keeps a finished game over an unfinished one with different guesses', () => {
+    // This page revealed the game, but the save of that failed and storage
+    // still holds the open game, with a guess changed since.
+    const open = answerAll(EMPTY_PROGRESS, first, '2026-11-01', 'no');
+    const savedOpen = recordAnswer(open, first, 'linke', 'yes', '2026-11-01');
+    const revealed = finishGame(open, first, '2026-11-01');
+
+    const merged = mergeProgress(savedOpen, revealed);
+    expect(getGame(merged, first.id)).toEqual(getGame(revealed, first.id));
+    // And the other way round, the saved finished game wins as before.
+    expect(mergeProgress(revealed, savedOpen)).toBe(revealed);
   });
 });
