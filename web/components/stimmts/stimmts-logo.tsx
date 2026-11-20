@@ -46,6 +46,7 @@ function StimmtsLogo({ className }: { className?: string }) {
       <StimmtsMark />
       <span
         aria-hidden
+        data-stimmts-brand
         className="whitespace-nowrap font-display font-extrabold leading-none tracking-[-0.035em]"
       >
         Stimmt’s?

@@ -1,4 +1,4 @@
-import { STYLE_THEMES, styleVars } from '@/lib/stimmts/style-themes';
+import { STYLE_THEMES, modeVars, styleVars } from '@/lib/stimmts/style-themes';
 import type { StyleId } from '@/lib/stimmts/styles';
 import { cn } from '@/lib/utils';
 import type { CSSProperties, ReactNode } from 'react';
@@ -20,17 +20,20 @@ function frameStyle(style: StyleId): CSSProperties | undefined {
   if (style === 'standard') {
     return undefined;
   }
-  const vars: Record<string, string> = {
+  return {
     ...styleVars(style),
+    ...modeVars(style),
     background: 'var(--daily-canvas)',
     color: 'var(--daily-ink)',
-  };
-  if (STYLE_THEMES[style].displayFont === 'document') {
-    // `font-display` reads this variable, so every headline inside switches.
-    vars['--font-stimmts-display'] = 'var(--font-stimmts-document)';
-  }
-  return vars as CSSProperties;
+  } as CSSProperties;
 }
+
+/**
+ * Papier sets its headlines in the bill sheet's Tinos. The logo opts out with
+ * `data-stimmts-brand`: it keeps the game's own face in every style.
+ */
+const DOCUMENT_HEADLINES =
+  '[&_.font-display:not([data-stimmts-brand])]:font-document';
 
 /**
  * The panel a style dresses the result in, reaching out over the column's
@@ -50,6 +53,9 @@ function StyleFrame({
       className={cn(
         'relative -mx-4 px-4',
         style !== 'standard' && ['overflow-hidden', PANEL_PADDING[style]],
+        style !== 'standard' &&
+          STYLE_THEMES[style].displayFont === 'document' &&
+          DOCUMENT_HEADLINES,
       )}
       style={frameStyle(style)}
     >

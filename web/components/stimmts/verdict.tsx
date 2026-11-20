@@ -14,7 +14,7 @@ export function Verdict({
   return (
     <span
       className={cn(
-        'inline-flex size-6 flex-none items-center justify-center rounded-full text-[13px] font-bold leading-4 text-[var(--daily-canvas)]',
+        'inline-flex size-6 flex-none items-center justify-center rounded-full text-[13px] font-bold leading-4 text-[var(--result-glyph,var(--daily-canvas))]',
         correct ? 'bg-result-correct' : 'bg-result-wrong',
         className,
       )}
