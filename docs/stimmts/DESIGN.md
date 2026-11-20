@@ -201,10 +201,10 @@ count.
   did this party vote that way?". The chat card on the result screen offers
   three questions as chips (why a party voted as it did, whether the bill is
   in force, what happens next) and a free question. It is built and sits
-  behind `STIMMTS_CHAT_ENABLED` in `chat-chips.ts`, committed `false`: its
-  answers are a local placeholder until the general chat exists, since chats
-  today exist only per election. Before enabling it, check that the chat
-  route handles the `q` and `party_id` parameters the card links with. It
+  behind `STIMMTS_CHAT_ENABLED` in `chat-chips.ts`, committed `false`. It
+  answers nothing itself: a chip or the input opens the general chat at
+  `/chat?q&poll_id`, anchored on the day's vote, and the general chat
+  answers with sources. Enable it only once that chat is in `develop`. It
   must never open a study context.
 
 **Technical**
@@ -407,7 +407,7 @@ the 30 puzzles, reviewed in three batches, and their running order (see
 1. *Review and test:* an independent code and content review and a local
    test, then the branch as a draft pull request for the team to try.
 2. *The chat card,* built and switched off: enable it once the general chat
-   exists.
+   is in `develop`.
 3. *Launch:* indexing (`productionRobots`, canonical, sitemap) and the
    production switch doc.
 

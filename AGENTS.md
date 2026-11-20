@@ -541,9 +541,8 @@ from the Qdrant-derived cursor on the next run.
   so neither flashes nor shifts the feed.
 - **Chat card.** Follow-up questions on the result screen, behind
   `STIMMTS_CHAT_ENABLED` in `web/lib/stimmts/chat-chips.ts`, committed
-  `false`: its answers are a placeholder until the general chat exists.
-  Before enabling, verify that the chat route handles the `q` and `party_id`
-  parameters the card links with.
+  `false`. The card opens `/chat?q&poll_id` from the general chat, so enable
+  it only once that chat is in `develop`.
 - **Never change `launch_date` once anyone has played.** It renumbers every
   day, so played days turn into missed ones. Switching off and on again does
   not pause the calendar: the days keep counting from the launch date.

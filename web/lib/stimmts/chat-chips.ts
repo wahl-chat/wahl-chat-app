@@ -3,9 +3,9 @@ import { ANSWER_LABELS } from './labels';
 import type { Guesses, Puzzle } from './types';
 
 /**
- * Off until the general chat exists: the card on the result screen stays
- * hidden, its logic stays in place. Its answers are a local placeholder until
- * then, so switching it on before that would show players a fake answer.
+ * Off until the general chat is merged into `develop`: the card on the result
+ * screen opens that chat, so switching it on earlier would send players to a
+ * page that cannot answer.
  */
 export const STIMMTS_CHAT_ENABLED = false;
 
@@ -28,9 +28,6 @@ const SHORT_NAMES: Record<string, string> = {
   cdu: 'Union',
   afd: 'AfD',
 };
-
-/** The chat context whose parties sit in the Bundestag. */
-const CHAT_CONTEXT = 'bundestagswahl-2025';
 
 /**
  * Three chips: first the party the player got wrong (or, with nothing wrong,
@@ -69,27 +66,16 @@ function firstChip(puzzle: Puzzle, guesses: Guesses): ChatChip {
   };
 }
 
-function formatDate(isoDay: string): string {
-  const [year, month, day] = isoDay.split('-');
-  return `${day}.${month}.${year}`;
-}
-
 /**
- * The chat has no channel for structured context, so the vote travels in the
- * question itself, as it does from the parliament feed.
+ * The general chat anchored on the day's vote. The anchor card carries the
+ * vote's identity, so the question travels bare: no party filter (the chat
+ * finds the parties from the vote) and no preset (those belong to feed items,
+ * and these chips are our own questions).
  */
-export function stimmtsChatHref(
-  puzzle: Puzzle,
-  question: string,
-  partyIds: string[],
-): string {
+export function stimmtsChatHref(puzzle: Puzzle, question: string): string {
   const params = new URLSearchParams({
-    q: `Zur Abstimmung „${puzzle.title}“ im Bundestag am ${formatDate(
-      puzzle.voteDate,
-    )}: ${question.trim()}`,
+    q: question.trim(),
+    poll_id: String(puzzle.pollId),
   });
-  for (const id of partyIds) {
-    params.append('party_id', id);
-  }
-  return `/${CHAT_CONTEXT}/session?${params}`;
+  return `/chat?${params}`;
 }

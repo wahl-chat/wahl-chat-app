@@ -20,7 +20,7 @@ function guessed(answers: VoteAnswer[]): Guesses {
 }
 
 describe('chatChips', () => {
-  it('stays switched off until the general chat exists', () => {
+  it('stays switched off until the general chat is in develop', () => {
     expect(STIMMTS_CHAT_ENABLED).toBe(false);
   });
 
@@ -95,13 +95,33 @@ describe('chatChips', () => {
 });
 
 describe('stimmtsChatHref', () => {
-  it('carries the vote in the question and the parties as filters', () => {
-    const href = stimmtsChatHref(base, 'Warum?', ['gruene']);
-    const url = new URL(href, 'https://wahl.chat');
-    expect(url.pathname).toBe('/bundestagswahl-2025/session');
-    expect(url.searchParams.get('q')).toBe(
-      `Zur Abstimmung „${base.title}“ im Bundestag am 10.07.2026: Warum?`,
+  it('links to /chat with the question and the poll id', () => {
+    const url = new URL(stimmtsChatHref(base, 'Warum?'), 'https://wahl.chat');
+    expect(url.pathname).toBe('/chat');
+    expect(url.searchParams.get('q')).toBe('Warum?');
+    expect(url.searchParams.get('poll_id')).toBe(String(base.pollId));
+  });
+
+  it('trims the question', () => {
+    const url = new URL(
+      stimmtsChatHref(base, '  Warum?  \n'),
+      'https://wahl.chat',
     );
-    expect(url.searchParams.getAll('party_id')).toEqual(['gruene']);
+    expect(url.searchParams.get('q')).toBe('Warum?');
+  });
+
+  it('has no party_id and no preset', () => {
+    const url = new URL(stimmtsChatHref(base, 'Warum?'), 'https://wahl.chat');
+    expect([...url.searchParams.keys()].sort()).toEqual(['poll_id', 'q']);
+  });
+
+  it('encodes umlauts and quotes', () => {
+    const question = 'Warum „Nein“ & „Enthaltung“ bei Grünen?';
+    const href = stimmtsChatHref(base, question);
+    expect(href).not.toContain(' ');
+    expect(href).not.toContain('&Enthaltung');
+    expect(new URL(href, 'https://wahl.chat').searchParams.get('q')).toBe(
+      question,
+    );
   });
 });
