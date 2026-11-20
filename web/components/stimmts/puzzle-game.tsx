@@ -135,6 +135,13 @@ function PuzzleGame({
   // to the review when every party has one.
   const [editing, setEditing] = useState<string | null>(null);
   const endEdit = useCallback(() => setEditing(null), []);
+  // The game can finish in another tab mid-edit; the stale edit would then
+  // come back if the phase ever returned to the review.
+  useEffect(() => {
+    if (phase !== 'answering' && phase !== 'review') {
+      setEditing(null);
+    }
+  }, [phase]);
 
   // Every screen but the start screen (whose task is its visible h1) opens on
   // a heading for screen readers, and the focus moves to it when the screen

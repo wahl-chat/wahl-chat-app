@@ -80,7 +80,7 @@ function ThumbDecor({ id }: { id: StyleId }) {
       return (
         <svg
           aria-hidden
-          className="absolute bottom-1 left-1/2 -ml-[30px]"
+          className="absolute bottom-1 left-1/2 ml-[-30px]"
           width="60"
           height="38"
           viewBox="0 0 300 190"
@@ -202,7 +202,7 @@ function Thumb({
         <ThumbDecor id={id} />
         <span
           aria-hidden
-          className="relative h-[5px] w-[60%] rounded-[3px]"
+          className="relative h-[5px] w-3/5 rounded-[3px]"
           style={{ background: colours.ink }}
         />
         <b
@@ -391,7 +391,7 @@ function ProgressBar({ daysPlayed }: { daysPlayed: number }) {
         <span key={mark.days}>
           <span
             className={cn(
-              'absolute -top-[5px] -ml-2 size-4 rounded-full border-2',
+              'absolute top-[-5px] -ml-2 size-4 rounded-full border-2',
               mark.reached
                 ? 'border-[var(--daily-ink)] bg-[var(--daily-ink)]'
                 : 'border-[var(--daily-muted)] bg-[var(--daily-canvas)]',
@@ -412,7 +412,7 @@ function ProgressBar({ daysPlayed }: { daysPlayed: number }) {
         </span>
       ))}
       <span
-        className="absolute -top-[9px] -ml-[1.5px] h-6 w-[3px] rounded-sm bg-[var(--daily-ink)] shadow-[0_0_0_2px_var(--daily-canvas)]"
+        className="absolute top-[-9px] ml-[-1.5px] h-6 w-[3px] rounded-sm bg-[var(--daily-ink)] shadow-[0_0_0_2px_var(--daily-canvas)]"
         style={{ left: `${fill}%` }}
       />
     </div>

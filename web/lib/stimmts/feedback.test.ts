@@ -41,6 +41,7 @@ describe('shouldShowFeedCard', () => {
     asked: false,
     studyRunning: false as boolean | null,
     flyingIn: false,
+    gameOn: true as boolean | null,
   };
 
   it('shows after one finished game when the study is known off', () => {
@@ -53,6 +54,14 @@ describe('shouldShowFeedCard', () => {
 
   it('hidden while the study runs', () => {
     expect(shouldShowFeedCard({ ...base, studyRunning: true })).toBe(false);
+  });
+
+  it('hidden while the game is switched off', () => {
+    expect(shouldShowFeedCard({ ...base, gameOn: false })).toBe(false);
+  });
+
+  it('hidden while the game status is unknown (null)', () => {
+    expect(shouldShowFeedCard({ ...base, gameOn: null })).toBe(false);
   });
 
   it('hidden on the fly-in visit', () => {

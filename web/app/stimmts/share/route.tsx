@@ -24,20 +24,26 @@ const CACHE_CONTROL =
     : 'public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400';
 
 const loadFonts = createLoadOnce(async () => {
-  const [display, sans, sansBold, serif] = await Promise.all([
+  const [display, sans, sansBold] = await Promise.all([
     loadGoogleFont('Bricolage+Grotesque:wght@800', SHARE_IMAGE_TEXT),
     loadGoogleFont('Arimo:wght@400', SHARE_IMAGE_TEXT),
     loadGoogleFont('Arimo:wght@700', SHARE_IMAGE_TEXT),
-    // Papier's headlines.
-    loadGoogleFont('Tinos:wght@700', SHARE_IMAGE_TEXT),
   ]);
   return [
     { name: SHARE_FONTS.display, data: display, weight: 800 as const },
     { name: SHARE_FONTS.sans, data: sans, weight: 400 as const },
     { name: SHARE_FONTS.sans, data: sansBold, weight: 700 as const },
-    { name: SHARE_FONTS.serif, data: serif, weight: 700 as const },
   ];
 });
+
+// Papier's headlines only. Loaded apart from the base fonts: a failed Tinos
+// fetch must not drag every other style into the fallback face, and Papier
+// alone can live with its serif fallback.
+const loadSerif = createLoadOnce(async () => ({
+  name: SHARE_FONTS.serif,
+  data: await loadGoogleFont('Tinos:wght@700', SHARE_IMAGE_TEXT),
+  weight: 700 as const,
+}));
 
 /**
  * The Stimmt's? share image, for the share sheet and for link previews. Its
@@ -73,7 +79,8 @@ export async function GET(request: Request) {
 
   // Without the fonts the image still draws, in next/og's own face, and is
   // not cached, so the next request tries the fonts again.
-  const fonts = await loadFonts();
+  const [baseFonts, serif] = await Promise.all([loadFonts(), loadSerif()]);
+  const fonts = baseFonts && (serif ? [...baseFonts, serif] : baseFonts);
   const { width, height } = SHARE_FORMATS[data.format];
   return new ImageResponse(
     <ShareImage format={data.format} result={result} style={data.style} />,
@@ -83,7 +90,7 @@ export async function GET(request: Request) {
       // Left out, not empty: an empty list leaves next/og no font at all.
       ...(fonts && { fonts }),
       headers: {
-        'Cache-Control': fonts ? CACHE_CONTROL : 'no-store',
+        'Cache-Control': baseFonts ? CACHE_CONTROL : 'no-store',
         'X-Robots-Tag': 'noindex',
       },
     },

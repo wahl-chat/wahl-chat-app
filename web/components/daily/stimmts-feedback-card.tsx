@@ -10,6 +10,7 @@ import {
 } from '@/lib/stimmts/feedback';
 import { browserStorage } from '@/lib/stimmts/progress-store';
 import { useProgress } from '@/lib/stimmts/use-progress';
+import { useStimmtsStatus } from '@/lib/stimmts/use-stimmts-status';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -33,6 +34,8 @@ const ANSWER_BUTTON = cn(
  */
 function StimmtsFeedbackCard() {
   const studyRunning = useStudyRunning();
+  const { state } = useStimmtsStatus();
+  const gameOn = state.kind === 'known' ? state.status.enabled : null;
   const progress = useProgress((state) => state.progress);
   const hydrated = useProgress((state) => state.hydrated);
   const hydrate = useProgress((state) => state.hydrate);
@@ -63,6 +66,7 @@ function StimmtsFeedbackCard() {
       asked: mounted.asked,
       studyRunning: studyRunning ?? null,
       flyingIn: mounted.flyingIn,
+      gameOn,
     });
   const shown = !closed && (eligible || answered);
 

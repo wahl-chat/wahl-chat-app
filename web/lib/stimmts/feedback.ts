@@ -52,15 +52,19 @@ export function markAsked(storage: StorageLike | null): void {
  * Only a study status known to be off lets the card show: "not known yet"
  * could still turn out to be on, and while the study runs its questionnaire is
  * the only ask. The fly-in visit belongs to the game's result, so the question
- * waits for the next one.
+ * waits for the next one. The question is about the game, so it needs the
+ * game to be on: a switched-off game has no players to ask, and a status not
+ * yet known is treated as off rather than risk asking about something hidden.
  */
 export function shouldShowFeedCard(input: {
   progress: Progress;
   asked: boolean;
   studyRunning: boolean | null;
   flyingIn: boolean;
+  gameOn: boolean | null;
 }): boolean {
   return (
+    input.gameOn === true &&
     input.studyRunning === false &&
     !input.flyingIn &&
     shouldAskForFeedback(input.progress, input.asked)

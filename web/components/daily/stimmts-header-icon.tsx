@@ -173,7 +173,7 @@ function StimmtsHeaderIcon({ serverEnabled }: { serverEnabled: boolean }) {
           <StimmtsMark className="h-3 w-[22px] flex-none" />
           <span
             aria-hidden
-            className="stimmts-header-badge absolute -right-[3px] -top-[3px] size-4 items-center justify-center rounded-full border-2 border-[var(--daily-canvas)] bg-[var(--daily-yes)] text-[9px] font-extrabold leading-none text-[var(--daily-canvas)]"
+            className="stimmts-header-badge absolute right-[-3px] top-[-3px] size-4 items-center justify-center rounded-full border-2 border-[var(--daily-canvas)] bg-[var(--daily-yes)] text-[9px] font-extrabold leading-none text-[var(--daily-canvas)]"
           >
             ✓
           </span>
