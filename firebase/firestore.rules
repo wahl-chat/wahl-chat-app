@@ -260,8 +260,17 @@ service cloud.firestore {
       allow delete: if request.auth != null
         && resource.data.user_id == request.auth.uid;
 
+      // A message is user content with no owner field of its own, so it takes
+      // its session's access: readable like the session, writable by its owner.
       match /messages/{message_id} {
-      	allow read, list, create, update: if true
+        function session() {
+          return get(/databases/$(database)/documents/chat_sessions/$(session_id)).data;
+        }
+
+        allow read: if (request.auth != null && session().user_id == request.auth.uid)
+          || session().is_public == true;
+        allow create, update: if request.auth != null
+          && session().user_id == request.auth.uid;
       }
     }
   }

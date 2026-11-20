@@ -23,6 +23,7 @@ firebase/
 ├── firestore.rules      # Firestore security rules
 ├── firestore.indexes.json
 ├── storage.rules        # Storage security rules
+├── tests/               # Firestore rules tests (emulator)
 └── .firebaserc          # Project aliases (dev/prod)
 ```
 
@@ -37,6 +38,20 @@ npm install -g node-firestore-import-export
 ```
 
 ## Deploying Firebase Changes
+
+Merges to `develop` / `main` deploy to dev / prod automatically: the Firestore
+rules and indexes and the Storage rules via `.github/workflows/firebase-rules.yml`,
+the `ingest` functions via `.github/workflows/ingest-functions.yml`. Indexes
+removed from `firestore.indexes.json` are not deleted from the project. A manual
+deploy is for testing a branch.
+
+The rules tests in `tests/` run before every rules deploy and on PRs that touch
+the rules. Run them locally with the emulator stopped (it uses port 8081):
+
+```bash
+(cd tests && bun install)
+firebase emulators:exec --only firestore --project demo-wahl-chat "cd tests && bun run test"
+```
 
 First select your target environment:
 
@@ -78,8 +93,10 @@ cd .. && firebase deploy --only functions:ingest --force --project dev
 ```
 
 `--force` lets the deploy delete functions that were removed from the codebase.
+Merges to `develop` / `main` deploy to dev / prod automatically
+(`.github/workflows/ingest-functions.yml`); a manual deploy is for testing a branch.
 
-Configuration params (prompted at deploy, stored in `ingest_functions/.env.<project>`):
+Configuration params are committed in `ingest_functions/.env.<project-id>`:
 `ENV`, `QDRANT_URL`, `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIM`,
 `VERTEX_PROJECT_ID`, `VERTEX_LOCATION` — the same names and values the ingestion
 jobs use; the collection's embedding-space fingerprint rejects a mismatched
