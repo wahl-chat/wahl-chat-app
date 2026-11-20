@@ -9,6 +9,7 @@ import {
   isStreaming,
   remainingChips,
   sourceNames,
+  sourcePills,
   toggleTurn,
   turnHistory,
 } from './chat-turns';
@@ -161,5 +162,31 @@ describe('sourceNames', () => {
         { label: 'Plenarprotokoll', url: 'https://c' },
       ]),
     ).toBe('Plenarprotokoll · Abgeordnetenwatch');
+  });
+});
+
+describe('sourcePills', () => {
+  const a = { label: 'Drucksache 21/8157', url: 'https://a' };
+  const b = { label: 'Abgeordnetenwatch', url: 'https://b' };
+
+  it('names a single source on its pill, with no names line', () => {
+    expect(sourcePills([a])).toEqual({
+      pills: [{ text: a.label, label: a.label, url: a.url }],
+      names: null,
+    });
+  });
+
+  it('numbers several sources and names them on a line', () => {
+    expect(sourcePills([a, b])).toEqual({
+      pills: [
+        { text: '1', label: `Quelle 1: ${a.label}`, url: a.url },
+        { text: '2', label: `Quelle 2: ${b.label}`, url: b.url },
+      ],
+      names: 'Drucksache 21/8157 · Abgeordnetenwatch',
+    });
+  });
+
+  it('has nothing to show without sources', () => {
+    expect(sourcePills([])).toEqual({ pills: [], names: null });
   });
 });

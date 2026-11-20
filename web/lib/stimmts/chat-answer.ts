@@ -256,13 +256,19 @@ export const generalChatAnswer: AnswerStream = createGeneralChatAnswer({
   },
 });
 
+type ChatAnswerMode = 'placeholder' | 'general-chat';
+
 /**
  * Where the card's answers come from. 'placeholder' until the general chat
  * is in `develop`; then switch to 'general-chat' together with
  * STIMMTS_CHAT_ENABLED. Until then `/api/chat` on `develop` is the old party
  * chat, which must not be called with this payload.
  */
-export const CHAT_ANSWERS: 'placeholder' | 'general-chat' = 'placeholder';
+export const CHAT_ANSWERS: ChatAnswerMode = 'placeholder';
 
-export const answerStream: AnswerStream =
-  CHAT_ANSWERS === 'general-chat' ? generalChatAnswer : placeholderAnswer;
+const ANSWER_STREAMS: Record<ChatAnswerMode, AnswerStream> = {
+  placeholder: placeholderAnswer,
+  'general-chat': generalChatAnswer,
+};
+
+export const answerStream: AnswerStream = ANSWER_STREAMS[CHAT_ANSWERS];

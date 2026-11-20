@@ -101,3 +101,33 @@ export function answerText(answer: string): string {
 export function sourceNames(sources: ChatAnswerSource[]): string {
   return [...new Set(sources.map((source) => source.label))].join(' · ');
 }
+
+export type SourcePill = {
+  /** What the pill shows. */
+  text: string;
+  /** What a screen reader hears. */
+  label: string;
+  url: string;
+};
+
+/**
+ * One source is named on its pill. Several are numbered, so the row stays
+ * short, and named together on a line below.
+ */
+export function sourcePills(sources: ChatAnswerSource[]): {
+  pills: SourcePill[];
+  names: string | null;
+} {
+  if (sources.length === 1) {
+    const [{ label, url }] = sources;
+    return { pills: [{ text: label, label, url }], names: null };
+  }
+  return {
+    pills: sources.map(({ label, url }, i) => ({
+      text: String(i + 1),
+      label: `Quelle ${i + 1}: ${label}`,
+      url,
+    })),
+    names: sources.length > 0 ? sourceNames(sources) : null,
+  };
+}
