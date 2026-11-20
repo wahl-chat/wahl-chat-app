@@ -54,11 +54,11 @@ Wahlperiode, starting on the launch date.
 6. **Result.** From the top: the stamped Stimmkarte (the score, a verdict
    per party), which the player casts into the urn of this Wahlperiode, and
    the urn; the vote result card, which opens the vote again; the chat card
-   (switched off, but shown in preview); and a closing card with the
+   (switched off, but shown in preview); and the Wahlperiode card with the
    Wahlperiode as 30 seats, where a past day opens again, and under it the
    "Ergebnis teilen" and "Stil ändern" buttons. The card leads so it is on
    screen when the result opens. Once it is cast, the countdown to the next
-   puzzle takes its place and the closing card gains the score row (score,
+   puzzle takes its place and the Wahlperiode card gains the score row (score,
    date, the five verdicts) at its top, since the Stimmkarte no longer shows
    it. The goal of the screen is to cast the card, see how the Bundestag
    voted and ask about it; feedback and old days come second.
@@ -229,7 +229,8 @@ count.
   nicht". It asks about the format, never about the vote, so the card names no
   bill. An answer or a close both count as asked. While the PledgeTracker
   study runs the card is hidden, because the study questionnaire is then the
-  only ask in the app.
+  only ask in the app. The card is also hidden while the game's switch is off
+  or not yet known.
 
 **Accessibility**
 
@@ -318,12 +319,12 @@ flowchart LR
 | Switch and launch | `status.ts`, `use-stimmts-status.ts`; the listener in `web/lib/firebase/firebase.ts`, the cached server read in `web/lib/firebase/firebase-server.ts` |
 | Feed and header | `feed-entry.ts` (what the feed card shows), `presence.ts` (the mark on `<html>`), `todays-result.ts`, `flip.ts` (the fly-in's transform); `web/components/daily/stimmts-feed-card.tsx`, `stimmts-feedback-card.tsx` (the one-time more-games question), `stimmts-header-icon.tsx`, `stimmts-fly-in.tsx` |
 | Time and schedule | `berlin-time.ts`, `schedule.ts`, `preview.ts`, `countdown.ts` |
-| Game rules | `score.ts`, `progress.ts`, `period.ts` (the Wahlperiode) |
+| Game rules | `score.ts`, `progress.ts`, `period.ts` (the Wahlperiode), `result-layout.ts` (which optional parts the result shows), `source.ts` (whether a source is Abgeordnetenwatch), `topic.ts` (a puzzle's topic as the feed's topic) |
 | State | `progress-store.ts`, `use-progress.ts` |
 | Sharing | `share.ts`, `share-action.ts`, `share-image.ts`, `load-once.ts`, `challenge.ts` (the banner for a shared link); `web/components/stimmts/share-decor.tsx` (a style's dress on the image) |
 | Styles | `styles.ts` (the styles and their milestones), `style-store.ts`, `style-themes.ts`, `style-sheet-view.ts`; `web/components/stimmts/style-frame`, `style-decor`, `style-button`, `style-sheet` |
 | Start screen and chat | `start-view.ts`, `drucksache.ts` (PDF and source-page links), `chat-chips.ts`, `chat-question.ts`, `chat-answer.ts` (answer source), `chat-turns.ts` (the card's turns) |
-| Measuring | `analytics.ts`, `feedback.ts` |
+| Measuring | `analytics.ts`, `analytics-props.ts` (the properties each event carries), `claim-once.ts` (count an event once per browser), `feedback.ts` |
 | Look | `fonts.ts`, `parties.ts`, `hemicycle.ts`, `chamber-state.ts`, `game-view.ts`, `logo.ts`; logos in `web/public/images/stimmts/logos/` |
 | Wording | `labels.ts` |
 | Screens | `web/components/stimmts/`: `stimmts-game` (switch, clock, store, which state), `puzzle-game` (which screen), `start-screen`, `more-info`, `key-points`, `start-bar`, `guess-step`, `tip-row`, `review-step`, `reveal`, `result`, `vote-result-card`, `chat-card`, `closing-screen`, `status-screen`, and their parts |
