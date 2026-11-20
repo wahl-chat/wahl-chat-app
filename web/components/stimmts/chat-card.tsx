@@ -39,6 +39,9 @@ function ChatCard({ puzzle, guesses }: Props) {
   const abortRef = useRef<AbortController | null>(null);
   const nextId = useRef(0);
   const focusQuestion = useRef(false);
+  // Set before the first render of a new turn, so a second tap in the same
+  // frame cannot start a second answer the way the rendered state would let.
+  const busyRef = useRef(false);
   // One conversation per card, as the general chat keys it.
   const [sessionId] = useState(generateUuid);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
@@ -58,7 +61,8 @@ function ChatCard({ puzzle, guesses }: Props) {
 
   const ask = async (question: string) => {
     const text = question.trim();
-    if (!text || streaming) return;
+    if (!text || busyRef.current) return;
+    busyRef.current = true;
     const controller = new AbortController();
     abortRef.current = controller;
     const id = nextId.current++;
@@ -78,6 +82,8 @@ function ChatCard({ puzzle, guesses }: Props) {
       }
     } catch {
       // Falls through to finishTurn, which shows the error line.
+    } finally {
+      busyRef.current = false;
     }
     // Aborted means the card is gone: there is nothing left to update.
     if (!controller.signal.aborted) update(finishTurn);
@@ -85,13 +91,13 @@ function ChatCard({ puzzle, guesses }: Props) {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (streaming || !draft.trim()) return;
+    if (busyRef.current || !draft.trim()) return;
     void ask(draft);
     setDraft('');
   };
 
   const askChip = (question: string) => {
-    if (streaming) return;
+    if (busyRef.current) return;
     // The chip disappears once asked, so focus goes to the question it
     // asked rather than falling back to the page. Not to the input: on a
     // phone that would open the keyboard over the answer.
