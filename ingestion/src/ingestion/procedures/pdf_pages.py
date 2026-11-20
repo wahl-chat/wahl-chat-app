@@ -41,8 +41,17 @@ _WATERMARK = re.compile(
 _MIN_LETTERS = 16
 _PRINTED_PAGE = re.compile(r"^(\d+)")
 _PARSED_KEPT = 4
+# A PDF is held in memory and parsed whole, and a Haushalt Gesetzentwurf is
+# over 250 MB: more than a 1 GiB job survives. Protocols and ordinary
+# Drucksachen are a few MB, so a larger PDF only costs its pages, which stay
+# unset.
+MAX_PDF_BYTES = 50 * 1024 * 1024
 
 Pages = tuple[Optional[int], Optional[int]]
+
+
+def fetch_pdf(url: str) -> bytes:
+    return fetch_bytes(url, max_bytes=MAX_PDF_BYTES)
 
 
 class PdfSource:
@@ -53,7 +62,7 @@ class PdfSource:
         self,
         cache_dir: Optional[Path] = None,
         *,
-        fetch: Callable[[str], bytes] = fetch_bytes,
+        fetch: Callable[[str], bytes] = fetch_pdf,
         min_interval: float = 1.0,
         backoff: Sequence[float] = (10.0, 60.0),
         sleep: Callable[[float], None] = time.sleep,

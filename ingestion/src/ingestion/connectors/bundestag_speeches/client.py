@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import subprocess
 import time
+from typing import Optional
 from urllib.parse import urlencode
 
 import requests
@@ -179,14 +180,42 @@ def fetch_text(url: str, timeout: float = 60) -> str:
     return response.text
 
 
-def fetch_bytes(url: str, timeout: float = 60) -> bytes:
+class TooLargeError(ValueError):
+    """Raised when a file is larger than the caller's ``max_bytes``."""
+
+
+def fetch_bytes(
+    url: str, timeout: float = 60, max_bytes: Optional[int] = None
+) -> bytes:
     """``fetch_text`` for binary files, such as the protocol PDF next to the
-    XML: the same host answers both with the same challenge redirect."""
-    response = requests.get(url, timeout=timeout)
-    if ".enodia/challenge" in response.url:
-        return _curl_bytes(url, accept="*/*")
-    response.raise_for_status()
-    return response.content
+    XML: the same host answers both with the same challenge redirect.
+
+    With ``max_bytes`` a larger file is given up while it downloads, before
+    it is held in memory (raises :class:`TooLargeError`).
+    """
+    if max_bytes is None:
+        response = requests.get(url, timeout=timeout)
+        if ".enodia/challenge" in response.url:
+            return _curl_bytes(url, accept="*/*")
+        response.raise_for_status()
+        return response.content
+    with requests.get(url, timeout=timeout, stream=True) as streamed:
+        if ".enodia/challenge" in streamed.url:
+            return _curl_bytes(url, accept="*/*", max_bytes=max_bytes)
+        streamed.raise_for_status()
+        return _read_at_most(streamed, url, max_bytes)
+
+
+def _read_at_most(response: requests.Response, url: str, max_bytes: int) -> bytes:
+    declared = response.headers.get("Content-Length")
+    if declared is not None and declared.isdigit() and int(declared) > max_bytes:
+        raise TooLargeError(f"{url} is {int(declared)} bytes")
+    data = bytearray()
+    for piece in response.iter_content(chunk_size=1 << 20):
+        data.extend(piece)
+        if len(data) > max_bytes:
+            raise TooLargeError(f"{url} is over {max_bytes} bytes")
+    return bytes(data)
 
 
 def curl_get(url: str, accept: str = "*/*") -> str:
@@ -208,10 +237,18 @@ def curl_get(url: str, accept: str = "*/*") -> str:
     return _curl_bytes(url, accept).decode("utf-8")
 
 
-def _curl_bytes(url: str, accept: str) -> bytes:
+_CURL_TOO_LARGE = 63
+
+
+def _curl_bytes(url: str, accept: str, max_bytes: Optional[int] = None) -> bytes:
     # Fixed arg list — no shell=True
-    command = ["curl", "-sS", "-L", "--fail", "-H", f"Accept: {accept}", url]
+    command = ["curl", "-sS", "-L", "--fail", "-H", f"Accept: {accept}"]
+    if max_bytes is not None:
+        command += ["--max-filesize", str(max_bytes)]
+    command.append(url)
     result = subprocess.run(command, capture_output=True, timeout=90)
+    if result.returncode == _CURL_TOO_LARGE and max_bytes is not None:
+        raise TooLargeError(f"{url} is over {max_bytes} bytes")
     if result.returncode != 0:
         raise DipChallengeError(
             result.stderr.decode("utf-8", "replace").strip()
