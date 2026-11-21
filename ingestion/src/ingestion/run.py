@@ -665,6 +665,8 @@ def run_connector(
                     present_skips += 1
                     outcome = "present-skip"
 
+            connector.post_item(qdrant, collection_name, str(external_id), parent_key)
+
         except DimensionMismatchError:
             # A dimension mismatch is a coding invariant, not a data error —
             # re-raise (typed, not substring-matched) rather than silently

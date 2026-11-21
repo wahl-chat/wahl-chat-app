@@ -163,3 +163,21 @@ class BaseConnector(ABC):
             Number of store-side follow-up actions performed (0 for the no-op).
         """
         return 0
+
+    def post_item(
+        self, qdrant, collection_name: str, external_id: str, parent_key: str
+    ) -> None:  # noqa: ANN001
+        """Optional hook — called by the runner once an item is in sync with the
+        store, whether it was just written or skipped as unchanged. Not called
+        for failed items.
+
+        Default: no-op. Override to record per-parent state on the stored points
+        (e.g. the upstream revision that was checked).
+
+        Args:
+            qdrant:          Initialised QdrantClient.
+            collection_name: The collection the item's chunks live in.
+            external_id:     The discover/fetch id of the item.
+            parent_key:      The source_parent_key stamped on the item's chunks.
+        """
+        return None
