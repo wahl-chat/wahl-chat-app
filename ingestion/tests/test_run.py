@@ -552,6 +552,47 @@ def test_no_orphans_all_present_unchanged_skips() -> None:
 # ---------------------------------------------------------------------------
 
 
+class _PostItemRecorder(_ChunksStub):
+    """Records post_item calls; normalize fails for ids in `failing`."""
+
+    def __init__(
+        self, chunks_by_id: dict[str, list[ChunkRecord]], failing: set[str]
+    ) -> None:
+        super().__init__(chunks_by_id)
+        self._failing = failing
+        self.post_item_calls: list[tuple[str, str]] = []
+
+    def normalize(self, raw: dict) -> list[ChunkRecord]:
+        if raw["external_id"] in self._failing:
+            raise ValueError("malformed")
+        return super().normalize(raw)
+
+    def post_item(  # noqa: ANN001
+        self, qdrant, collection_name: str, external_id: str, parent_key: str
+    ) -> None:
+        self.post_item_calls.append((external_id, parent_key))
+
+
+def test_post_item_runs_for_written_and_skipped_items_only() -> None:
+    """post_item follows every item now in sync with the store — written or
+    present-skipped — and never a failed one, so its recorded state is only
+    ever stamped after a successful check."""
+    present = [_chunk("1", 0, "alt", content_hash="h-1")]
+    new_2 = [_chunk("2", 0, "neu 2", content_hash="h-2")]
+    pid, payload = _existing_payload(present[0])
+    connector = _PostItemRecorder(
+        {"1": present, "2": new_2, "3": [_chunk("3", 0, "x")]}, failing={"3"}
+    )
+
+    report = run_connector(connector, _FootprintQdrant({pid: payload}), _mock_embed())
+
+    assert report.failed_ids == ("3",)
+    assert connector.post_item_calls == [
+        ("1", "vote_record:1"),
+        ("2", "vote_record:2"),
+    ]
+
+
 def test_dip_resurrection_guard_client_plumbs_api_key(monkeypatch) -> None:
     """(e) The DIP resurrection-guard client forwards QDRANT_API_KEY to QdrantClient
     — behavioural: patch the client constructor and assert the api_key it receives.
