@@ -13,6 +13,14 @@ from typing import Any, Optional
 from qdrant_client import models
 
 from ingestion.run import EMBEDDING_DIM
+from ingestion.setup_collection import _REQUIRED_INDEXES
+
+
+def _indexed(key: str) -> None:
+    """Deployed Qdrant runs in strict mode: it refuses a filter or facet on a
+    field without a payload index."""
+    if key not in _REQUIRED_INDEXES:
+        raise AssertionError(f'Index required but not found for "{key}"')
 
 
 def _get(payload: dict[str, Any], key: str) -> Any:
@@ -30,9 +38,11 @@ def _matches(cond: Any, point_id: str, payload: dict[str, Any]) -> bool:
     if isinstance(cond, models.HasIdCondition):
         return point_id in {str(i) for i in cond.has_id}
     if isinstance(cond, models.IsEmptyCondition):
+        _indexed(cond.is_empty.key)
         value = _get(payload, cond.is_empty.key)
         return value is None or value == []
     if isinstance(cond, models.FieldCondition):
+        _indexed(cond.key)
         value = _get(payload, cond.key)
         values = value if isinstance(value, list) else [value]
         if isinstance(cond.match, models.MatchValue):
@@ -159,6 +169,7 @@ def _facet(
 ):
     from collections import Counter
 
+    _indexed(key)
     counts: Counter[Any] = Counter()
     for pid, payload in self.points.items():
         if matches(facet_filter, pid, payload):

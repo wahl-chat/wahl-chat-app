@@ -216,6 +216,10 @@ _INDEX_SPECS: list[
     ("vorgang_ids", models.PayloadSchemaType.KEYWORD),
     ("sachgebiete", models.PayloadSchemaType.KEYWORD),
     ("doc_section", models.PayloadSchemaType.KEYWORD),
+    # procedure_link.method: chunks the link step has not checked yet;
+    # meta.page_start: Drucksachen the page backfill has placed.
+    ("procedure_link.method", models.PayloadSchemaType.KEYWORD),
+    ("meta.page_start", models.PayloadSchemaType.INTEGER),
 ]
 
 _REQUIRED_INDEXES: frozenset[str] = frozenset(field for field, _ in _INDEX_SPECS)
