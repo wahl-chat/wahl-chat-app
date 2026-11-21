@@ -206,5 +206,237 @@
         "title": "24 ständige Ausschüsse bereiten die Beschlüsse des Bundestages vor - Deutscher Bundestag"
       }
     ]
+  },
+  {
+    "term": "Enthaltung",
+    "forms": [
+      "Enthaltung",
+      "Enthaltungen",
+      "Stimmenthaltung"
+    ],
+    "definition": "Wer sich enthält, stimmt weder mit Ja noch mit Nein, nimmt aber an der Abstimmung teil. Bei einer namentlichen Abstimmung werfen Abgeordnete dafür die weiße Stimmkarte in die Urne.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/nam_abst-245502",
+        "title": "Namentliche Abstimmung - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/dokumente/textarchiv/2026/kw30-namentliche-abstimmung-1198088",
+        "title": "Namentliche Abstimmung - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Nicht abgegebene Stimme",
+    "forms": [
+      "Nicht abgegebene Stimme",
+      "nicht abgegebene Stimme",
+      "nicht abgegebene Stimmen"
+    ],
+    "definition": "Bei einer namentlichen Abstimmung keine Stimmkarte abgegeben: weder Ja noch Nein noch eine Enthaltung. Wer nicht teilnimmt, dem werden 200 Euro von der monatlichen Kostenpauschale abgezogen, außer etwa bei Krankheit, Mutterschutz oder einer Dienstreise.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/dokumente/textarchiv/2026/kw30-namentliche-abstimmung-1198088",
+        "title": "Namentliche Abstimmung - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Ältestenrat",
+    "forms": [
+      "Ältestenrat",
+      "Ältestenrats"
+    ],
+    "definition": "Unterstützt die Bundestagspräsidentin oder den Bundestagspräsidenten bei der Leitung des Parlaments und legt etwa die Sitzungswochen und die Tagesordnung fest. Seine Mitglieder sind nicht unbedingt die ältesten, aber oft besonders erfahrene Abgeordnete.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/aeltestenrat-444538",
+        "title": "Ältestenrat - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Gemeinsamer Ausschuss",
+    "forms": [
+      "Gemeinsamer Ausschuss",
+      "Gemeinsamen Ausschuss",
+      "Gemeinsamen Ausschusses"
+    ],
+    "definition": "Ein Notparlament für den Verteidigungsfall, wenn der Bundestag nicht rechtzeitig zusammentreten kann oder nicht beschlussfähig ist. Zwei Drittel seiner Mitglieder sind Bundestagsabgeordnete, ein Drittel Mitglieder des Bundesrates; das Grundgesetz darf er nicht ändern.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/gem_ausschuss-245428",
+        "title": "Gemeinsamer Ausschuss - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Enquete-Kommission",
+    "forms": [
+      "Enquete-Kommission",
+      "Enquete-Kommissionen"
+    ],
+    "definition": "Bereitet Entscheidungen zu umfangreichen und bedeutenden Themen vor. Sie besteht aus Abgeordneten und Sachverständigen und legt am Ende einen Bericht vor, meist mit Empfehlungen für Gesetze. Ein Viertel der Abgeordneten kann sie verlangen.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/enquete-444734",
+        "title": "Enquete-Kommission - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/services/glossar/kommissionen-245480",
+        "title": "Kommissionen - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Kinderkommission",
+    "forms": [
+      "Kinderkommission"
+    ],
+    "definition": "Ein Unterausschuss des Familienausschusses, der im Bundestag die Interessen von Kindern und Jugendlichen vertritt. Jede Fraktion ist mit einem Mitglied vertreten.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/kinderkommission-261330",
+        "title": "Kinderkommission - Deutscher Bundestag"
+      },
+      {
+        "url": "https://www.bundestag.de/services/glossar/kommissionen-245480",
+        "title": "Kommissionen - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Unterausschuss",
+    "forms": [
+      "Unterausschuss",
+      "Unterausschüsse",
+      "Unterausschusses"
+    ],
+    "definition": "Ein Ausschuss kann Unterausschüsse einsetzen, die seine Arbeit vorbereiten: zu einem bestimmten Gesetzentwurf oder einem besonderen Problem. Für Teilgebiete, etwa Angelegenheiten der Europäischen Union, kann ein Unterausschuss auch die ganze Wahlperiode bestehen.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/unteraussch-245540",
+        "title": "Unterausschuss - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Parlamentariergruppe",
+    "forms": [
+      "Parlamentariergruppe",
+      "Parlamentariergruppen"
+    ],
+    "definition": "Abgeordnete aller Fraktionen, die die Beziehungen des Bundestages zu den Parlamenten anderer Länder pflegen, etwa durch Konferenzen, Reisen und persönliche Kontakte. Die Vorsitze werden nach der Stärke der Fraktionen verteilt.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/parlamentariergruppen-869104",
+        "title": "Parlamentariergruppen - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Parlamentarisches Kontrollgremium",
+    "forms": [
+      "Parlamentarisches Kontrollgremium",
+      "Parlamentarischen Kontrollgremium",
+      "Parlamentarischen Kontrollgremiums"
+    ],
+    "definition": "Kontrolliert die Nachrichtendienste des Bundes: den Bundesnachrichtendienst, den Militärischen Abschirmdienst und das Bundesamt für Verfassungsschutz. Die Bundesregierung muss es umfassend unterrichten; es kann Akten einsehen und Angehörige der Dienste befragen.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/parlamentarisches-kontrollgremium-283820",
+        "title": "Parlamentarisches Kontrollgremium - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Gremium gemäß Artikel 13 Absatz 6 des Grundgesetzes",
+    "forms": [
+      "Gremium gemäß Artikel 13 Absatz 6 des Grundgesetzes"
+    ],
+    "definition": "Kontrolliert, wie Behörden Wohnungen mit technischen Mitteln überwachen, also private Gespräche dort abhören oder aufzeichnen. Grundlage ist ein jährlicher Bericht der Bundesregierung; das Gremium hat neun Mitglieder.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/ausschuesse/weitere_gremien/gremium-artikel13",
+        "title": "Gremium gemäß Artikel 13 Absatz 6 des Grundgesetzes - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Parlamentarischer Beirat für nachhaltige Entwicklung",
+    "forms": [
+      "Parlamentarischer Beirat für nachhaltige Entwicklung",
+      "Parlamentarischen Beirat für nachhaltige Entwicklung",
+      "Parlamentarischen Beirats für nachhaltige Entwicklung"
+    ],
+    "definition": "Begleitet die Nachhaltigkeitsstrategie der Bundesregierung im Parlament und gibt Empfehlungen zu mittel- und langfristigen Planungen, mit Blick auf kommende Generationen. Er kann Gutachten zu Gesetzentwürfen abgeben und besteht aus Abgeordneten aller Fraktionen.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/parlamentarischer-beirat-fuer-nachhaltige-entwicklung-869098",
+        "title": "Parlamentarischer Beirat für nachhaltige Entwicklung - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Schriftführer",
+    "forms": [
+      "Schriftführer",
+      "Schriftführerin",
+      "Schriftführerinnen"
+    ],
+    "definition": "Unterstützen die Bundestagspräsidentin oder den Bundestagspräsidenten in den Plenarsitzungen: Sie führen die Rednerliste und nehmen bei namentlichen Abstimmungen an den Urnen die Stimmen entgegen und zählen sie. Gewählt werden sie zu Beginn der Wahlperiode.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/schriftf-245538",
+        "title": "Schriftführer - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Wahlausschuss",
+    "forms": [
+      "Wahlausschuss",
+      "Wahlausschusses"
+    ],
+    "definition": "Zwölf Abgeordnete, die dem Bundestag vorschlagen, wen er zu Richterinnen und Richtern am Bundesverfassungsgericht wählt; die andere Hälfte der Richter wählt der Bundesrat. Für die Wahl ist eine Zweidrittelmehrheit nötig.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/wahlaussch-245562",
+        "title": "Wahlausschuss - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Vizepräsident des Deutschen Bundestages",
+    "forms": [
+      "Vizepräsident des Deutschen Bundestages",
+      "Vizepräsidentin des Deutschen Bundestages"
+    ],
+    "definition": "Gehört mit der Bundestagspräsidentin und den anderen Vizepräsidentinnen und Vizepräsidenten zum Präsidium, das über die Leitung des Bundestages berät. Gewählt wird auf Vorschlag der Fraktionen für die ganze Wahlperiode.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/praesidium-869094",
+        "title": "Präsidium - Deutscher Bundestag"
+      }
+    ]
+  },
+  {
+    "term": "Bundestagsdelegation",
+    "forms": [
+      "Bundestagsdelegation",
+      "Delegationsmitglied",
+      "Stellvertretendes Delegationsmitglied",
+      "Delegationsleiter",
+      "Delegationsleiterin",
+      "Stellvertretender Delegationsleiter",
+      "Stellvertretende Delegationsleiterin"
+    ],
+    "definition": "Abgeordnete, die der Bundestag in eine internationale parlamentarische Versammlung entsendet, etwa in die des Europarates, der NATO oder der OSZE. Dort tauschen sie sich mit Abgeordneten anderer Länder aus und begleiten politische Prozesse.",
+    "sources": [
+      {
+        "url": "https://www.bundestag.de/services/glossar/interparlamentarische_organisationen-247098",
+        "title": "Interparlamentarische Organisationen - Deutscher Bundestag"
+      }
+    ]
   }
 ]

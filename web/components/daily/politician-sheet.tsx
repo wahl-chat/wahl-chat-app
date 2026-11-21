@@ -40,7 +40,7 @@ import { ChevronDownIcon, PlayIcon, UserRoundIcon, XIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
-import { GlossaryLabel } from './glossary-text';
+import { GlossaryLabel, GlossaryTerm } from './glossary-text';
 import { PartyLogo } from './party-positions';
 import { SourceLink } from './vote-panels';
 
@@ -216,7 +216,7 @@ function OtherGremien({ politician }: { politician: Politician }) {
             key={row.gremium}
             className="rounded-2xl border border-[var(--daily-border)] px-2.5 py-1 text-[13px]"
           >
-            {row.gremium}
+            <GlossaryLabel label={row.gremium} />
             <span className={MUTED_TEXT}>
               {' · '}
               <GlossaryLabel label={row.role} />
@@ -272,6 +272,26 @@ const VOTE_BADGE: Record<RollCallVote['vote'], string> = {
   other: 'bg-[var(--daily-surface)] text-[var(--daily-muted)]',
 };
 
+// "enthalten" and "nicht abg." look alike but are not: an abstention is a
+// card cast, "nicht abg." is no card at all.
+const VOTE_TERM: Partial<Record<RollCallVote['vote'], string>> = {
+  abstain: 'enthaltung',
+  absent: 'nicht-abgegebene-stimme',
+};
+
+function VoteBadge({ vote }: { vote: RollCallVote }) {
+  const className = cn(
+    'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+    VOTE_BADGE[vote.vote],
+  );
+  const termId = VOTE_TERM[vote.vote];
+  return termId ? (
+    <GlossaryTerm text={vote.label} termId={termId} className={className} />
+  ) : (
+    <span className={className}>{vote.label}</span>
+  );
+}
+
 const voteDayFormat = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',
   month: '2-digit',
@@ -316,14 +336,7 @@ function RollCallList({
                 <span className="text-[14px]">{vote.title}</span>
               )}
             </span>
-            <span
-              className={cn(
-                'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                VOTE_BADGE[vote.vote],
-              )}
-            >
-              {vote.label}
-            </span>
+            <VoteBadge vote={vote} />
           </li>
         ))}
       </ul>

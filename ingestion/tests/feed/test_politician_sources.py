@@ -47,6 +47,20 @@ def test_a_profile_keeps_each_role_as_published() -> None:
     assert profile.photo_credit == "Sanae Abdi/SPD-Fraktion"
 
 
+def test_a_committee_id_with_a_name_suffix_is_still_a_committee() -> None:
+    xml = profile_xml().replace(
+        '<mdbOrdentlichesMitgliedGremium id="pbne">',
+        '<mdbOrdentlichesMitgliedGremium id="a07_finanzen"><gremiumName>Finanzen'
+        "</gremiumName></mdbOrdentlichesMitgliedGremium>"
+        '<mdbOrdentlichesMitgliedGremium id="ukb"><gremiumName>Unterausschuss '
+        "Europarecht</gremiumName></mdbOrdentlichesMitgliedGremium>"
+        '<mdbOrdentlichesMitgliedGremium id="pbne">',
+    )
+    kinds = {m.gremium: m.kind for m in s.parse_profile(xml).memberships}
+    assert kinds["Finanzen"] == "ausschuss"
+    assert kinds["Unterausschuss Europarecht"] == "sonstige"
+
+
 def test_the_disclosures_are_kept_verbatim_in_their_structure() -> None:
     disclosures = s.parse_profile(profile_xml()).disclosures
     assert disclosures is not None
