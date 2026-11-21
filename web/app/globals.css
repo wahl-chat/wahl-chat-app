@@ -48,6 +48,31 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Stimmt's? palette, as RGB channels so Tailwind's opacity modifiers work.
+       The vote colours are exact: seat-yes and seat-no share one lightness, so
+       the game always pairs them with a word or a legend. The seat variables
+       carry the game's prefix because other features define seat colours too. */
+    --brand-red: 237 56 51; /* #ed3833, the check in the wahl.chat logo */
+    --stimmts-seat-yes: 47 138 91; /* #2f8a5b */
+    --stimmts-seat-no: 194 65 75; /* #c2414b */
+    --stimmts-seat-abstain: 217 169 58; /* #d9a93a */
+    --stimmts-seat-absent-ring: 161 161 170; /* #a1a1aa */
+    --stimmts-seat-unaffiliated: 113 113 122; /* #71717a */
+    --stimmts-seat-pending: 212 212 216; /* #d4d4d8 */
+    --tally-low: 161 161 170; /* #a1a1aa */
+    --tally-mid: 82 82 91; /* #52525b */
+    --tally-top: 9 9 11; /* #09090b */
+    --result-correct: 21 128 61; /* #15803d */
+    --result-wrong: 185 28 28; /* #b91c1c */
+    --party-linke: 255 0 0; /* #ff0000 */
+    --party-spd: 228 0 27; /* #e4001b */
+    --party-gruene: 0 84 56; /* #005438 */
+    --party-cdu: 82 183 193; /* #52b7c1 */
+    --party-afd: 1 158 224; /* #019ee0 */
+    --paper: 255 255 255; /* #ffffff */
+    --paper-ink: 10 10 10; /* #0a0a0a */
+    --paper-muted: 82 82 91; /* #52525b */
+    --paper-rule: 212 212 216; /* #d4d4d8 */
     --chat-header-height: 65px;
     --scroll-distance: 0px;
     --scroll-duration: 5s;
@@ -94,6 +119,16 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --stimmts-seat-pending: 63 63 70; /* #3f3f46 */
+    --tally-low: 82 82 91; /* #52525b */
+    --tally-mid: 161 161 170; /* #a1a1aa */
+    --tally-top: 250 250 250; /* #fafafa */
+    --result-correct: 74 222 128; /* #4ade80 */
+    --result-wrong: 248 113 113; /* #f87171 */
+    --paper: 24 24 27; /* #18181b */
+    --paper-ink: 244 244 245; /* #f4f4f5 */
+    --paper-muted: 161 161 170; /* #a1a1aa */
+    --paper-rule: 63 63 70; /* #3f3f46 */
   }
 }
 
@@ -200,9 +235,39 @@ body {
   /* A card's own action ("Mehr anzeigen") on touch screens, which has to
      stand out from the card without any hover. */
   --daily-action-bg: #e4e4e7;
+  /* The light that sweeps once across the Stimmt's? card's ink button. */
+  --daily-glint: rgba(255, 255, 255, 0.45);
   color: var(--daily-ink);
   background: var(--daily-canvas);
   font-family: var(--font-daily-body), Arial, Helvetica, sans-serif;
+}
+
+/* The Abgeordnetenwatch logo on the result card: the site's mode by default,
+   the style's own lightness inside a style frame. Later rules win at equal
+   specificity, so the frame's mode comes last. */
+.stimmts-aw-light {
+  display: block;
+}
+.stimmts-aw-dark {
+  display: none;
+}
+.dark .stimmts-aw-light {
+  display: none;
+}
+.dark .stimmts-aw-dark {
+  display: block;
+}
+[data-stimmts-mode="light"] .stimmts-aw-light {
+  display: block;
+}
+[data-stimmts-mode="light"] .stimmts-aw-dark {
+  display: none;
+}
+[data-stimmts-mode="dark"] .stimmts-aw-light {
+  display: none;
+}
+[data-stimmts-mode="dark"] .stimmts-aw-dark {
+  display: block;
 }
 
 .dark .daily-theme {
@@ -221,4 +286,147 @@ body {
   --daily-day-pending-hover: #3f3f46;
   --daily-day-upcoming: #3f3f46;
   --daily-action-bg: #3f3f46;
+  --daily-glint: rgba(113, 113, 122, 0.45);
+}
+
+/* Stimmt's? card in the feed. The presence script in the root layout marks
+   <html> before first paint, so a device that played today never sees the
+   invitation flash; the fly-in flag keeps it for the animation that follows
+   a game just finished. */
+html[data-stimmts="today"]:not([data-stimmts-fly]) .stimmts-feed-card {
+  display: none;
+}
+
+/* During the fly-in only the played card may show. The server renders the
+   invitation, which would flash until the browser swaps it; hiding it keeps
+   its place, so the feed does not move either. */
+html[data-stimmts-fly] .stimmts-feed-card:not([data-variant="played"]) {
+  visibility: hidden;
+}
+
+/* The header icon is for players only, known from the presence mark before
+   first paint; the check shows a game finished today. */
+.stimmts-header-icon,
+.stimmts-header-badge {
+  display: none;
+}
+
+html[data-stimmts] .stimmts-header-icon {
+  display: block;
+}
+
+html[data-stimmts="today"] .stimmts-header-badge {
+  display: inline-flex;
+}
+
+/* The icon takes 40 px of a phone's header, so on the narrowest phones
+   "Meine Woche" gives up its words before the header would scroll sideways.
+   It keeps its icon and its accessible name. Keyed on the icon being in the
+   header, not only on the player mark: with the game switched off there is
+   no icon, and the words stay. */
+@media (max-width: 369.98px) {
+  html[data-stimmts]
+    .daily-header:has(.stimmts-header-icon)
+    .daily-header-weekly-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+/* The icon appears as the card arrives: hidden until the flight fades it in,
+   and the check comes with the landing. Only on a page with the card to fly;
+   anywhere else the icon simply shows. */
+html[data-stimmts-fly]:has(.stimmts-feed-card) [data-stimmts-icon] {
+  opacity: 0;
+}
+
+html[data-stimmts-fly] .stimmts-header-badge {
+  display: none;
+}
+
+.stimmts-icon-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in srgb, var(--daily-yes) 50%, transparent);
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stimmts-icon-pulse {
+    animation: stimmts-icon-pulse 900ms ease-out both;
+  }
+}
+
+@keyframes stimmts-icon-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stimmts-shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stimmts-shine::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -70%;
+    width: 55%;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      var(--daily-glint) 50%,
+      transparent 100%
+    );
+    /* One sweep, then a rest, every 4 s until the card is opened (the
+       component drops the class then). */
+    animation: stimmts-sweep 4s ease-out 0.4s infinite both;
+    pointer-events: none;
+  }
+}
+
+@keyframes stimmts-sweep {
+  0% {
+    left: -70%;
+  }
+  /* About 0.75 s of the 4 s cycle: a quick glint, then stillness. */
+  19% {
+    left: 130%;
+  }
+  100% {
+    left: 130%;
+  }
+}
+
+/* Below md, Stimmt's? pins "Los geht's" to the bottom of the viewport
+   (components/stimmts/start-bar.tsx). The page ends that much lower, so its
+   last line and the footer can still scroll out from under the bar. The
+   height is the bar's: 1px border, 12px above, the 52px button, and at least
+   16px below. A scroll padding of the bar plus 16px keeps anything scrolled to
+   by focus or scrollIntoView from landing under it. */
+@media (max-width: 767.98px) {
+  html:has([data-stimmts-start-bar]) {
+    scroll-padding-bottom: calc(81px + max(16px, env(safe-area-inset-bottom)));
+  }
+  body:has([data-stimmts-start-bar]) {
+    padding-bottom: calc(65px + max(16px, env(safe-area-inset-bottom)));
+  }
 }

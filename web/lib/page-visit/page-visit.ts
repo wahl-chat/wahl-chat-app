@@ -15,6 +15,7 @@ const RESERVED_FIRST_SEGMENTS = new Set([
   'impressum',
   'login',
   'session',
+  'stimmts',
   'topics',
   '_next',
 ]);

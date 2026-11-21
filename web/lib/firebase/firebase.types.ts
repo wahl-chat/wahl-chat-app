@@ -471,7 +471,11 @@ export type ProcedureSummary = {
   /** ISO day, `YYYY-MM-DD`. */
   latest_stage_on: string | null;
   stage_changed_on: string | null;
-  milestones: { date: string; chamber: 'BT' | 'BR' | 'BV' | 'EK'; name: string }[];
+  milestones: {
+    date: string;
+    chamber: 'BT' | 'BR' | 'BV' | 'EK';
+    name: string;
+  }[];
   dip_url: string;
 };
 

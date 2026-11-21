@@ -34,6 +34,7 @@ import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { GlossaryText } from './glossary-text';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
 import { OpinionConsentSheet } from './opinion-consent-sheet';
+import { OutcomeBadge } from './outcome-badge';
 import { PartyPositions, orderedPositions } from './party-positions';
 import { HeatInfo } from './plenary-card';
 import {
@@ -45,7 +46,6 @@ import { PositionRating } from './position-rating';
 import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
-import { OutcomeBadge } from './vote-card';
 import { VoteOpinion } from './vote-opinion';
 import { PartyVoteTable, SourceLink } from './vote-panels';
 

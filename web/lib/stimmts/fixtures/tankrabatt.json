@@ -1,0 +1,94 @@
+{
+  "id": "tankrabatt-2026",
+  "pollId": 6682,
+  "voteDate": "2026-09-25",
+  "topic": "Energie",
+  "title": "Tankrabatt für Benzin und Diesel",
+  "shortName": "Der Tankrabatt",
+  "briefing": "Die Energiesteuer auf Benzin und Diesel soll vom 1. Oktober bis zum 31. Dezember 2026 um 14,04 Cent pro Liter sinken. Weil dann auch weniger Umsatzsteuer anfällt, könnte Tanken um bis zu rund 17 Cent pro Liter günstiger werden, wenn die Senkung vollständig weitergegeben wird. Der Bund würde dadurch rund 2,5 Milliarden Euro weniger Energiesteuer einnehmen. Der Finanzausschuss hat die Regelung nachträglich in einen Gesetzentwurf zur Aufsicht über Versicherungsunternehmen eingefügt; abgestimmt wurde nur über diese neuen Artikel zum Tankrabatt.",
+  "yesMeans": "Ja bedeutet: den Artikeln zum Tankrabatt zustimmen.",
+  "keyPoints": [
+    {
+      "text": "Steuer auf Benzin und Diesel sinkt von Oktober bis Dezember 2026.",
+      "source": {
+        "document": "21/8157",
+        "page": 418
+      }
+    },
+    {
+      "text": "Tanken kann bis zu rund 17 Cent pro Liter billiger werden.",
+      "source": {
+        "document": "21/8157",
+        "page": 428
+      }
+    },
+    {
+      "text": "Der Bund nimmt rund 2,5 Milliarden Euro weniger Steuern ein.",
+      "source": {
+        "document": "21/8157",
+        "page": 4
+      }
+    }
+  ],
+  "outcome": "accepted",
+  "parties": [
+    {
+      "partyId": "linke",
+      "answer": "no",
+      "yes": 1,
+      "no": 54,
+      "abstain": 0,
+      "noShow": 9
+    },
+    {
+      "partyId": "spd",
+      "answer": "yes",
+      "yes": 112,
+      "no": 0,
+      "abstain": 0,
+      "noShow": 8
+    },
+    {
+      "partyId": "gruene",
+      "answer": "no",
+      "yes": 0,
+      "no": 73,
+      "abstain": 0,
+      "noShow": 12
+    },
+    {
+      "partyId": "cdu",
+      "answer": "yes",
+      "yes": 200,
+      "no": 0,
+      "abstain": 0,
+      "noShow": 8
+    },
+    {
+      "partyId": "afd",
+      "answer": "yes",
+      "yes": 120,
+      "no": 0,
+      "abstain": 0,
+      "noShow": 30
+    }
+  ],
+  "unaffiliated": 3,
+  "document": {
+    "type": "Gesetzentwurf",
+    "number": "21/6561",
+    "date": "2026-06-18",
+    "initiator": "der Bundesregierung",
+    "title": "Entwurf eines Gesetzes zur Umsetzung der Richtlinien (EU) 2025/1 und (EU) 2025/2 zur Festlegung eines Rahmens für die Sanierung und Abwicklung von Versicherungsunternehmen sowie zur Änderung des Aufsichtsrahmens für Versicherungsunternehmen (Versicherungs-Sanierungs-Abwicklungs-und-Aufsichtsänderungs-Gesetz – VSAAG)",
+    "url": "https://dserver.bundestag.de/btd/21/065/2106561.pdf",
+    "votedIn": {
+      "label": "Beschlussempfehlung des Finanzausschusses",
+      "number": "21/8157",
+      "url": "https://dserver.bundestag.de/btd/21/081/2108157.pdf"
+    }
+  },
+  "source": {
+    "label": "Abgeordnetenwatch",
+    "url": "https://www.abgeordnetenwatch.de/bundestag/21/abstimmungen/tankrabatt-fuer-benzin-und-diesel"
+  }
+}

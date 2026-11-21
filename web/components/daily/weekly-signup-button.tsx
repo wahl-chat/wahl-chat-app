@@ -44,7 +44,7 @@ const WeeklySignupButton = forwardRef<
       )}
     >
       <MailIcon className="size-4" aria-hidden />
-      Meine Woche
+      <span className="daily-header-weekly-label">Meine Woche</span>
       {isNew && (
         <span className="absolute -right-1 -top-1 flex size-2.5">
           <span

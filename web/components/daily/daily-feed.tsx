@@ -45,6 +45,7 @@ import type {
   ParliamentFeed,
   SittingCalendar,
 } from '@/lib/firebase/firebase.types';
+import type { StimmtsStatus } from '@/lib/stimmts/status';
 import { cn } from '@/lib/utils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -54,6 +55,8 @@ import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
 import { FeedFilters, FilterBar, ParliamentSelector } from './daily-filters';
 import DaySkeleton from './day-skeleton';
 import { GlossaryProvider } from './glossary-text';
+import StimmtsFeedCard from './stimmts-feed-card';
+import StimmtsFeedbackCard from './stimmts-feedback-card';
 
 const ITEM_PARAM = 'item';
 
@@ -76,6 +79,8 @@ type Props = {
   glossary?: GlossaryEntry[];
   /** Whether readers may rate positions and votes, see `DailyDetailDialog`. */
   opinionsEnabled?: boolean;
+  /** The Stimmt's? switch as the server read it; the card follows it live. */
+  stimmtsStatus?: StimmtsStatus;
 };
 
 type View = {
@@ -194,6 +199,7 @@ function DailyFeed({
   editionDates = [],
   glossary = [],
   opinionsEnabled = true,
+  stimmtsStatus = { enabled: false },
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
@@ -431,6 +437,9 @@ function DailyFeed({
           variant="feed"
           className={cn('-mt-2 mb-0 text-left text-[13px]', MUTED_TEXT)}
         />
+
+        <StimmtsFeedCard initialStatus={stimmtsStatus} />
+        <StimmtsFeedbackCard />
 
         <div className="flex flex-col gap-12 pt-2">
           {visibleDays.length === 0 ? (

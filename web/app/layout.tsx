@@ -27,6 +27,7 @@ import {
   WEBSITE_ID,
   productionRobots,
 } from '@/lib/seo';
+import { PRESENCE_SCRIPT } from '@/lib/stimmts/presence';
 import { IS_EMBEDDED } from '@/lib/utils';
 import { LazyMotion, domAnimation } from 'motion/react';
 import { headers } from 'next/headers';
@@ -149,6 +150,11 @@ export default async function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: THEME_COLOR_SCRIPT,
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: PRESENCE_SCRIPT,
           }}
         />
         <script
