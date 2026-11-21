@@ -26,6 +26,7 @@ This script does not write the legacy collections
 import os
 import sys
 from typing import Optional
+from urllib.parse import urlparse
 
 # Load the env file before the constants below.
 # EMBEDDING_MODEL, EMBEDDING_DIM, and COLLECTION_NAME are read at import time.
@@ -224,6 +225,20 @@ _INDEX_SPECS: list[
 
 _REQUIRED_INDEXES: frozenset[str] = frozenset(field for field, _ in _INDEX_SPECS)
 
+# The deployed collections' strict mode: a filter on a field without a payload
+# index is refused. A local Qdrant gets the same, so local runs fail alike.
+DEPLOYED_STRICT_MODE = models.StrictModeConfig(
+    enabled=True,
+    unindexed_filtering_retrieve=False,
+    unindexed_filtering_update=False,
+)
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "qdrant"}
+
+
+def _is_local_qdrant() -> bool:
+    url = os.getenv("QDRANT_URL", "http://localhost:6333")
+    return (urlparse(url).hostname or "") in _LOCAL_HOSTS
+
 
 def setup(client: Optional[QdrantClient] = None) -> None:
     """Create ``COLLECTION_NAME`` and every payload index in ``_INDEX_SPECS``.
@@ -258,6 +273,12 @@ def setup(client: Optional[QdrantClient] = None) -> None:
             hnsw_config=models.HnswConfigDiff(m=0, payload_m=16),
         )
         print(f"Created collection '{COLLECTION_NAME}'.")
+
+    if _is_local_qdrant():
+        client.update_collection(
+            collection_name=COLLECTION_NAME, strict_mode_config=DEPLOYED_STRICT_MODE
+        )
+        print("  Strict mode as deployed.")
 
     # -----------------------------------------------------------------------
     # Create / overwrite every payload index in _INDEX_SPECS.

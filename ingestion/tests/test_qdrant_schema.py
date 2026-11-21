@@ -29,6 +29,7 @@ written, or fingerprint-stamped by the test suite.
 """
 
 import os
+from datetime import date
 import uuid
 from typing import Generator
 
@@ -62,6 +63,7 @@ from qdrant_client.models import (
 import ingestion.setup_collection as setup_collection
 from ingestion.ids import compute_chunk_id, compute_source_item_id
 from ingestion.setup_collection import (
+    DEPLOYED_STRICT_MODE,
     EMBEDDING_DIM,
     _REQUIRED_INDEXES,
     expected_fingerprint,
@@ -184,6 +186,32 @@ def test_collection_exists(qdrant: QdrantClient, schema_collection: str) -> None
         f"calling setup(). Found: {collection_names!r}. "
         "Run `uv run python -m ingestion.setup_collection` to create it."
     )
+
+
+def test_local_collection_is_strict_like_the_deployed_one(
+    qdrant: QdrantClient, schema_collection: str
+) -> None:
+    config = qdrant.get_collection(schema_collection).config.strict_mode_config
+    assert config is not None
+    for field in DEPLOYED_STRICT_MODE.model_fields_set:
+        assert getattr(config, field) == getattr(DEPLOYED_STRICT_MODE, field)
+    with pytest.raises(Exception, match="Index required"):
+        qdrant.scroll(
+            schema_collection,
+            scroll_filter=models.Filter(
+                must=[models.IsEmptyCondition(is_empty=models.PayloadField(key="x"))]
+            ),
+        )
+
+
+def test_procedures_filters_run_in_strict_mode(
+    qdrant: QdrantClient, schema_collection: str
+) -> None:
+    from ingestion.procedures.link_apply import _needs_link
+    from ingestion.procedures.page_backfill import _placed
+
+    qdrant.scroll(schema_collection, scroll_filter=_needs_link(date(2026, 11, 21)))
+    assert _placed(qdrant, schema_collection) == set()
 
 
 def test_fingerprint_stamped_and_stable(
