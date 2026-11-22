@@ -6,6 +6,7 @@ from datetime import date
 from typing import Any
 
 from ingestion.procedures.mapper import (
+    dip_vorgang_url,
     NO_PARTY,
     build_record,
     party_ids_of,
@@ -141,4 +142,10 @@ def test_profile_hash_covers_the_citation_title(vorgaenge, positions) -> None:
     assert (
         profile_chunk(a, today=TODAY).content_hash
         != profile_chunk(renamed, today=TODAY).content_hash
+    )
+
+
+def test_dip_url_carries_a_title_slug() -> None:
+    assert dip_vorgang_url("320784", "Gesetz zur Änderung des Grundgesetzes (Artikel 109, 115 und 143h)") == (
+        "https://dip.bundestag.de/vorgang/gesetz-zur-aenderung-des-grundgesetzes-artikel-109-115-und-143h/320784"
     )

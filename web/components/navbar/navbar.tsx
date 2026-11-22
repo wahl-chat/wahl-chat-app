@@ -3,6 +3,7 @@ import UserAvatar from '@/components/auth/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
+import { SITE_LINKS } from '@/lib/site-links';
 import { IS_EMBEDDED, cn, getUserDetailsFromUser } from '@/lib/utils';
 import type { NavbarItemDetails } from './navbar-item';
 import NavbarItem from './navbar-item';
@@ -28,10 +29,7 @@ export default async function NavBar({ className }: Props) {
       label: 'Anleitung',
       href: '/how-to',
     },
-    {
-      label: 'Chat',
-      href: '/election-chat',
-    },
+    SITE_LINKS.chat,
   ];
 
   const user = !IS_EMBEDDED ? await getCurrentUser() : undefined;

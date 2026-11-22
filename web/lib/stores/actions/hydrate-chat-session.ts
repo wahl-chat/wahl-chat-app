@@ -1,3 +1,4 @@
+import { sanitizeChatAnchor } from '@/lib/chat-anchor';
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 import { areSetsEqual, generateUuid } from '@/lib/utils';
@@ -16,6 +17,8 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
     prefilledQuestion,
     userId,
     tenant,
+    anchor,
+    preset,
   }) => {
     const {
       chatSessionId: currentChatSessionId,
@@ -42,8 +45,13 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
       state.partyIds = partyIds;
       state.initialQuestionError = undefined;
       state.pendingInitialQuestion = initialQuestion;
+      state.pendingPreset = initialQuestion ? preset : undefined;
       state.userId = userId;
       state.tenant = tenant;
+      // A stored session's anchor arrives with it, or with loadChatSession.
+      state.anchor = chatSessionId
+        ? sanitizeChatAnchor(chatSession?.anchor)
+        : anchor;
     });
 
     // A prefilled question is only ever offered, never sent, so it loses to an
@@ -57,6 +65,7 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
       const url = new URL(window.location.href);
       url.searchParams.delete('q');
       url.searchParams.delete('prefill');
+      url.searchParams.delete('preset');
       window.history.replaceState({}, '', url.toString());
     }
 

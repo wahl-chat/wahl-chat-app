@@ -1,0 +1,17 @@
+[
+ {"id": "vote-1", "group": "vote", "question": "Warum haben die Fraktionen so abgestimmt?", "anchor": "bundestag_2026-11-13_v6771"},
+ {"id": "vote-2", "group": "vote", "question": "Warum haben die Grünen dagegen gestimmt?", "anchor": "bundestag_2026-11-12_v6756"},
+ {"id": "vote-3", "group": "vote", "question": "Warum hat sich die Linke enthalten?", "anchor": "bundestag_2026-10-16_v6733"},
+ {"id": "vote-4", "group": "vote", "question": "Warum haben sich die Grünen beim Nachrichtendienstrecht enthalten?"},
+ {"id": "vote-5", "group": "vote", "question": "Warum hat die Union die EEG-Reform der Grünen abgelehnt?"},
+ {"id": "why-now-1", "group": "why-now", "question": "Warum wird das Nachrichtendienstrecht gerade jetzt reformiert?"},
+ {"id": "why-now-2", "group": "why-now", "question": "Wie kam es zum Wehrdienstgesetz, und warum jetzt?"},
+ {"id": "why-now-3", "group": "why-now", "question": "Was war der Anlass für das Haushaltsbegleitgesetz 2027?"},
+ {"id": "why-now-4", "group": "why-now", "question": "Was war der Hintergrund der Änderung beim CO₂-Preis im Oktober?"},
+ {"id": "why-now-5", "group": "why-now", "question": "Warum gibt es jetzt ein Startchancen-Gesetz für Kitas?"},
+ {"id": "position-1", "group": "position", "question": "Wie steht die SPD zur Wehrpflicht?"},
+ {"id": "position-2", "group": "position", "question": "Was will die CDU/CSU beim Bürgergeld?"},
+ {"id": "position-3", "group": "position", "question": "Wie positionieren sich die Grünen zur Stromsteuer?"},
+ {"id": "position-4", "group": "position", "question": "Was sagt die Linke zur Mietpreisbremse?"},
+ {"id": "position-5", "group": "position", "question": "Wie steht die AfD zur Rente?"}
+]

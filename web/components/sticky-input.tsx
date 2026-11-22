@@ -5,6 +5,7 @@ import { ArrowUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Logo from './chat/logo';
 import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
+import AutoGrowTextarea, { useCoarsePointer } from './ui/auto-grow-textarea';
 import { Button } from './ui/button';
 
 type Props = {
@@ -24,7 +25,26 @@ function StickyInput({
 }: Props) {
   const [input, setInput] = useState('');
   const [isSticky, setIsSticky] = useState(true);
+  const [focused, setFocused] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const touch = useCoarsePointer();
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const onIn = () => setFocused(true);
+    const onOut = (event: FocusEvent) => {
+      if (!node.contains(event.relatedTarget as Node | null)) {
+        setFocused(false);
+      }
+    };
+    node.addEventListener('focusin', onIn);
+    node.addEventListener('focusout', onOut);
+    return () => {
+      node.removeEventListener('focusin', onIn);
+      node.removeEventListener('focusout', onOut);
+    };
+  }, []);
 
   useEffect(() => {
     const cachedRef = ref.current;
@@ -43,8 +63,9 @@ function StickyInput({
     };
   }, [ref]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+    if (!input.trim() || isLoading) return;
     onSubmit(input);
   };
 
@@ -61,6 +82,18 @@ function StickyInput({
         className,
       )}
     >
+      {/* With the keyboard open, the page below the box shows above it.
+          A shadow covers it without changing the layout. */}
+      {focused && touch && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            boxShadow:
+              '0 100vh 0 100vh var(--daily-canvas, hsl(var(--background)))',
+          }}
+        />
+      )}
       <form
         onSubmit={handleSubmit}
         className={cn(
@@ -93,14 +126,14 @@ function StickyInput({
           variant="small"
           className="absolute bottom-2 left-2 size-8 translate-y-0 rounded-full border border-border p-1"
         />
-        <input
+        <AutoGrowTextarea
           className="w-full bg-chat-input px-12 py-3 text-[16px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
           name="question"
           placeholder={placeholder}
           aria-label={placeholder}
           value={input}
-          type="text"
           onChange={(e) => setInput(e.target.value)}
+          onSubmit={() => handleSubmit()}
           maxLength={500}
         />
         <Button

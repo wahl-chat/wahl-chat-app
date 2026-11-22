@@ -1,56 +1,27 @@
-import { MAX_SELECTABLE_PARTIES } from '@/lib/constants';
-import type { DigestParliamentId } from '@/lib/firebase/firebase.types';
-import { isUnaffiliated } from './hemicycle';
-import { type DetailItem, itemTitle, protocolLabel } from './items';
-import { sortBySeating } from './seating-order';
+import type { ChatPreset } from '@/lib/firebase/firebase.types';
 
-/** Off until a chat about the feed's items has a backend: the ask bars on
- * the feed and in the detail view stay hidden, their logic stays in place. */
-export const FEED_CHAT_ENABLED = false;
+import type { DetailItem } from './items';
 
-/** The chat context whose parties sit in each parliament (mirrors
- * `party_context_id` in the backend's `feed/parliaments.py`). */
-const CHAT_CONTEXTS: Record<DigestParliamentId, string> = {
-  bundestag: 'bundestagswahl-2025',
-  landtag_st: 'landtagswahl-sachsen-anhalt-2026',
-  landtag_bw: 'landtagswahl-baden-wuerttemberg-2026',
-};
+/** Shows the ask bars on the feed and in the detail view. */
+export const FEED_CHAT_ENABLED = true;
 
-function formatDate(isoDay: string): string {
-  const [year, month, day] = isoDay.split('-');
-  return `${day}.${month}.${year}`;
+function storedItemId(item: DetailItem): string | undefined {
+  return item.kind === 'vote' ? item.vote.item_id : item.section.item_id;
 }
 
-function itemPartyIds(item: DetailItem): string[] {
-  const parties = (
-    item.kind === 'vote' ? item.vote.parties : (item.section.positions ?? [])
-  ).map(({ party_id }) => ({ party_id }));
-  return sortBySeating(parties)
-    .map((p) => p.party_id)
-    .filter((id) => !isUnaffiliated(id))
-    .slice(0, MAX_SELECTABLE_PARTIES);
-}
-
-/**
- * The chat has no channel for structured context, so the item travels in the
- * question itself: what was debated or voted on, where, when, and in which
- * Plenarprotokoll. A source URL would be noise in the visible question.
- */
-export function contextualQuestion(item: DetailItem, question: string): string {
-  const { digest } = item;
-  const where = `im ${digest.parliament_name} am ${formatDate(digest.date)}`;
-  const protocol = protocolLabel(digest);
-  const source = protocol ? ` (Plenarprotokoll ${protocol})` : '';
-  const kind = item.kind === 'vote' ? 'Zur Abstimmung' : 'Zur Debatte';
-  return `${kind} „${itemTitle(item)}“ ${where}${source}: ${question.trim()}`;
-}
-
-export function feedChatHref(item: DetailItem, question: string): string {
-  const params = new URLSearchParams({
-    q: contextualQuestion(item, question),
-  });
-  for (const id of itemPartyIds(item)) {
-    params.append('party_id', id);
+/** The general chat with the question and the item as its anchor; `preset`
+ * marks a button's fixed question. A local preview has no stored item, so it
+ * goes without one. */
+export function feedChatHref(
+  item: DetailItem,
+  question: string,
+  preset?: ChatPreset,
+): string {
+  const params = new URLSearchParams({ q: question });
+  const itemId = storedItemId(item);
+  if (itemId) {
+    params.set('feed_item', itemId);
+    if (preset) params.set('preset', preset);
   }
-  return `/${CHAT_CONTEXTS[item.digest.parliament]}/session?${params}`;
+  return `/chat?${params}`;
 }

@@ -1,6 +1,11 @@
 import { useAnonymousAuth } from '@/components/anonymous-auth';
 import { useChatStore } from '@/components/providers/chat-store-provider';
+import {
+  useContextParties,
+  useCurrentContext,
+} from '@/components/providers/context-provider';
 import { Button } from '@/components/ui/button';
+import { focusLabel } from '@/lib/chat-focus';
 import type { MessageItem } from '@/lib/stores/chat-store.types';
 import { RotateCcwIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -22,6 +27,12 @@ function ChatSingleUserMessage({ message, isLastMessage }: Props) {
   });
   const addUserMessage = useChatStore((state) => state.addUserMessage);
   const { user } = useAnonymousAuth();
+  const isGeneral = useCurrentContext({ optional: true })?.type === 'general';
+  const parties = useContextParties();
+  const focus =
+    isGeneral && message.focus_party_ids?.length
+      ? focusLabel(message.focus_party_ids, parties)
+      : null;
 
   const handleResendMessage = () => {
     if (!user) {
@@ -39,6 +50,9 @@ function ChatSingleUserMessage({ message, isLastMessage }: Props) {
       <div className="w-fit max-w-[90%] rounded-[20px] bg-muted px-4 py-2 text-foreground">
         {message.content ?? ''}
       </div>
+      {focus && (
+        <p className="px-2 text-xs text-muted-foreground">Fokus: {focus}</p>
+      )}
       {shouldShowResendButton && (
         <Button
           onClick={handleResendMessage}

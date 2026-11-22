@@ -13,6 +13,14 @@ function toDate(date: ContextDate): Date | undefined {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
+/**
+ * The contexts that are elections. A general context (the federal chat) has
+ * no election, so it stays out of every election list.
+ */
+export function electionContexts(contexts: Context[]): Context[] {
+  return contexts.filter((context) => context.type !== 'general');
+}
+
 function startOfDay(date: Date): Date {
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
@@ -121,25 +129,35 @@ export function getNextUpcomingElection(
   return splitElectionsByDate(contexts, now).upcoming[0];
 }
 
+/** How long before polling day an election counts as live. */
+export const LIVE_ELECTION_WINDOW_DAYS = 42;
+
 /**
- * The election the feed's Chat link opens: the next one, or between elections
- * the one held most recently. Same-day elections keep their given order.
- * Undefined only without any election.
+ * Elections close enough to polling day for the general chat to promote them,
+ * nearest first. Undated contexts are standing topics, never live.
  */
-export function chatElection(
+export function liveElections(
   contexts: Context[],
   now = new Date(),
-): Context | undefined {
-  const { upcoming, past } = splitElectionsByDate(
-    contexts.filter((c) => c.type === 'election'),
-    now,
+): Context[] {
+  const windowEnd = startOfDay(now);
+  windowEnd.setDate(windowEnd.getDate() + LIVE_ELECTION_WINDOW_DAYS);
+
+  return splitElectionsByDate(electionContexts(contexts), now).upcoming.filter(
+    (context) => {
+      const date = toDate(context.date);
+      return date !== undefined && startOfDay(date) <= windowEnd;
+    },
   );
-  if (upcoming.length > 0) {
-    return upcoming[0];
-  }
-  // Array.prototype.sort is stable, so a tie keeps the input order.
-  return [...past].sort(
-    (a, b) =>
-      (toDate(b.date)?.getTime() ?? 0) - (toDate(a.date)?.getTime() ?? 0),
-  )[0];
+}
+
+/** The live elections held on the nearest polling day. */
+export function nextLiveElections(
+  contexts: Context[],
+  now = new Date(),
+): Context[] {
+  const live = liveElections(contexts, now);
+  const day = (context: Context) =>
+    startOfDay(toDate(context.date) as Date).getTime();
+  return live.filter((context) => day(context) === day(live[0]));
 }

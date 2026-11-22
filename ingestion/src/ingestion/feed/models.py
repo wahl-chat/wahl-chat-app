@@ -131,7 +131,7 @@ FeedItemStatus = Literal["published", "retracted"]
 
 # Bump when the stored feed shape gains or changes a field, and migrate the
 # stored items to it. Recorded on each item; it does not trigger a rebuild.
-FEED_FORMAT_VERSION = "6"
+FEED_FORMAT_VERSION = "7"
 
 
 class LocalizedPosition(BaseModel):
@@ -150,6 +150,33 @@ class TermRef(BaseModel):
     surface: str
 
 
+class AnswerSource(BaseModel):
+    """One source an answer cites, in the chat's source fields, so the web
+    shows it with the chat's source viewer."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # The source's title.
+    source: str
+    url: Optional[str] = None
+    page: Optional[int] = None
+    source_type: Optional[str] = None
+    party_id: Optional[str] = None
+    snippet: Optional[str] = None
+    # The speech's video at the cited passage, and the Plenarprotokoll.
+    video_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    document_publish_date: Optional[str] = None
+
+
+class SuggestedAnswer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Cites ``sources`` as [1], [2], … in their order.
+    text: str
+    sources: list[AnswerSource] = Field(min_length=1)
+
+
 class LocalizedContent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -159,6 +186,10 @@ class LocalizedContent(BaseModel):
     key_points: list[str] = Field(default_factory=list)
     positions: list[LocalizedPosition] = Field(default_factory=list)
     suggested_questions: list[str] = Field(default_factory=list)
+    # Answers to ``suggested_questions``, by index, from the item's own
+    # sources; None for a question without a valid answer, empty when none
+    # has one. A translation keeps the sources.
+    suggested_answers: list[Optional[SuggestedAnswer]] = Field(default_factory=list)
     # The opening quote stays verbatim German in ``facts``; other locales carry
     # a faithful translation next to it, never in place of it.
     quote_translation: Optional[str] = None
@@ -235,6 +266,9 @@ class DebateFacts(BaseModel):
     # Chosen from the facts above by ``card_video.choose_card_video``; None on
     # items no run has given one yet.
     card_video: Optional[CardVideo] = None
+    # The corpus ``source_item_id`` of each speech, in debate order. Empty
+    # until a run has seen the debate's protocol.
+    speech_ids: list[str] = Field(default_factory=list)
 
 
 class VoteFacts(BaseModel):
@@ -283,6 +317,9 @@ class FeedItem(BaseModel):
     # each stands; facts from the source, refreshed when a procedure moves.
     procedure_ids: list[str] = Field(default_factory=list)
     procedures: list[ProcedureSummary] = Field(default_factory=list)
+    # Runs that tried to answer the questions; later runs fill the gaps only
+    # up to ``MAX_ANSWER_ATTEMPTS``.
+    answer_attempts: int = 0
     format_version: str = FEED_FORMAT_VERSION
     generated_at: datetime
 

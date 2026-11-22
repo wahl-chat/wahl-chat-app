@@ -103,11 +103,12 @@ function ContextSwitcher({
           <Button
             variant="ghost"
             size="sm"
-            className="flex h-12 grow items-center gap-4 px-2 md:!min-w-64"
+            className="flex h-12 min-w-0 max-w-full grow items-center gap-4 px-2 md:!min-w-64"
+            title={currentContext.name}
           >
-            <ContextIcon context={currentContext} className="size-5" />
-            <div className="flex grow flex-col items-start gap-1">
-              <span className="truncate text-xs font-medium leading-none">
+            <ContextIcon context={currentContext} className="size-5 shrink-0" />
+            <div className="flex min-w-0 grow flex-col items-start gap-1">
+              <span className="w-full truncate text-left text-xs font-medium leading-none">
                 {currentContext.name}
               </span>
               {formattedDate && (
@@ -116,7 +117,7 @@ function ContextSwitcher({
                 </span>
               )}
             </div>
-            <ChevronDownIcon className="size-3" />
+            <ChevronDownIcon className="size-3 shrink-0" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent

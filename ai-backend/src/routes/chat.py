@@ -19,12 +19,13 @@ Limitation: true concurrent multiplexed streaming is deferred.
 
 import logging
 
-from typing import Optional
+from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sse_starlette.sse import EventSourceResponse
 
+from src.generic_chat.schemas import Anchor, Preset
 from src.services.chat.service import generate_chat_stream
 from src.models.chat import Role
 
@@ -80,6 +81,25 @@ class ChatRequestDto(BaseModel):
     chat_history: list[ChatHistoryTurn] = Field(
         default_factory=list, max_length=_MAX_HISTORY_MESSAGES
     )
+    # Generic chat only: the feed item or poll the conversation is about, and
+    # the website's language (the answer follows the user's own language).
+    anchor: Optional[Anchor] = None
+    # The question came from a feed button, not typed (see generic_chat.presets).
+    preset: Optional[Preset] = None
+    language: Literal["de", "en"] = "de"
+
+    @field_validator("anchor", mode="before")
+    @classmethod
+    def _drop_malformed_anchor(cls, value: Any) -> Any:
+        """A malformed anchor (e.g. a hand-edited link) is ignored, not a 422:
+        the question still deserves an answer."""
+        if value is None or isinstance(value, Anchor):
+            return value
+        try:
+            return Anchor.model_validate(value)
+        except ValidationError:
+            logger.info("Ignoring malformed chat anchor")
+            return None
 
     @field_validator("chat_history")
     @classmethod

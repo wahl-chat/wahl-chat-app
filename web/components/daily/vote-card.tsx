@@ -12,6 +12,7 @@ import {
 } from './card-styles';
 import { Hemicycle, SeatLegend } from './hemicycle';
 import HotTopicTrail from './hot-topic-trail';
+import { CardProcedureMarker } from './procedure-section';
 import { TopicMeta } from './topic-chip';
 
 export function OutcomeBadge({
@@ -82,7 +83,13 @@ function VoteCard({ item, onOpen, hot = false }: Props) {
         terms={itemTerms(item)}
         label={vote.short_title}
         onOpen={onOpen}
-      />
+      >
+        <CardProcedureMarker
+          day={item.digest.date}
+          procedures={vote.procedures}
+          voteTitle={vote.title}
+        />
+      </ItemTeaser>
       <CardFooter item={item} />
       {hot && <HotTopicTrail />}
     </article>

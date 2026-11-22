@@ -11,7 +11,7 @@ function ChatInputAddPartiesButton({ disabled }: Props) {
   const setPartyIds = useChatStore((state) => state.setPartyIds);
 
   return (
-    <div className="absolute left-2 top-2 z-40">
+    <div className="absolute bottom-3 left-2 z-40">
       <ChatGroupPartySelect
         selectedPartyIdsInStore={Array.from(partyIds)}
         onNewChat={(partyIds) => setPartyIds(partyIds)}

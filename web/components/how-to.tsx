@@ -2,6 +2,7 @@
 
 import {
   ACCORDION_CONTENT,
+  CHAT_INTRO,
   FEED_INTRO,
   INTRO_TEXT,
   PROCESS_STEPS,
@@ -9,7 +10,8 @@ import {
   parseLabeledListItem,
   splitOnSourceDomains,
 } from '@/lib/how-to-content';
-import { exportHowToPDF } from '@/lib/how-to-pdf-export';
+import { type HowToFeedIntro, exportHowToPDF } from '@/lib/how-to-pdf-export';
+import { SITE_LINKS } from '@/lib/site-links';
 import { DownloadIcon, PlusIcon, VoteIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Fragment, useState } from 'react';
@@ -24,6 +26,41 @@ import {
 } from './ui/accordion';
 import { Button } from './ui/button';
 
+function IntroSection({
+  id,
+  intro,
+  href,
+  linkLabel,
+  className,
+}: {
+  id: string;
+  intro: HowToFeedIntro;
+  href: string;
+  linkLabel: string;
+  className?: string;
+}) {
+  return (
+    <section aria-labelledby={id} className={className}>
+      <h2 id={id} className="text-lg font-bold">
+        {intro.title}
+      </h2>
+      {intro.paragraphs.map((paragraph) => (
+        <p key={paragraph} className="mt-2">
+          {paragraph}
+        </p>
+      ))}
+      <ul className="list-outside list-disc py-2 pl-4 [&_li]:pt-1">
+        {intro.list.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      <Link href={href} className="font-semibold underline">
+        {linkLabel}
+      </Link>
+    </section>
+  );
+}
+
 function HowTo() {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -36,6 +73,7 @@ function HowTo() {
     try {
       await exportHowToPDF({
         feedIntro: FEED_INTRO,
+        chatIntro: CHAT_INTRO,
         introText: INTRO_TEXT,
         processSteps: PROCESS_STEPS,
         accordionContent: ACCORDION_CONTENT,
@@ -50,26 +88,25 @@ function HowTo() {
   return (
     <Accordion type="single" collapsible asChild>
       <article>
-        <section aria-labelledby="how-to-feed">
-          <h2 id="how-to-feed" className="text-lg font-bold">
-            {FEED_INTRO.title}
-          </h2>
-          {FEED_INTRO.paragraphs.map((paragraph) => (
-            <p key={paragraph} className="mt-2">
-              {paragraph}
-            </p>
-          ))}
-          <ul className="list-outside list-disc py-2 pl-4 [&_li]:pt-1">
-            {FEED_INTRO.list.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-          <Link href="/" className="font-semibold underline">
-            Zum Parlaments-Feed
-          </Link>
-        </section>
+        <IntroSection
+          id="how-to-feed"
+          intro={FEED_INTRO}
+          href="/"
+          linkLabel="Zum Parlaments-Feed"
+        />
 
-        <section className="mt-8">
+        <IntroSection
+          id="how-to-chat"
+          intro={CHAT_INTRO}
+          href={SITE_LINKS.chat.href}
+          linkLabel="Zum Chat"
+          className="mt-8"
+        />
+
+        <section aria-labelledby="how-to-election-chat" className="mt-8">
+          <h2 id="how-to-election-chat" className="mb-2 text-lg font-bold">
+            {INTRO_TEXT.title}
+          </h2>
           <HowToIntro />
         </section>
 
@@ -128,14 +165,14 @@ function HowTo() {
                 {/* Elections supported accordion */}
                 {accordionItem.id === 'elections-supported' && (
                   <>
-                    {accordionItem.content.intro}
-                    <ul className="list-outside list-disc py-2 pl-4 [&_li]:pt-1">
-                      {accordionItem.content.list?.map((item) => (
-                        <li key={item}>
-                          <span className="font-bold">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {accordionItem.content.intro}{' '}
+                    <Link
+                      href={SITE_LINKS.elections.href}
+                      className="font-semibold underline"
+                    >
+                      Zu den Wahlen
+                    </Link>
+                    <br />
                     <br />
                     {accordionItem.content.outro}
                   </>

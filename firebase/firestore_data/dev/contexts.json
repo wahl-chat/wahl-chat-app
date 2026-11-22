@@ -107,5 +107,23 @@
     ],
     "level": "state",
     "legislature_period_id": 134
+  },
+  "bundestag-aktuell": {
+    "context_id": "bundestag-aktuell",
+    "name": "Bundestag aktuell",
+    "short_name": "Bundestag",
+    "type": "general",
+    "date": null,
+    "location_name": "Deutschland",
+    "is_active": true,
+    "icon_url": null,
+    "supports_swiper": false,
+    "supports_voting_behavior": false,
+    "relevant_area": null,
+    "region_path": [
+      "DE"
+    ],
+    "level": "federal",
+    "legislature_period_id": 161
   }
 }
