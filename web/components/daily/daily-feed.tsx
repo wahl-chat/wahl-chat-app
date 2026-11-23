@@ -440,6 +440,7 @@ function DailyFeed({
         chatContext={chatContext}
         openItem={openFromItem}
         closeItem={closeForChat}
+        itemOpen={openKey !== null}
       >
         <OpenFeedItemContext.Provider value={openFromItem}>
           <div className="flex flex-col gap-4 pt-4">

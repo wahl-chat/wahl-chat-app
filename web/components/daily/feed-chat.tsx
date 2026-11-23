@@ -119,6 +119,7 @@ type ProviderProps = {
   openItem: (feedItemId: string) => boolean;
   /** Hides the open detail view while the sheet is up; it is modal. */
   closeItem: () => void;
+  itemOpen: boolean;
 };
 
 // Marks the history entry the open sheet adds, so Back tucks it away.
@@ -149,6 +150,7 @@ export function FeedChatProvider({
   chatContext,
   openItem,
   closeItem,
+  itemOpen,
 }: ProviderProps) {
   const router = useRouter();
   const history = useChatHistory();
@@ -295,6 +297,16 @@ export function FeedChatProvider({
   useEffect(() => {
     if (!inSheet) setReturnChat(readReturnChat());
   }, [inSheet]);
+  // Back on the feed, the detour from the chat is over; the item opened
+  // again later is a fresh visit.
+  const wasOpen = useRef(itemOpen);
+  useEffect(() => {
+    if (wasOpen.current && !itemOpen && returnChat) {
+      clearReturnChat();
+      setReturnChat(null);
+    }
+    wasOpen.current = itemOpen;
+  }, [itemOpen, returnChat]);
 
   const label = sheet?.label;
   const parkedFor = sheet?.parkedFor ?? null;

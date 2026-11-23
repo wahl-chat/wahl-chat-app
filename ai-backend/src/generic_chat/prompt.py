@@ -152,9 +152,10 @@ Markdown, in this exact layout (the app parses it):
   reason ("- **Grüne**: dagegen, weil …"); without a cited reason the
   position alone ("- **Linke**: Enthaltung"). A Fraktion with nothing on
   record gets no bullet.
-- Bold only key facts: a number, an outcome, a party name, the decisive term.
-  Never a whole sentence; at most two bold spans per paragraph besides the
-  label.
+- Bold one span per paragraph besides its label: the paragraph's takeaway in
+  2 to 5 words, i.e. what was decided, a party's position or the reason it
+  gave. Never a date, a vote count or a whole sentence, unless the question
+  asks when or how many.
 - At most three sentences per paragraph, a blank line between paragraphs. No
   headings (#).
 Example:
@@ -162,9 +163,9 @@ Example:
 - **SPD**: dafür, weil das Gesetz Mieter entlaste
 - **Linke**: Enthaltung
 
-**SPD**: Die Fraktion stimmte mit **Ja** [0]. In der Debatte sagte …, das Gesetz entlaste Mieter [1].
+**SPD**: Die Fraktion stimmte am 12. März mit Ja [0]. In der Debatte sagte …, das Gesetz werde **Mieter spürbar entlasten** [1].
 
-**Linke**: Die Fraktion enthielt sich [0]. Eine Begründung der Linken liegt uns nicht vor."""
+**Linke**: Die Fraktion **enthielt sich** [0]. Eine Begründung der Linken liegt uns nicht vor."""
 
 # Repeated beside the sources with the language rule.
 FORMAT_REMINDER = (
@@ -172,15 +173,16 @@ FORMAT_REMINDER = (
     " and 2 to 4 bold-labelled bullets without citations that only restate what"
     " the detail paragraphs cite (a reason only when one is cited, else the"
     " position alone); each detail paragraph"
-    " starts with its bullet's bold label and a colon. Short paragraphs; bold"
-    " only key facts."
+    " starts with its bullet's bold label and a colon. Short paragraphs, each"
+    " with one bold takeaway of 2 to 5 words (decision, position or reason),"
+    " never a date or vote count."
 )
 
 
 # Repeated beside the sources: the system prompt alone does not hold it.
 LINK_RULE = (
-    "Never join two events into a cause (\"Nachdem/Da … abgelehnt wurden,"
-    " enthielt sich …\") unless a source states that link; write them as"
+    'Never join two events into a cause ("Nachdem/Da … abgelehnt wurden,'
+    ' enthielt sich …") unless a source states that link; write them as'
     " separate sentences."
 )
 
@@ -196,15 +198,23 @@ GOVERNMENT: dict[str, frozenset[str]] = {
 }
 
 
-def _party_lines(parties: list[ContextParty], governing: frozenset[str] = frozenset()) -> str:
+def _party_lines(
+    parties: list[ContextParty], governing: frozenset[str] = frozenset()
+) -> str:
     lines = []
-    for party in sorted(parties, key=lambda p: (not p.is_already_in_parliament, p.name)):
+    for party in sorted(
+        parties, key=lambda p: (not p.is_already_in_parliament, p.name)
+    ):
         status = (
-            "in the Bundestag" if party.is_already_in_parliament else "not in the Bundestag"
+            "in the Bundestag"
+            if party.is_already_in_parliament
+            else "not in the Bundestag"
         )
         if party.is_already_in_parliament and governing:
             status += ", government" if party.party_id in governing else ", opposition"
-        lines.append(f"- {party.name} ({party.long_name}), id {party.party_id}: {status}")
+        lines.append(
+            f"- {party.name} ({party.long_name}), id {party.party_id}: {status}"
+        )
     return "\n".join(lines) or "- (none listed)"
 
 
@@ -228,7 +238,11 @@ def _anchor_block(anchor: Optional[AnchorContext]) -> str:
             f"The user opened this chat from {anchor.label}. That feed text is not a"
             " source. Its original sources are already retrieved below; cite them by"
             " id.\n"
-            + (f"{item.model_dump_json(exclude_none=True)}\n" if item is not None else "")
+            + (
+                f"{item.model_dump_json(exclude_none=True)}\n"
+                if item is not None
+                else ""
+            )
         )
     if anchor.with_parties:
         intro += (
@@ -262,8 +276,12 @@ def _focus_block(focus: list[ContextParty]) -> str:
 def _term_lines(today: date) -> str:
     lines = []
     for term in federal_terms():
-        end = term.date_to if term.date_to and term.date_to < today.isoformat() else None
-        span = f"{term.date_from} to {end}" if end else f"since {term.date_from} (current)"
+        end = (
+            term.date_to if term.date_to and term.date_to < today.isoformat() else None
+        )
+        span = (
+            f"{term.date_from} to {end}" if end else f"since {term.date_from} (current)"
+        )
         lines.append(f"- {term.wahlperiode}. Wahlperiode: {span}")
     return "\n".join(lines)
 
