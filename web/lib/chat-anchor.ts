@@ -78,8 +78,8 @@ export type AnchorCard = {
   /** "10. Juli 2026"; null when unknown. */
   date: string | null;
   outcome: 'angenommen' | 'abgelehnt' | null;
-  /** The item in the feed; null when there is none to go back to. */
-  feedHref: string | null;
+  /** The feed item the chat leads back to; null when there is none. */
+  back: { itemId: string; href: string; noun: 'Abstimmung' | 'Debatte' } | null;
 };
 
 const longDay = new Intl.DateTimeFormat('de-DE', {
@@ -91,6 +91,14 @@ const longDay = new Intl.DateTimeFormat('de-DE', {
 
 function published(item: FeedItem | null | undefined): item is FeedItem {
   return item?.status === 'published';
+}
+
+function backTo(item: FeedItem): NonNullable<AnchorCard['back']> {
+  return {
+    itemId: item.id,
+    href: feedItemHref(item.id, item.region),
+    noun: item.kind === 'vote' ? 'Abstimmung' : 'Debatte',
+  };
 }
 
 /** What the chat's anchor card shows. A feed item that does not exist (or is
@@ -117,7 +125,7 @@ export function anchorCard(
         ? `Stand: ${[plainStageName(procedure.latest_stage), day].filter(Boolean).join(', ')}`
         : null,
       outcome: null,
-      feedHref: published(from) ? feedItemHref(from.id, from.region) : null,
+      back: published(from) ? backTo(from) : null,
     };
   }
   if ('poll_id' in anchor) {
@@ -126,7 +134,7 @@ export function anchorCard(
       title: `Abstimmung Nr. ${anchor.poll_id}`,
       date: null,
       outcome: null,
-      feedHref: null,
+      back: null,
     };
   }
   if (!published(item)) {
@@ -137,7 +145,7 @@ export function anchorCard(
     title: item.content.de.headline,
     date: longDay.format(new Date(`${item.date}T00:00:00Z`)),
     outcome: item.vote?.outcome ?? null,
-    feedHref: feedItemHref(item.id, item.region),
+    back: backTo(item),
   };
 }
 

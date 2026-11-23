@@ -83,9 +83,10 @@ function chatPageHref(request: FeedChatRequest): string {
 function openChatPage(
   router: ReturnType<typeof useRouter>,
   request: FeedChatRequest,
+  fromItemId: string | null,
 ) {
   clearReturnChat();
-  markFromFeed();
+  markFromFeed(fromItemId);
   router.push(chatPageHref(request));
 }
 
@@ -103,6 +104,8 @@ export type Sheet = {
   request: FeedChatRequest;
   label: string;
   open: boolean;
+  /** The item view the sheet covers and leaving it shows again, if any. */
+  returnTo: ItemNoun | null;
   parkedFor: string | null;
   /** Reported by the running chat. */
   sessionId: string | null;
@@ -119,7 +122,9 @@ type ProviderProps = {
   openItem: (feedItemId: string) => boolean;
   /** Hides the open detail view while the sheet is up; it is modal. */
   closeItem: () => void;
-  itemOpen: boolean;
+  /** The item whose detail view is open, if any. */
+  openItemId: string | null;
+  openItemNoun: ItemNoun | null;
 };
 
 // Marks the history entry the open sheet adds, so Back tucks it away.
@@ -131,12 +136,20 @@ export function isSheetEntry(state: unknown): boolean {
   );
 }
 
-function newSheet(key: string, request: FeedChatRequest, label: string): Sheet {
+export type ItemNoun = 'Abstimmung' | 'Debatte';
+
+function newSheet(
+  key: string,
+  request: FeedChatRequest,
+  label: string,
+  returnTo: ItemNoun | null,
+): Sheet {
   return {
     key,
     request,
     label,
     open: true,
+    returnTo,
     parkedFor: null,
     sessionId: 'sessionId' in request ? request.sessionId : null,
     busy: false,
@@ -150,7 +163,8 @@ export function FeedChatProvider({
   chatContext,
   openItem,
   closeItem,
-  itemOpen,
+  openItemId,
+  openItemNoun,
 }: ProviderProps) {
   const router = useRouter();
   const history = useChatHistory();
@@ -165,8 +179,8 @@ export function FeedChatProvider({
   const inSheet = mode === 'sheet' && chatContext !== undefined;
   // The feed's callbacks change every render; read them through refs so
   // the chat's context stays stable.
-  const feed = useRef({ openItem, closeItem });
-  feed.current = { openItem, closeItem };
+  const feed = useRef({ openItem, closeItem, openItemId, openItemNoun });
+  feed.current = { openItem, closeItem, openItemId, openItemNoun };
   const current = useRef(sheet);
   current.current = sheet;
   const pushed = useRef(false);
@@ -222,9 +236,11 @@ export function FeedChatProvider({
   const ask = useCallback(
     (request: FeedChatRequest) => {
       if (!inSheet) {
-        openChatPage(router, request);
+        openChatPage(router, request, feed.current.openItemId);
         return;
       }
+      // Read before the item view is hidden: leaving the sheet shows it.
+      const returnTo = feed.current.openItemNoun;
       feed.current.closeItem();
       seq.current += 1;
       const id = seq.current;
@@ -235,12 +251,13 @@ export function FeedChatProvider({
             (value.sessionId === request.sessionId ||
               value.key === `session:${request.sessionId}`)
           ) {
-            return { ...value, open: true };
+            return { ...value, open: true, returnTo };
           }
           return newSheet(
             `session:${request.sessionId}`,
             request,
             request.label ?? 'Dein Chat',
+            returnTo,
           );
         }
         if ('newChatAbout' in request) {
@@ -248,6 +265,7 @@ export function FeedChatProvider({
             `new:${id}`,
             request,
             itemTitle(request.newChatAbout),
+            returnTo,
           );
         }
         const itemId = request.item ? storedItemId(request.item) : undefined;
@@ -257,11 +275,12 @@ export function FeedChatProvider({
           return {
             ...value,
             open: true,
+            returnTo,
             parkedFor: null,
             followUp: { seq: id, question: request.question, itemId },
           };
         }
-        return newSheet(`ask:${id}`, request, request.question);
+        return newSheet(`ask:${id}`, request, request.question, returnTo);
       });
     },
     [inSheet, router],
@@ -299,6 +318,7 @@ export function FeedChatProvider({
   }, [inSheet]);
   // Back on the feed, the detour from the chat is over; the item opened
   // again later is a fresh visit.
+  const itemOpen = openItemId !== null;
   const wasOpen = useRef(itemOpen);
   useEffect(() => {
     if (wasOpen.current && !itemOpen && returnChat) {
@@ -317,7 +337,11 @@ export function FeedChatProvider({
             label: returnChat.label,
             itemId: returnChat.itemId,
             open: () =>
-              openChatPage(router, { sessionId: returnChat.sessionId }),
+              openChatPage(
+                router,
+                { sessionId: returnChat.sessionId },
+                feed.current.openItemId,
+              ),
           }
         : label !== undefined && !open
           ? {
@@ -330,8 +354,11 @@ export function FeedChatProvider({
                   window.history.back();
                   return;
                 }
+                const returnTo = feed.current.openItemNoun;
                 feed.current.closeItem();
-                setSheet((value) => (value ? { ...value, open: true } : value));
+                setSheet((value) =>
+                  value ? { ...value, open: true, returnTo } : value,
+                );
               },
             }
           : null,

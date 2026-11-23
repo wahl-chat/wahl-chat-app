@@ -4,7 +4,11 @@ import { ProcedureTimeline } from '@/components/daily/procedure-section';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { FEED_ITEM_ID, anchorCard } from '@/lib/chat-anchor';
 import { feedPicks } from '@/lib/chat-feed';
-import { clearReturnChat, takeFromFeed } from '@/lib/daily/chat-handoff';
+import {
+  type FeedOrigin,
+  clearReturnChat,
+  takeFromFeed,
+} from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import { procedureTimeline } from '@/lib/daily/procedures';
 import {
@@ -78,13 +82,13 @@ function ChatAnchorCard() {
   const summary = useProcedureSummary(vorgangId);
   const hasTimeline = summary ? procedureTimeline(summary) !== null : false;
   const detailsId = useId();
-  const fromFeed = useRef(false);
+  const [origin, setOrigin] = useState<FeedOrigin | null>(null);
   const marksRead = useRef(false);
   useEffect(() => {
     // Once: the marks are consumed on read, and StrictMode runs this twice.
     if (host.mode !== 'page' || marksRead.current) return;
     marksRead.current = true;
-    fromFeed.current = takeFromFeed();
+    setOrigin(takeFromFeed());
     // Inside a chat, the feed's way back to it is stale.
     clearReturnChat();
   }, [host.mode]);
@@ -173,32 +177,37 @@ function ChatAnchorCard() {
   const pick = item ? feedPicks([item])[0] : undefined;
   const teaser = item?.content.de.teaser;
 
-  const back = (label: string, className: string) =>
-    host.mode === 'page' &&
-    card.feedHref && (
-      <Link
-        href={card.feedHref}
-        onClick={(event) => {
-          // Back in history keeps the feed where the reader left it.
-          if (fromFeed.current) {
-            event.preventDefault();
-            router.back();
-          }
-        }}
-        aria-label="Zurück zum Feed"
-        className={cn(
-          'flex shrink-0 items-center gap-0.5 rounded-md font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          className,
-        )}
-      >
-        <ChevronLeftIcon className="size-4" />
-        {label}
-      </Link>
-    );
+  // Back leads where the reader came from: the item's view or the feed,
+  // keeping it as it was; without either, the link opens the item.
+  const back = card.back;
+  const backLabel = !back
+    ? null
+    : !origin
+      ? `Zur ${back.noun}`
+      : origin.itemId === null
+        ? 'Zurück zum Feed'
+        : origin.itemId === back.itemId
+          ? `Zurück zur ${back.noun}`
+          : 'Zurück';
+  const backLink = host.mode === 'page' && back && (
+    <Link
+      href={back.href}
+      onClick={(event) => {
+        if (origin) {
+          event.preventDefault();
+          router.back();
+        }
+      }}
+      className="-ml-1 flex shrink-0 items-center gap-0.5 self-start rounded-md px-1 py-1 text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <ChevronLeftIcon className="size-4" aria-hidden />
+      {backLabel}
+    </Link>
+  );
 
   return (
     <div className="mx-3 mt-3 flex flex-col gap-1.5 md:mx-[35px]">
-      {back('Zurück zum Feed', '-ml-1 self-start px-1 py-1 text-sm')}
+      {backLink}
       <div className="flex flex-col rounded-xl border bg-muted/40">
         <div className="flex items-center gap-3 p-2 pr-3">
           {pick ? (

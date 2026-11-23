@@ -178,7 +178,7 @@ export default function FeedChatSheet({
                         className="flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-medium hover:bg-muted"
                       >
                         <ChevronDownIcon className="size-4" aria-hidden />
-                        Zum Feed
+                        {sheet.returnTo ? `Zur ${sheet.returnTo}` : 'Zum Feed'}
                       </button>
                       <span
                         aria-hidden

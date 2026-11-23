@@ -108,18 +108,29 @@ function store(key: string, value: string | null) {
 
 const FROM_FEED_KEY = 'wahlchat:chat-from-feed';
 
+/** Where in the feed a chat page was opened: an item's view, or the feed
+ * itself (`itemId` null). */
+export type FeedOrigin = { itemId: string | null };
+
 /** Set when the feed hands a question to the chat page, so the way back can
  * return to the feed as it was. */
-export function markFromFeed() {
-  store(FROM_FEED_KEY, '1');
+export function markFromFeed(itemId: string | null) {
+  store(FROM_FEED_KEY, JSON.stringify({ itemId }));
 }
 
-/** Whether this chat page was opened from the feed; reads the mark once,
+/** Where this chat page was opened from, if the feed; reads the mark once,
  * so a later chat in the same tab does not inherit it. */
-export function takeFromFeed(): boolean {
-  const marked = stored(FROM_FEED_KEY) === '1';
+export function takeFromFeed(): FeedOrigin | null {
+  const raw = stored(FROM_FEED_KEY);
   store(FROM_FEED_KEY, null);
-  return marked;
+  try {
+    const value = JSON.parse(raw ?? '');
+    return typeof value?.itemId === 'string' || value?.itemId === null
+      ? { itemId: value.itemId }
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The chat page a reader left to look at a feed item, so that item's

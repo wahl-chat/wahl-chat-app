@@ -345,6 +345,9 @@ function DailyFeed({
 
   useEffect(() => {
     setDepth(trailDepth(window.history.state));
+    // The URL names the open item, or none: a feed restored by the router
+    // (Back from the chat page) would show the state it was left in.
+    setOpenKey(new URL(window.location.href).searchParams.get(ITEM_PARAM));
     const onPop = (event: PopStateEvent) => {
       backPending.current = false;
       setDepth(trailDepth(event.state));
@@ -440,7 +443,14 @@ function DailyFeed({
         chatContext={chatContext}
         openItem={openFromItem}
         closeItem={closeForChat}
-        itemOpen={openKey !== null}
+        openItemId={openKey}
+        openItemNoun={
+          openItem
+            ? openItem.kind === 'vote'
+              ? 'Abstimmung'
+              : 'Debatte'
+            : null
+        }
       >
         <OpenFeedItemContext.Provider value={openFromItem}>
           <div className="flex flex-col gap-4 pt-4">
