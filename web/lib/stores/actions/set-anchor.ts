@@ -1,3 +1,4 @@
+import { isChatPageUrl } from '@/lib/chat-anchor';
 import { updateChatSession } from '@/lib/firebase/firebase';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 
@@ -8,8 +9,9 @@ export const setAnchor: ChatStoreActionHandlerFor<'setAnchor'> =
     const { chatSessionId, messages } = get();
     if (!chatSessionId || messages.length === 0) {
       // Until its first message a new chat's anchor lives in its URL.
-      if (typeof window !== 'undefined') {
-        const url = new URL(window.location.href);
+      const url =
+        typeof window !== 'undefined' ? new URL(window.location.href) : null;
+      if (url && isChatPageUrl(url)) {
         url.searchParams.delete('feed_item');
         url.searchParams.delete('poll_id');
         url.searchParams.delete('procedure');

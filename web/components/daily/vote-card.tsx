@@ -83,6 +83,7 @@ function VoteCard({ item, onOpen, hot = false }: Props) {
         terms={itemTerms(item)}
         label={vote.short_title}
         onOpen={onOpen}
+        item={item}
       >
         <CardProcedureMarker
           day={item.digest.date}

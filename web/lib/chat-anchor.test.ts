@@ -88,7 +88,11 @@ describe('anchorCard', () => {
       title: 'Stabile Kassenbeiträge',
       date: '10. Juli 2026',
       outcome: 'angenommen',
-      feedHref: '/?item=bundestag_2026-07-10_v7&land=de',
+      back: {
+        itemId: 'bundestag_2026-07-10_v7',
+        href: '/?item=bundestag_2026-07-10_v7&land=de',
+        noun: 'Abstimmung',
+      },
     });
   });
 
@@ -99,6 +103,7 @@ describe('anchorCard', () => {
     );
     expect(card?.kind).toBe('Debatte');
     expect(card?.outcome).toBeNull();
+    expect(card?.back?.noun).toBe('Debatte');
   });
 
   it('shows nothing for a missing or retracted item', () => {
@@ -117,7 +122,7 @@ describe('anchorCard', () => {
       title: 'Abstimmung Nr. 6402',
       date: null,
       outcome: null,
-      feedHref: null,
+      back: null,
     });
   });
 });
@@ -149,7 +154,7 @@ describe('procedure anchors', () => {
       title: 'Haushaltsbegleitgesetz 2027',
       date: 'Stand: Ausschuss: Empfehlung, 16. November 2026',
       outcome: null,
-      feedHref: null,
+      back: null,
     });
   });
 
@@ -166,11 +171,13 @@ describe('procedure anchors', () => {
       {
         id: 'bundestag_2026-11-13_v6771',
         region: 'DE',
+        kind: 'vote',
         status: 'published',
       } as FeedItem,
     );
     expect(card?.date).toBe('Stand: 2./3. Lesung, 13. November 2026');
-    expect(card?.feedHref).toContain('item=bundestag_2026-11-13_v6771');
+    expect(card?.back?.href).toContain('item=bundestag_2026-11-13_v6771');
+    expect(card?.back?.noun).toBe('Abstimmung');
   });
 });
 

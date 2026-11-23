@@ -9,8 +9,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useMediaQuery } from 'usehooks-ts';
 
 const LINE_PX = 24;
+// Less visible height than this means an on-screen keyboard is up.
+const KEYBOARD_PX = 120;
 const MAX_LINES = 5;
 // Upward scroll elsewhere on the page that folds the box back to one line.
 const COLLAPSE_SCROLL_PX = 24;
@@ -37,6 +40,7 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
       onSubmit,
       className,
       onFocus,
+      onBlur,
       onPointerDown,
       onKeyDown,
       onChange,
@@ -48,10 +52,16 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
   ) {
     const ref = useRef<HTMLTextAreaElement | null>(null);
     const [collapsed, setCollapsed] = useState(false);
-    const touch = useCoarsePointer();
+    // Phones and tablets: the primary pointer is a finger. Read after
+    // hydration, so the server and first client render agree.
+    const touch = useMediaQuery('(pointer: coarse)', {
+      initializeWithValue: false,
+    });
     // Bumped when the box changes width, so the height follows the new wrap.
     const [width, setWidth] = useState(0);
     const composing = useRef(false);
+    const [focused, setFocused] = useState(false);
+    useKeyboardCover(focused ? ref : null);
 
     const setRefs = useCallback(
       (node: HTMLTextAreaElement | null) => {
@@ -128,7 +138,12 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
         className={cn('block resize-none leading-6', className)}
         onFocus={(event) => {
           setCollapsed(false);
+          setFocused(true);
           onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setFocused(false);
+          onBlur?.(event);
         }}
         onPointerDown={(event) => {
           setCollapsed(false);
@@ -170,18 +185,69 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
 
 export default AutoGrowTextarea;
 
-/** Phones and tablets: the primary pointer is a finger. */
-export function useCoarsePointer(): boolean {
-  const [coarse, setCoarse] = useState(false);
+/** The nearest painted background around the box, skipping its own form. */
+function surroundingBackground(node: HTMLElement): string {
+  let element = node.closest('form')?.parentElement ?? node.parentElement;
+  while (element) {
+    const color = getComputedStyle(element).backgroundColor;
+    if (color && color !== 'transparent' && !color.endsWith(', 0)')) {
+      return color;
+    }
+    element = element.parentElement;
+  }
+  return getComputedStyle(document.body).backgroundColor;
+}
+
+/** With a phone keyboard open, iOS Safari shows the page below the visible
+ * part behind its toolbar, but without fixed and sticky boxes, so the feed
+ * shows between the box and the keyboard. A plain box in the page covers
+ * that strip in the box's surrounding colour; elsewhere it sits below the
+ * screen. */
+function useKeyboardCover(target: React.RefObject<HTMLElement | null> | null) {
   useEffect(() => {
-    const query = window.matchMedia?.('(pointer: coarse)');
-    if (!query) {
+    const node = target?.current;
+    const viewport = window.visualViewport;
+    if (!node || !viewport) {
       return;
     }
-    setCoarse(query.matches);
-    const onChange = (event: MediaQueryListEvent) => setCoarse(event.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
-  return coarse;
+    const cover = document.createElement('div');
+    cover.setAttribute('aria-hidden', 'true');
+    Object.assign(cover.style, {
+      position: 'absolute',
+      left: '0',
+      width: '100%',
+      // Over the page, under its ask bars (z-30 and up), sheets and dialogs.
+      zIndex: '25',
+      pointerEvents: 'none',
+      background: surroundingBackground(node),
+    });
+    // Never past the page's end, so it adds no scroll room.
+    const pageEnd = document.documentElement.scrollHeight;
+    const place = () => {
+      // From the box's lower edge, so no page peeks out between the two.
+      const box = (node.closest('form') ?? node).getBoundingClientRect();
+      const top = Math.min(
+        viewport.pageTop + viewport.height,
+        viewport.pageTop + box.bottom,
+      );
+      // Only with a keyboard up, which shrinks the visible part; a desktop
+      // keeps what sits under the box in view.
+      const keyboard = viewport.height < window.innerHeight - KEYBOARD_PX;
+      cover.style.top = `${top}px`;
+      cover.style.height = keyboard
+        ? `${Math.max(0, Math.min(window.innerHeight, pageEnd - top))}px`
+        : '0';
+    };
+    place();
+    document.body.appendChild(cover);
+    viewport.addEventListener('resize', place);
+    viewport.addEventListener('scroll', place);
+    window.addEventListener('scroll', place, { passive: true });
+    return () => {
+      viewport.removeEventListener('resize', place);
+      viewport.removeEventListener('scroll', place);
+      window.removeEventListener('scroll', place);
+      cover.remove();
+    };
+  }, [target]);
 }

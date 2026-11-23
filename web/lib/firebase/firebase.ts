@@ -491,6 +491,11 @@ export async function addUserMessageToChatSession(
     role: 'user',
     created_at: Timestamp.now(),
   } satisfies GroupedMessage);
+  // History lists chats by their last question, not by when they began;
+  // the answer does not wait for it.
+  void updateDoc(doc(db, 'chat_sessions', sessionId), {
+    updated_at: Timestamp.now(),
+  }).catch((error) => console.error('Failed to bump the chat', error));
 }
 
 export async function updateQuickRepliesOfMessage(
@@ -503,6 +508,18 @@ export async function updateQuickRepliesOfMessage(
   await setDoc(
     doc(db, 'chat_sessions', sessionId, 'messages', messageId),
     { quick_replies: quickReplies },
+    { merge: true },
+  );
+}
+
+export async function updateRelatedItemsOfMessage(
+  sessionId: string,
+  messageId: string,
+  itemIds: string[],
+) {
+  await setDoc(
+    doc(db, 'chat_sessions', sessionId, 'messages', messageId),
+    { related_item_ids: itemIds },
     { merge: true },
   );
 }

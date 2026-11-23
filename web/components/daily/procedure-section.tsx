@@ -10,6 +10,7 @@ import {
   procedureChatHref,
   procedureMarker,
   procedureSection,
+  procedureTimeline,
   stepFeedLinks,
   votedOnAmendment,
 } from '@/lib/daily/procedures';
@@ -105,12 +106,14 @@ function StepPanel({
   vorgangId,
   from,
   id,
+  withChat,
 }: {
   step: TimelineStep;
   feed: StepFeedLink[];
   vorgangId: string;
   from: string;
   id: string;
+  withChat: boolean;
 }) {
   return (
     <div
@@ -153,7 +156,7 @@ function StepPanel({
           ))}
         </div>
       )}
-      {step.question && (
+      {withChat && step.question && (
         <Link
           href={procedureChatHref(vorgangId, step.question, from)}
           className={cn(
@@ -175,12 +178,15 @@ function Timeline({
   procedure,
   related,
   itemId,
+  withChat = true,
 }: {
   steps: TimelineStep[];
   here: string;
   procedure: ProcedureSummary;
   related: FeedItem[];
   itemId: string;
+  /** Off inside a chat, which the step questions would leave. */
+  withChat?: boolean;
 }) {
   const vorgangId = procedure.vorgang_id;
   const [open, setOpen] = useState<number | null>(null);
@@ -273,6 +279,7 @@ function Timeline({
                   vorgangId={vorgangId}
                   from={itemId}
                   id={panelId}
+                  withChat={withChat}
                 />
               </div>
             )}
@@ -540,4 +547,25 @@ export function CardProcedureMarker({
 }) {
   const marker = procedureMarker(day, procedures, voteTitle);
   return marker ? <ProcedureMarkerLine marker={marker} /> : null;
+}
+
+/** A procedure's timeline inside a chat about it: each step unfolds to its
+ * summary and documents, without the feed's item links or chat buttons. */
+export function ProcedureTimeline({
+  procedure,
+}: {
+  procedure: ProcedureSummary;
+}) {
+  const steps = procedureTimeline(procedure);
+  if (!steps) return null;
+  return (
+    <Timeline
+      steps={steps}
+      here=""
+      procedure={procedure}
+      related={[]}
+      itemId=""
+      withChat={false}
+    />
+  );
 }

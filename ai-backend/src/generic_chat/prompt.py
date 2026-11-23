@@ -14,6 +14,7 @@ from src.generic_chat.tools import BERLIN, federal_terms
 from src.models.context import ContextParty
 from wahlchat_common.answer_rules import (
     CITATION_RULES,
+    AnswerLanguage,
     PREFERRED_OUTLETS,
     VOICE_RULES,
     language_rule,
@@ -102,7 +103,7 @@ this_item and this_procedure first, in its own words and motions, dated.
 Then add context as background and mark it ("Schon im Wahlprogramm …").
 Never present context as the reason for this vote. If a party said nothing
 in the procedure, say so and explain from context, marked as such. With
-several parties, one short section each.
+several parties, one labelled paragraph each (see Format).
 Asked why a party voted or abstained, first say whether a source gives its
 reason; if none does, say so ("Eine Begründung der Linken für ihre
 Enthaltung liegt uns nicht vor"). Never infer a reason from the course of
@@ -128,21 +129,92 @@ returned, where id is the document's "id" field. Ids start at 0, e.g. [0],
 [0, 2] or [2][5]."""
 
 
+# The web parses this layout: the summary marker, and each bullet's label
+# repeated in bold at the start of its detail paragraph.
+SUMMARY_MARKER = "**Kurz gesagt:**"
+
+FORMAT_RULES = f"""\
+Markdown, in this exact layout (the app parses it):
+- A short answer (up to about 120 words, one point) is plain paragraphs.
+- A longer answer, or one that compares several parties or points, starts
+  with a line holding only {SUMMARY_MARKER} (these German words in every
+  answer language), followed on the next line by 2 to 4 bullets, each
+  "- **<Label>**: <at most 15 words>". A label is a party or Fraktion name as
+  in the party list, or a short topic. No citations in these bullets, so a
+  bullet only restates what its detail paragraph says and cites; nothing
+  appears in a bullet that is not cited below it.
+- Then the details, in the bullets' order: for each bullet a paragraph (or a
+  few) that opens with its label in bold, character for character, and a
+  colon, then full sentences that name their subject again:
+  "**<Label>**: Die Fraktion …".
+- Asked why the Fraktionen voted as they did: one bullet per Fraktion with
+  its position and, only when its detail paragraph cites a reason, that
+  reason ("- **Grüne**: dagegen, weil …"); without a cited reason the
+  position alone ("- **Linke**: Enthaltung"). A Fraktion with nothing on
+  record gets no bullet.
+- Bold one span per paragraph besides its label: the paragraph's takeaway in
+  2 to 5 words, i.e. what was decided, a party's position or the reason it
+  gave. Never a date, a vote count or a whole sentence, unless the question
+  asks when or how many.
+- At most three sentences per paragraph, a blank line between paragraphs. No
+  headings (#).
+Example:
+{SUMMARY_MARKER}
+- **SPD**: dafür, weil das Gesetz Mieter entlaste
+- **Linke**: Enthaltung
+
+**SPD**: Die Fraktion stimmte am 12. März mit Ja [0]. In der Debatte sagte …, das Gesetz werde **Mieter spürbar entlasten** [1].
+
+**Linke**: Die Fraktion **enthielt sich** [0]. Eine Begründung der Linken liegt uns nicht vor."""
+
+# Repeated beside the sources with the language rule.
+FORMAT_REMINDER = (
+    f"Format: a long or comparing answer starts with {SUMMARY_MARKER} (in German)"
+    " and 2 to 4 bold-labelled bullets without citations that only restate what"
+    " the detail paragraphs cite (a reason only when one is cited, else the"
+    " position alone); each detail paragraph"
+    " starts with its bullet's bold label and a colon. Short paragraphs, each"
+    " with one bold takeaway of 2 to 5 words (decision, position or reason),"
+    " never a date or vote count."
+)
+
+
+# Repeated beside the sources: the system prompt alone does not hold it.
+LINK_RULE = (
+    'Never join two events into a cause ("Nachdem/Da … abgelehnt wurden,'
+    ' enthielt sich …") unless a source states that link; write them as'
+    " separate sentences."
+)
+
+
+def tool_result_reminder(language: AnswerLanguage) -> str:
+    """What ``agent.RepeatLanguageRule`` appends after tool results."""
+    return f"{language_rule(language)}\n{LINK_RULE}\n{FORMAT_REMINDER}"
+
+
 # The federal government's parties; changes with a new government.
 GOVERNMENT: dict[str, frozenset[str]] = {
     "bundestag-aktuell": frozenset({"cdu", "csu", "spd"}),
 }
 
 
-def _party_lines(parties: list[ContextParty], governing: frozenset[str] = frozenset()) -> str:
+def _party_lines(
+    parties: list[ContextParty], governing: frozenset[str] = frozenset()
+) -> str:
     lines = []
-    for party in sorted(parties, key=lambda p: (not p.is_already_in_parliament, p.name)):
+    for party in sorted(
+        parties, key=lambda p: (not p.is_already_in_parliament, p.name)
+    ):
         status = (
-            "in the Bundestag" if party.is_already_in_parliament else "not in the Bundestag"
+            "in the Bundestag"
+            if party.is_already_in_parliament
+            else "not in the Bundestag"
         )
         if party.is_already_in_parliament and governing:
             status += ", government" if party.party_id in governing else ", opposition"
-        lines.append(f"- {party.name} ({party.long_name}), id {party.party_id}: {status}")
+        lines.append(
+            f"- {party.name} ({party.long_name}), id {party.party_id}: {status}"
+        )
     return "\n".join(lines) or "- (none listed)"
 
 
@@ -166,7 +238,11 @@ def _anchor_block(anchor: Optional[AnchorContext]) -> str:
             f"The user opened this chat from {anchor.label}. That feed text is not a"
             " source. Its original sources are already retrieved below; cite them by"
             " id.\n"
-            + (f"{item.model_dump_json(exclude_none=True)}\n" if item is not None else "")
+            + (
+                f"{item.model_dump_json(exclude_none=True)}\n"
+                if item is not None
+                else ""
+            )
         )
     if anchor.with_parties:
         intro += (
@@ -189,7 +265,8 @@ def _focus_block(focus: list[ContextParty]) -> str:
         "\n\n## Fokus\n"
         "The user pinned these parties for this chat:\n"
         f"{names}\n"
-        "Answer for each of them; with several, one short section per party."
+        "Answer for each of them; with several, one labelled paragraph per party"
+        " (see Format)."
         " Search per party: search with its party_id, or without party_id,"
         " which searches each focus party. Mention another party only briefly and"
         " only when the answer needs it, e.g. for a vote's outcome."
@@ -199,8 +276,12 @@ def _focus_block(focus: list[ContextParty]) -> str:
 def _term_lines(today: date) -> str:
     lines = []
     for term in federal_terms():
-        end = term.date_to if term.date_to and term.date_to < today.isoformat() else None
-        span = f"{term.date_from} to {end}" if end else f"since {term.date_from} (current)"
+        end = (
+            term.date_to if term.date_to and term.date_to < today.isoformat() else None
+        )
+        span = (
+            f"{term.date_from} to {end}" if end else f"since {term.date_from} (current)"
+        )
         lines.append(f"- {term.wahlperiode}. Wahlperiode: {span}")
     return "\n".join(lines)
 
@@ -224,6 +305,8 @@ def build_system_prompt(deps: GenericChatDeps, today: Optional[date] = None) -> 
     press = PRESS_GUIDANCE if web_context.enabled() else ""
     return (
         f"{VOICE_RULES}\n"
+        "## Format\n"
+        f"{FORMAT_RULES}\n\n"
         "## Citations\n"
         f"{CITATION_RULES}\n"
         "## Tools\n"

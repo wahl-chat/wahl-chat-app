@@ -29,6 +29,8 @@ EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", _DEFAULT_MODEL)
 # Env-scoped so dev/prod are isolated; COLLECTION_NAME overrides outright.
 ENV: str = os.getenv("ENV", "dev")
 COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", f"wahlchat_chunks_{ENV}")
+# The feed items' semantic index: written by ingestion, searched by the chat.
+FEED_COLLECTION_NAME: str = os.getenv("FEED_COLLECTION_NAME", f"wahlchat_feed_{ENV}")
 
 # A reserved point recording provider+model+dim. Two different 3072-dim spaces
 # pass the dimension check while returning garbage, so the name alone is not

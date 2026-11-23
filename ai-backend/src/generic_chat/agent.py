@@ -26,7 +26,7 @@ from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.usage import UsageLimits
 
 from src.generic_chat import process, tools, web_context
-from src.generic_chat.prompt import build_system_prompt
+from src.generic_chat.prompt import build_system_prompt, tool_result_reminder
 from src.generic_chat.schemas import (
     DebateResult,
     FeedItemsResult,
@@ -40,7 +40,6 @@ from src.generic_chat.schemas import (
     ToolResult,
     WebSearchInput,
 )
-from wahlchat_common.answer_rules import language_rule
 from wahlchat_common.vertex_credentials import (
     get_vertex_credentials,
     vertex_enabled,
@@ -134,19 +133,11 @@ async def _within_budget(
 
 
 
-# Repeated beside the sources: the system prompt alone does not hold it.
-_LINK_RULE = (
-    "Never join two events into a cause (\"Nachdem/Da … abgelehnt wurden,"
-    " enthielt sich …\") unless a source states that link; write them as"
-    " separate sentences."
-)
-
-
 @dataclass
 class RepeatLanguageRule(AbstractCapability[GenericChatDeps]):
-    """Appends the language rule, and the rule against linked events, after
-    tool results, for this request only, so long German sources do not pull
-    the answer into German or into narrative."""
+    """Appends the language rule, the rule against linked events and the
+    format reminder after tool results, for this request only, so long German
+    sources do not pull the answer into German or into narrative."""
 
     async def before_model_request(
         self,
@@ -158,7 +149,7 @@ class RepeatLanguageRule(AbstractCapability[GenericChatDeps]):
         if isinstance(last, ModelRequest) and any(
             isinstance(part, ToolReturnPart) for part in last.parts
         ):
-            reminder = UserPromptPart(f"{language_rule(ctx.deps.language)}\n{_LINK_RULE}")
+            reminder = UserPromptPart(tool_result_reminder(ctx.deps.language))
             request_context.messages = [
                 *messages[:-1],
                 replace(last, parts=[*last.parts, reminder]),

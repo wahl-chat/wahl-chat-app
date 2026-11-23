@@ -215,6 +215,12 @@ The stream adds a `tool_status` event per tool call.
   citation to the source that supports its sentence, or drops the number; the
   text stays (`generic_chat/citation_check.py`). Fails open after 5 s.
   `GENERIC_CHAT_CITATION_CHECK=off` turns it off.
+- **Related feed items.** A turn without an anchor searches the feed index
+  (`wahlchat_feed_{ENV}`, see `generic_chat/related.py`) alongside the answer
+  and, when items clearly match, sends `related_items` (`items: [{id}]`, up to
+  5 feed item ids) before `quick_replies_title`. Skipped for short follow-ups
+  and parliaments without a feed; fails open after 3 s.
+  `GENERIC_CHAT_RELATED_ITEMS=off` turns it off.
 - **Preset cache.** A feed button's answer (no web, no press) is stored in
   Firestore `cached_chat_answers/{sha256}`, server-only (admin SDK). The key
   holds the rendered prompt, so new data on the item misses the cache; entries

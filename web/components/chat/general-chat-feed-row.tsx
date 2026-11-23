@@ -1,11 +1,11 @@
 'use client';
 
 import { useChatStore } from '@/components/providers/chat-store-provider';
-import type { FeedPick } from '@/lib/chat-feed';
+import { type FeedPick, pickMeta } from '@/lib/chat-feed';
 import { cn } from '@/lib/utils';
 import { ChevronRightIcon } from 'lucide-react';
 import { useState } from 'react';
-import ChatFeedPicker, { pickMeta } from './chat-feed-picker';
+import ChatFeedPicker from './chat-feed-picker';
 import FeedPickThumb from './feed-pick-thumb';
 
 const SHOWN = 6;

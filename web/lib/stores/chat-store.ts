@@ -30,6 +30,7 @@ import { setInput } from './actions/set-input';
 import { setMessageFeedback } from './actions/set-message-feedback';
 import { setPartyIds } from './actions/set-party-ids';
 import { setPreSelectedParties } from './actions/set-pre-selected-parties';
+import { setRelatedItems } from './actions/set-related-items';
 import {
   resetStreamingMessageWatchdog,
   startTimeoutForStreamingMessages,
@@ -110,6 +111,7 @@ export function createChatStore(initialState?: Partial<ChatStore>) {
         updateToolStatus: updateToolStatus(get, set),
         updateQuickRepliesAndTitleForCurrentStreamingMessage:
           updateQuickRepliesAndTitleForCurrentStreamingMessage(get, set),
+        setRelatedItems: setRelatedItems(get, set),
         completeStreamingMessage: completeStreamingMessage(get, set),
         failStreamingMessage: failStreamingMessage(get, set),
         finishStreamingTurn: finishStreamingTurn(get, set),

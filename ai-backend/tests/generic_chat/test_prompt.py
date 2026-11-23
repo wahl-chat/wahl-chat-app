@@ -11,7 +11,7 @@ from datetime import date
 
 import pytest
 
-from src.generic_chat.prompt import build_system_prompt
+from src.generic_chat.prompt import FORMAT_RULES, SUMMARY_MARKER, build_system_prompt
 from src.generic_chat.schemas import AnchorContext, NumberedDocument, ToolResult
 from tests.generic_chat.conftest import make_deps
 from wahlchat_common.answer_rules import CITATION_RULES, VOICE_RULES, language_rule
@@ -42,6 +42,15 @@ def test_prompt_rules_present() -> None:
     assert "## Bezug" not in prompt
 
 
+def test_prompt_carries_the_answer_layout() -> None:
+    prompt = build_system_prompt(make_deps("en"), today=date(2026, 11, 14))
+
+    assert FORMAT_RULES in prompt
+    assert prompt.index("## Format") < prompt.index("## Citations") < prompt.index("## Tools")
+    assert SUMMARY_MARKER == "**Kurz gesagt:**"
+    assert "one short section" not in prompt
+
+
 def test_prompt_names_the_anchor_and_lists_its_sources() -> None:
     deps = make_deps()
     deps.anchor = AnchorContext(
@@ -63,7 +72,7 @@ def test_prompt_names_the_focus_parties() -> None:
 
     assert "## Fokus\n" in prompt
     assert "- Volt, id volt\n- SPD, id spd\n" in prompt
-    assert "one short section per party" in prompt
+    assert "one labelled paragraph per party" in prompt
 
 
 def test_prompt_without_focus_has_no_focus_block() -> None:

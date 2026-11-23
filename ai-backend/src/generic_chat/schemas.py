@@ -390,9 +390,6 @@ class GenericChatDeps:
     choices: list[ProcessChoice] = field(default_factory=list)
     # The procedures the chat is about: search also looks inside them.
     scope: list[str] = field(default_factory=list)
-    # The votes and laws this turn's tools settled on; one of them becomes
-    # the chat's anchor when it has none.
-    settled: list[Anchor] = field(default_factory=list)
     # Every id a tool or the anchor has shown this turn: the only ids a tool
     # call may name, so a made-up one never reaches the data.
     known_ids: set[str] = field(default_factory=set)
@@ -440,10 +437,6 @@ class GenericChatDeps:
 
     def add_scope(self, vorgang_ids: list[str]) -> None:
         self.scope = list(dict.fromkeys([*self.scope, *vorgang_ids]))
-
-    def settle(self, anchor: Anchor) -> None:
-        if anchor not in self.settled:
-            self.settled.append(anchor)
 
     def party_name(self, party_id: Optional[str]) -> Optional[str]:
         if party_id is None:

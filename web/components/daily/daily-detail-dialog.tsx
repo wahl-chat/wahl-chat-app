@@ -2,14 +2,13 @@
 
 import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import StickyInput from '@/components/sticky-input';
-import { FEED_CHAT_ENABLED, feedChatHref } from '@/lib/daily/chat-handoff';
+import { FEED_CHAT_ENABLED } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
 import { itemQuestions } from '@/lib/daily/inline-answers';
 import {
   type DetailItem,
   type SectionItem,
   type VoteItem,
-  itemTitle,
   openingParty,
   protocolLabel,
   sectionTopics,
@@ -30,10 +29,9 @@ import type {
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ChevronLeftIcon, MessageCircleIcon, ShareIcon } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
+import { ItemChatSlot, ItemChatSlotSpace, useFeedChat } from './feed-chat';
 import { GlossaryText } from './glossary-text';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
 import { InlineAnswers } from './inline-answers';
@@ -73,10 +71,10 @@ function placeholderFor(item: DetailItem): string {
 }
 
 function useAskChat(item: DetailItem, preset?: ChatPreset) {
-  const router = useRouter();
+  const { ask } = useFeedChat();
   return (question: string) => {
     if (question.trim()) {
-      router.push(feedChatHref(item, question, preset));
+      ask({ question, item, preset });
     }
   };
 }
@@ -84,58 +82,31 @@ function useAskChat(item: DetailItem, preset?: ChatPreset) {
 /**
  * "Mehr wissen? Frag nach.": suggested questions without a precomputed
  * answer and a free input, both opening the chat with the item attached.
- * `showTarget` names the item the question goes to, for a bar whose item
- * follows the scroll position; the target stays put while the input has focus
- * or text, so a question never moves to another item mid-typing.
+ * Above them the way back into a chat about this item.
  */
-export function AskPanel({
+function AskPanel({
   item,
-  withSuggestions = true,
-  showTarget = false,
   className,
 }: {
   item: DetailItem;
-  withSuggestions?: boolean;
-  showTarget?: boolean;
   className?: string;
 }) {
-  const [locked, setLocked] = useState<DetailItem | null>(null);
-  const target = locked ?? item;
-  const ask = useAskChat(target);
-  const suggestions = withSuggestions ? itemQuestions(target).chips : [];
+  const ask = useAskChat(item);
+  const suggestions = itemQuestions(item).chips;
   return (
-    <div
-      className={className}
-      onFocusCapture={showTarget ? () => setLocked(target) : undefined}
-      onBlurCapture={
-        showTarget
-          ? (e) => {
-              const field = e.target as HTMLInputElement;
-              if (!field.value?.trim()) setLocked(null);
-            }
-          : undefined
-      }
-    >
+    <div className={cn('relative', className)}>
+      <ItemChatSlot item={item} />
       {suggestions.length > 0 && (
         <p className="px-4 pb-2 pt-3 text-[15px] font-semibold">
           Mehr wissen? Frag nach.
         </p>
       )}
-      {showTarget && (
-        <p
-          className={cn(
-            'mx-auto mb-1.5 w-fit max-w-[min(36rem,100%)] truncate rounded-full border border-[var(--daily-border)] bg-[var(--daily-surface)] px-3 py-1 text-[13px]',
-            MUTED_TEXT,
-          )}
-        >
-          Frage zu: <span className="font-medium">{itemTitle(target)}</span>
-        </p>
-      )}
       <StickyInput
         isLoading={false}
+        clearOnSubmit
         onSubmit={ask}
         quickReplies={suggestions}
-        placeholder={placeholderFor(target)}
+        placeholder={placeholderFor(item)}
         className="relative mx-2 pb-3 md:pb-3"
       />
     </div>
@@ -157,20 +128,22 @@ const WHY_VOTED = 'Warum haben die Fraktionen so abgestimmt?';
 const WHY_ARGUED = 'Wie haben die Fraktionen argumentiert?';
 
 function WhyLink({ item, question }: { item: DetailItem; question: string }) {
+  const ask = useAskChat(item, 'why');
   if (!FEED_CHAT_ENABLED) {
     return null;
   }
   return (
-    <Link
-      href={feedChatHref(item, question, 'why')}
+    <button
+      type="button"
+      onClick={() => ask(question)}
       className={cn(
         FOCUS_RING,
-        'mt-2 inline-flex min-h-11 items-center gap-2 self-start rounded-2xl border border-[var(--daily-border)] bg-[var(--daily-surface)] px-4 py-2 text-left text-[15px] leading-snug font-semibold transition-colors hover:bg-[var(--daily-border)]',
+        'mt-2 flex min-h-11 w-full items-center gap-2 rounded-2xl border border-[var(--daily-border)] bg-[var(--daily-surface)] px-4 py-2 text-left text-[15px] leading-snug font-semibold transition-colors hover:bg-[var(--daily-border)]',
       )}
     >
       <MessageCircleIcon className="size-4 shrink-0" aria-hidden />
       {question}
-    </Link>
+    </button>
   );
 }
 
@@ -583,6 +556,7 @@ export function DailyDetailDialog({
                   }
                 />
                 <ItemAnswers item={item} />
+                {FEED_CHAT_ENABLED && <ItemChatSlotSpace item={item} />}
               </div>
               {FEED_CHAT_ENABLED && (
                 <AskPanel

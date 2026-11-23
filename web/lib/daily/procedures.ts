@@ -546,6 +546,32 @@ export function procedureSection(
   };
 }
 
+/** A procedure's timeline seen from outside any feed item, as the chat
+ * shows it: its newest step stands out; a law also shows the next step
+ * still open. Null without any step. */
+export function procedureTimeline(
+  procedure: ProcedureSummary,
+): TimelineStep[] | null {
+  const section =
+    procedure.kind === 'legislation' ? procedureSection('', [procedure]) : null;
+  const steps: TimelineStep[] =
+    section?.type === 'timeline'
+      ? section.steps
+      : timelineSteps(procedure.milestones).map((s) => ({
+          date: s.date,
+          label: s.label,
+          state: 'done',
+          ...withSummary(s, procedure),
+          links: stepLinks(s),
+          question: stepQuestion(s),
+        }));
+  if (steps.length === 0) return null;
+  const newest = steps.findLastIndex((step) => step.state !== 'next');
+  return steps.map((step, i) =>
+    i === newest ? { ...step, state: 'latest' } : step,
+  );
+}
+
 /** The type tag, dots and current step a feed card shows; null without a
  * law to follow. The step is the item's own, else the law's newest. */
 export function procedureMarker(

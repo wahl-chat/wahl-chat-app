@@ -30,6 +30,7 @@ from pydantic_ai.models.function import (
 )
 
 import src.generic_chat.stream as stream
+from src.generic_chat import related
 from src.generic_chat.schemas import ProcessChoice, ProcessResult
 import src.services.chat.service as service
 from src.models.structured_outputs import GroupChatTitleQuickReplyGenerator
@@ -125,11 +126,15 @@ def _body(**extra: Any) -> ChatRequestDto:
     )
 
 
-async def _run(script: Script, monkeypatch: pytest.MonkeyPatch, **extra: Any) -> list[Any]:
+async def _run(
+    script: Script, monkeypatch: pytest.MonkeyPatch, **extra: Any
+) -> list[Any]:
     monkeypatch.setattr(stream, "resolve_model", lambda: script.model)
     parts = [
         part if part == "[DONE]" else json.loads(part)
-        async for part in stream.stream_generic_chat(_body(**extra), None, general_context())
+        async for part in stream.stream_generic_chat(
+            _body(**extra), None, general_context()
+        )
     ]
     return parts
 
@@ -158,50 +163,87 @@ def _collapse(kinds: list[str]) -> list[str]:
 
 def _events(parts: list[Any], kind: str) -> list[dict]:
     return [
-        p["data"] for p in parts
-        if p != "[DONE]" and p["type"] == "data-chat_event" and p["data"]["type"] == kind
+        p["data"]
+        for p in parts
+        if p != "[DONE]"
+        and p["type"] == "data-chat_event"
+        and p["data"]["type"] == kind
     ]
 
 
-async def test_event_order_and_sources(turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_event_order_and_sources(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch
+) -> None:
     script = Script(
-        call(("get_vote", {"poll_id": POLL_ID}), ("search", {"query": "Mietpreisbremse", "source_types": ["party_manifesto"]})),
-        say("Die SPD stimmte mit Ja [0]. Volt (nicht im Bundestag) will bezahlbare Mieten [1]."),
+        call(
+            ("get_vote", {"poll_id": POLL_ID}),
+            (
+                "search",
+                {"query": "Mietpreisbremse", "source_types": ["party_manifesto"]},
+            ),
+        ),
+        say(
+            "Die SPD stimmte mit Ja [0]. Volt (nicht im Bundestag) will bezahlbare Mieten [1]."
+        ),
     )
 
     parts = await _run(script, monkeypatch)
     kinds = _kinds(parts)
 
     assert _collapse(kinds) == [
-        "start", "start-step", "responding_parties", "tool_status", "sources_ready",
-        "text-start", "text-delta", "text-end", "party_complete", "anchor",
-        "quick_replies_title", "finish-step", "finish", "[DONE]",
+        "start",
+        "start-step",
+        "responding_parties",
+        "tool_status",
+        "sources_ready",
+        "text-start",
+        "text-delta",
+        "text-end",
+        "party_complete",
+        "quick_replies_title",
+        "finish-step",
+        "finish",
+        "[DONE]",
     ]
     assert _events(parts, "responding_parties")[0]["party_ids"] == ["wahl-chat"]
-    # The one vote the turn looked up becomes the chat's anchor.
-    assert _events(parts, "anchor")[0]["anchor"] == {"poll_id": POLL_ID}
 
     statuses = _events(parts, "tool_status")
     assert {(s["tool"], s["state"]) for s in statuses} == {
-        ("get_vote", "running"), ("search", "running"), ("get_vote", "done"), ("search", "done"),
+        ("get_vote", "running"),
+        ("search", "running"),
+        ("get_vote", "done"),
+        ("search", "done"),
     }
     assert {s["label"] for s in statuses if s["tool"] == "get_vote"} == {
-        "Suche Abstimmung …", "Abstimmung nachgeschlagen",
+        "Suche Abstimmung …",
+        "Abstimmung nachgeschlagen",
     }
     assert all(s["session_id"] == "s-1" and s["call_id"] for s in statuses)
 
     sources = _events(parts, "sources_ready")[0]
     assert sources["party_id"] == "wahl-chat"
-    assert [s["source_type"] for s in sources["sources"]] == ["vote_record", "party_manifesto"]
+    assert [s["source_type"] for s in sources["sources"]] == [
+        "vote_record",
+        "party_manifesto",
+    ]
 
     complete = _events(parts, "party_complete")[0]
-    assert complete["party_id"] == "wahl-chat" and complete["status"]["indicator"] == "success"
-    text = "".join(p["delta"] for p in parts if p != "[DONE]" and p["type"] == "text-delta")
+    assert (
+        complete["party_id"] == "wahl-chat"
+        and complete["status"]["indicator"] == "success"
+    )
+    text = "".join(
+        p["delta"] for p in parts if p != "[DONE]" and p["type"] == "text-delta"
+    )
     assert complete["complete_message"] == text
-    assert _events(parts, "quick_replies_title")[0]["quick_replies"] == ["Wer war dagegen?"]
+    assert _events(parts, "quick_replies_title")[0]["quick_replies"] == [
+        "Wer war dagegen?"
+    ]
 
 
-async def test_citation_numbers_index_sources_ready(turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_citation_numbers_index_sources_ready(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The model cites the id a tool returned; that id is the source's
     0-based position in sources_ready (how the web resolves [n])."""
     seen_ids: dict[str, int] = {}
@@ -213,11 +255,20 @@ async def test_citation_numbers_index_sources_ready(turn_io: FakeIO, monkeypatch
                     for doc in part.content.documents:
                         seen_ids[doc.source_type] = doc.id
         return ModelResponse(
-            parts=[TextPart(f"Stimme [{seen_ids['vote_record']}], Programm [{seen_ids['party_manifesto']}].")]
+            parts=[
+                TextPart(
+                    f"Stimme [{seen_ids['vote_record']}], Programm [{seen_ids['party_manifesto']}]."
+                )
+            ]
         )
 
     script = Script(
-        call(("search", {"query": "Mietpreisbremse", "source_types": ["party_manifesto"]})),
+        call(
+            (
+                "search",
+                {"query": "Mietpreisbremse", "source_types": ["party_manifesto"]},
+            )
+        ),
         call(("get_vote", {"poll_id": POLL_ID})),
         answer,
     )
@@ -226,21 +277,35 @@ async def test_citation_numbers_index_sources_ready(turn_io: FakeIO, monkeypatch
     sources = _events(parts, "sources_ready")[-1]["sources"]
     answer_text = _events(parts, "party_complete")[0]["complete_message"]
     cited = [int(n) for n in re.findall(r"\[(\d+)\]", answer_text)]
-    assert [sources[n]["source_type"] for n in cited] == ["vote_record", "party_manifesto"]
+    assert [sources[n]["source_type"] for n in cited] == [
+        "vote_record",
+        "party_manifesto",
+    ]
     assert cited == [1, 0]
 
 
-async def test_request_limit_forces_an_answer(turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_request_limit_forces_an_answer(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch
+) -> None:
     def greedy(_m: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         if info.function_tools:
-            return ModelResponse(parts=[ToolCallPart("search", {"query": "Mieten Berlin"})])
-        return ModelResponse(parts=[TextPart("Antwort aus den bisherigen Quellen [0].")])
+            return ModelResponse(
+                parts=[ToolCallPart("search", {"query": "Mieten Berlin"})]
+            )
+        return ModelResponse(
+            parts=[TextPart("Antwort aus den bisherigen Quellen [0].")]
+        )
 
     script = Script(greedy)
     parts = await _run(script, monkeypatch)
 
     assert len(script.requests) == 4
-    assert [bool(info.function_tools) for _m, info in script.requests] == [True, True, True, False]
+    assert [bool(info.function_tools) for _m, info in script.requests] == [
+        True,
+        True,
+        True,
+        False,
+    ]
     complete = _events(parts, "party_complete")[0]
     assert complete["status"]["indicator"] == "success"
     assert complete["complete_message"].startswith("Antwort")
@@ -261,29 +326,48 @@ async def test_language_rule_follows_tool_results_without_piling_up(
         assert isinstance(last, ModelRequest)
         assert isinstance(last.parts[-1], UserPromptPart)
         assert "answer in English" in str(last.parts[-1].content)
+        assert "Kurz gesagt" in str(last.parts[-1].content)
         reminders = [
-            p for m in messages if isinstance(m, ModelRequest) for p in m.parts
-            if isinstance(p, UserPromptPart) and "Answer in the language" in str(p.content)
+            p
+            for m in messages
+            if isinstance(m, ModelRequest)
+            for p in m.parts
+            if isinstance(p, UserPromptPart)
+            and "Answer in the language" in str(p.content)
         ]
         assert len(reminders) == 1
     assert "answer in English" in (script.requests[0][1].instructions or "")
 
 
-async def test_anchor_sources_come_first(turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_anchor_sources_come_first(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch
+) -> None:
     turn_io.feed[DEBATE_ID] = feed_item(DEBATE_ID, "debate", speech_ids=SPEECH_IDS[:1])
     turn_io.speeches = [speech_chunk(SPEECH_IDS[0], 0, "Rede zur Mietpreisbremse.")]
     script = Script(
-        call(("search", {"query": "Mietpreisbremse", "source_types": ["party_manifesto"]})),
+        call(
+            (
+                "search",
+                {"query": "Mietpreisbremse", "source_types": ["party_manifesto"]},
+            )
+        ),
         say("In der Debatte begründete die SPD … [0]."),
     )
 
     parts = await _run(script, monkeypatch, anchor={"feed_item_id": DEBATE_ID})
 
     statuses = _events(parts, "tool_status")
-    assert (statuses[0]["call_id"], statuses[0]["tool"], statuses[0]["state"]) == ("anchor", "get_debate", "running")
+    assert (statuses[0]["call_id"], statuses[0]["tool"], statuses[0]["state"]) == (
+        "anchor",
+        "get_debate",
+        "running",
+    )
     assert _kinds(parts).index("tool_status") < _kinds(parts).index("sources_ready")
     sources = _events(parts, "sources_ready")[0]["sources"]
-    assert [s["source_type"] for s in sources] == ["parliamentary_speech", "party_manifesto"]
+    assert [s["source_type"] for s in sources] == [
+        "parliamentary_speech",
+        "party_manifesto",
+    ]
     assert "## Bezug" in (script.requests[0][1].instructions or "")
     assert "Schlagzeile" in (script.requests[0][1].instructions or "")
 
@@ -294,7 +378,12 @@ async def test_focus_from_the_request_scopes_search_and_prompt(
     turn_io.feed[DEBATE_ID] = feed_item(DEBATE_ID, "debate", speech_ids=SPEECH_IDS[:1])
     turn_io.speeches = [speech_chunk(SPEECH_IDS[0], 0, "Rede zur Mietpreisbremse.")]
     script = Script(
-        call(("search", {"query": "Mietpreisbremse", "source_types": ["party_manifesto"]})),
+        call(
+            (
+                "search",
+                {"query": "Mietpreisbremse", "source_types": ["party_manifesto"]},
+            )
+        ),
         say("Volt will bezahlbare Mieten [1]."),
     )
 
@@ -306,7 +395,10 @@ async def test_focus_from_the_request_scopes_search_and_prompt(
     )
 
     instructions = script.requests[0][1].instructions or ""
-    assert "## Fokus\nThe user pinned these parties for this chat:\n- Volt, id volt\n" in instructions
+    assert (
+        "## Fokus\nThe user pinned these parties for this chat:\n- Volt, id volt\n"
+        in instructions
+    )
     assert "nope" not in instructions
     assert "## Bezug" in instructions
     assert {c["party_id"] for c in turn_io.retrieve_calls} == {"volt"}
@@ -334,24 +426,48 @@ async def test_model_failure_ends_with_the_error_contract(
 
     parts = await _run(Script(broken), monkeypatch)
 
-    assert _kinds(parts)[-5:] == ["error", "party_complete", "finish-step", "finish", "[DONE]"]
+    assert _kinds(parts)[-5:] == [
+        "error",
+        "party_complete",
+        "finish-step",
+        "finish",
+        "[DONE]",
+    ]
     assert _events(parts, "party_complete")[0]["status"]["indicator"] == "error"
 
 
-async def test_history_drops_old_citations(turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_history_drops_old_citations(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch
+) -> None:
     script = Script(say("Ja."))
     await _run(
         script,
         monkeypatch,
         chat_history=[
             {"role": "user", "content": "Frage eins"},
-            {"role": "assistant", "content": "Antwort [0][2, 3].", "party_id": "wahl-chat"},
-            {"role": "user", "content": "Wie hat die SPD zur Mietpreisbremse abgestimmt?"},
+            {
+                "role": "assistant",
+                "content": "Antwort [0][2, 3].",
+                "party_id": "wahl-chat",
+            },
+            {
+                "role": "user",
+                "content": "Wie hat die SPD zur Mietpreisbremse abgestimmt?",
+            },
         ],
     )
     messages = script.requests[0][0]
-    texts = [p.content for m in messages for p in m.parts if isinstance(p, (TextPart, UserPromptPart))]
-    assert texts == ["Frage eins", "Antwort.", "Wie hat die SPD zur Mietpreisbremse abgestimmt?"]
+    texts = [
+        p.content
+        for m in messages
+        for p in m.parts
+        if isinstance(p, (TextPart, UserPromptPart))
+    ]
+    assert texts == [
+        "Frage eins",
+        "Antwort.",
+        "Wie hat die SPD zur Mietpreisbremse abgestimmt?",
+    ]
 
 
 # --- routing in the chat service (AC-3) ------------------------------------
@@ -371,7 +487,9 @@ async def test_general_context_bypasses_the_party_pipeline(
     monkeypatch.setattr(service, "get_question_targets_and_type", _forbidden)
     monkeypatch.setattr(service, "detect_source_filter", _forbidden)
     monkeypatch.setattr(service, "fetch_party_response_stream", _forbidden)
-    monkeypatch.setattr(stream, "resolve_model", lambda: Script(say("Hallo [0].")).model)
+    monkeypatch.setattr(
+        stream, "resolve_model", lambda: Script(say("Hallo [0].")).model
+    )
 
     parts = [
         part if part == "[DONE]" else json.loads(part)
@@ -399,6 +517,185 @@ async def test_open_procedure_choices_become_quick_replies(
         say("Welches Verfahren meinst du?"),
     )
 
-    parts = await _run(script, monkeypatch, user_message="Wie ist der Stand beim Haushalt 2027?")
+    parts = await _run(
+        script, monkeypatch, user_message="Wie ist der Stand beim Haushalt 2027?"
+    )
 
-    assert _events(parts, "quick_replies_title")[0]["quick_replies"] == [c.label for c in choices]
+    assert _events(parts, "quick_replies_title")[0]["quick_replies"] == [
+        c.label for c in choices
+    ]
+
+
+@pytest.fixture()
+def related_search(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+    """Switches the feed search on with a fake ``find``; records its calls."""
+    calls: list[dict] = []
+    monkeypatch.setenv(related.ENV, "on")
+
+    async def _find(query: str, parliament: str) -> list[str]:
+        calls.append({"query": query, "parliament": parliament})
+        return ["bundestag_2026-11-13_v1", "bundestag_2026-11-12_d1-top3"]
+
+    monkeypatch.setattr(related, "find", _find)
+    return calls
+
+
+async def test_related_items_follow_the_answer(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    script = Script(say("Die SPD stimmte mit Ja."))
+
+    parts = await _run(script, monkeypatch)
+
+    assert related_search == [
+        {
+            "query": "Wie hat die SPD zur Mietpreisbremse abgestimmt?",
+            "parliament": "bundestag",
+        }
+    ]
+    assert _events(parts, "related_items") == [
+        {
+            "type": "related_items",
+            "session_id": "s-1",
+            "items": [
+                {"id": "bundestag_2026-11-13_v1"},
+                {"id": "bundestag_2026-11-12_d1-top3"},
+            ],
+        }
+    ]
+    kinds = _kinds(parts)
+    assert (
+        kinds.index("party_complete")
+        < kinds.index("related_items")
+        < kinds.index("quick_replies_title")
+    )
+
+
+async def test_no_related_items_when_anchored(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    turn_io.feed[DEBATE_ID] = feed_item(DEBATE_ID, "debate", speech_ids=SPEECH_IDS[:1])
+    turn_io.speeches = [speech_chunk(SPEECH_IDS[0], 0, "Rede zur Mietpreisbremse.")]
+    script = Script(say("In der Debatte begründete die SPD … [0]."))
+
+    parts = await _run(script, monkeypatch, anchor={"feed_item_id": DEBATE_ID})
+
+    assert related_search == []
+    assert _events(parts, "related_items") == []
+
+
+async def test_no_related_items_without_matches(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    async def _none(query: str, parliament: str) -> list[str]:
+        return []
+
+    monkeypatch.setattr(related, "find", _none)
+    parts = await _run(Script(say("Hallo!")), monkeypatch)
+
+    assert _events(parts, "related_items") == []
+    assert "quick_replies_title" in _kinds(parts)
+
+
+async def test_related_items_fail_open(
+    turn_io: FakeIO,
+    monkeypatch: pytest.MonkeyPatch,
+    related_search: list[dict],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def _broken(query: str, parliament: str) -> list[str]:
+        raise RuntimeError("qdrant down")
+
+    monkeypatch.setattr(related, "find", _broken)
+    parts = await _run(Script(say("Die SPD stimmte mit Ja.")), monkeypatch)
+
+    assert _events(parts, "related_items") == []
+    assert _events(parts, "party_complete")[0]["status"]["indicator"] == "success"
+    assert "quick_replies_title" in _kinds(parts)
+    assert "qdrant down" in caplog.text
+
+
+async def test_slow_related_search_is_skipped(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    import asyncio
+
+    async def _slow(query: str, parliament: str) -> list[str]:
+        await asyncio.sleep(10)
+        return ["late"]
+
+    monkeypatch.setattr(related, "find", _slow)
+    monkeypatch.setattr(stream, "_RELATED_TIMEOUT_S", 0.01)
+    parts = await _run(Script(say("Die SPD stimmte mit Ja.")), monkeypatch)
+
+    assert _events(parts, "related_items") == []
+    assert "quick_replies_title" in _kinds(parts)
+
+
+async def test_related_search_is_cancelled_when_the_turn_fails(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    import asyncio
+
+    cancelled: list[bool] = []
+
+    async def _hanging(query: str, parliament: str) -> list[str]:
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            cancelled.append(True)
+            raise
+        return []
+
+    def broken(_m: list[ModelMessage], _i: AgentInfo) -> ModelResponse:
+        raise RuntimeError("model down")
+
+    monkeypatch.setattr(related, "find", _hanging)
+    parts = await _run(Script(broken), monkeypatch)
+    await asyncio.sleep(0)
+
+    assert _events(parts, "related_items") == []
+    assert cancelled == [True]
+
+
+async def test_short_follow_up_does_not_search(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    history = [
+        {"role": "user", "content": "Wie hat die SPD zur Mietpreisbremse abgestimmt?"},
+        {"role": "assistant", "content": "Mit Ja.", "party_id": "wahl-chat"},
+    ]
+    await _run(
+        Script(say("Mit Nein.")),
+        monkeypatch,
+        user_message="Und die Grünen?",
+        chat_history=history,
+    )
+    assert related_search == []
+
+    await _run(
+        Script(say("Mit Nein.")),
+        monkeypatch,
+        user_message="Wie haben die Grünen zur Mietpreisbremse abgestimmt?",
+        chat_history=history,
+    )
+    assert len(related_search) == 1
+
+
+async def test_a_looked_up_vote_stays_among_the_related_items(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    async def _find(query: str, parliament: str) -> list[str]:
+        return [f"bundestag_2026-11-13_v{POLL_ID}", "bundestag_2026-11-12_d1-top3"]
+
+    monkeypatch.setattr(related, "find", _find)
+    script = Script(
+        call(("get_vote", {"poll_id": POLL_ID})), say("Die SPD stimmte mit Ja [0].")
+    )
+
+    parts = await _run(script, monkeypatch)
+
+    assert _events(parts, "related_items")[0]["items"] == [
+        {"id": f"bundestag_2026-11-13_v{POLL_ID}"},
+        {"id": "bundestag_2026-11-12_d1-top3"},
+    ]

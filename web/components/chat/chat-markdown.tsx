@@ -2,11 +2,15 @@
 
 import { Markdown } from '@/components/markdown';
 import { useMediaViewer } from '@/components/providers/media-viewer-provider';
+import { opensWithLabel, splitSummary } from '@/lib/chat-summary';
 import type { Source } from '@/lib/stores/chat-store.types';
 import { getSourceMediaLinks } from '@/lib/utils';
+import { useId } from 'react';
+import AnswerSummary from './answer-summary';
 
 type Props = {
   message: {
+    id?: string;
     content?: string;
     sources?: Source[];
   };
@@ -14,6 +18,7 @@ type Props = {
 
 function ChatMarkdown({ message }: Props) {
   const mediaViewer = useMediaViewer();
+  const ownId = useId().replace(/[^\w-]/g, '');
 
   const onReferenceClick = (number: number) => {
     if (!message.sources) {
@@ -80,15 +85,29 @@ function ChatMarkdown({ message }: Props) {
     return getSourceMediaLinks(source).some((link) => link.kind === 'video');
   };
 
+  const { summary, body } = splitSummary(message.content ?? '');
+  const anchorPrefix = `answer-${message.id ?? ownId}`;
+  const labels = new Set(summary?.map((point) => point.label));
+  const targets = new Set(
+    [...labels].filter((label) => opensWithLabel(body, label)),
+  );
+
   return (
-    <Markdown
-      onReferenceClick={onReferenceClick}
-      getReferenceTooltip={getReferenceTooltip}
-      getReferenceName={getReferenceName}
-      getReferenceIsVideo={getReferenceIsVideo}
-    >
-      {message.content ?? ''}
-    </Markdown>
+    <>
+      {summary && summary.length > 0 && (
+        <AnswerSummary id={anchorPrefix} points={summary} targets={targets} />
+      )}
+      <Markdown
+        onReferenceClick={onReferenceClick}
+        getReferenceTooltip={getReferenceTooltip}
+        getReferenceName={getReferenceName}
+        getReferenceIsVideo={getReferenceIsVideo}
+        anchorPrefix={anchorPrefix}
+        anchorLabels={labels}
+      >
+        {body}
+      </Markdown>
+    </>
   );
 }
 

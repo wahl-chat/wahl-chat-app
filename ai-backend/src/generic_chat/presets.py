@@ -21,7 +21,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
 
-from src.generic_chat.prompt import build_system_prompt
+from src.generic_chat.prompt import build_system_prompt, tool_result_reminder
 from src.generic_chat.schemas import CachedTurn, GenericChatDeps
 from src.services.firebase_service import async_db
 
@@ -45,6 +45,7 @@ def cache_key(deps: GenericChatDeps, question: str, model: Any) -> str:
         deps.language,
         question.strip(),
         build_system_prompt(deps, today=_KEY_DAY),
+        tool_result_reminder(deps.language),
     ]
     return hashlib.sha256(json.dumps(parts, ensure_ascii=False).encode()).hexdigest()
 
