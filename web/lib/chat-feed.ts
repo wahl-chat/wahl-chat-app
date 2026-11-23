@@ -111,3 +111,17 @@ export function starterQuestions(
     })),
   ];
 }
+
+const shortDay = new Intl.DateTimeFormat('de-DE', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
+
+/** "Abstimmung · 13. Nov. · angenommen". */
+export function pickMeta(pick: FeedPick): string {
+  const day = shortDay.format(new Date(`${pick.date}T00:00:00Z`));
+  return [pick.kind === 'vote' ? 'Abstimmung' : 'Debatte', day, pick.outcome]
+    .filter(Boolean)
+    .join(' · ');
+}

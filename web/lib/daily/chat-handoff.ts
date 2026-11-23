@@ -88,3 +88,63 @@ export function chatAbout(
   });
   return session ? { sessionId: session.id, title: session.title } : null;
 }
+
+// Marks that carry the way back between the feed and the chat page across
+// one tab; blocked storage only costs the shortcut back.
+function stored(key: string): string | null {
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function store(key: string, value: string | null) {
+  try {
+    if (value === null) window.sessionStorage.removeItem(key);
+    else window.sessionStorage.setItem(key, value);
+  } catch {}
+}
+
+const FROM_FEED_KEY = 'wahlchat:chat-from-feed';
+
+/** Set when the feed hands a question to the chat page, so the way back can
+ * return to the feed as it was. */
+export function markFromFeed() {
+  store(FROM_FEED_KEY, '1');
+}
+
+/** Whether this chat page was opened from the feed; reads the mark once,
+ * so a later chat in the same tab does not inherit it. */
+export function takeFromFeed(): boolean {
+  const marked = stored(FROM_FEED_KEY) === '1';
+  store(FROM_FEED_KEY, null);
+  return marked;
+}
+
+/** The chat page a reader left to look at a feed item, so that item's
+ * view can lead back. */
+export type ReturnChat = { sessionId: string; label: string; itemId: string };
+
+const RETURN_KEY = 'wahlchat:return-to-chat';
+
+export function markReturnChat(chat: ReturnChat) {
+  store(RETURN_KEY, JSON.stringify(chat));
+}
+
+export function readReturnChat(): ReturnChat | null {
+  try {
+    const value = JSON.parse(stored(RETURN_KEY) ?? '');
+    return typeof value?.sessionId === 'string' &&
+      typeof value?.label === 'string' &&
+      typeof value?.itemId === 'string'
+      ? { sessionId: value.sessionId, label: value.label, itemId: value.itemId }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearReturnChat() {
+  store(RETURN_KEY, null);
+}

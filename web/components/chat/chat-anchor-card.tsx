@@ -4,8 +4,9 @@ import { ProcedureTimeline } from '@/components/daily/procedure-section';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { FEED_ITEM_ID, anchorCard } from '@/lib/chat-anchor';
 import { feedPicks } from '@/lib/chat-feed';
+import { clearReturnChat, takeFromFeed } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
-import { procedureTimeline, timelineSteps } from '@/lib/daily/procedures';
+import { procedureTimeline } from '@/lib/daily/procedures';
 import {
   getFeedItem,
   getFeedItemsForProcedure,
@@ -27,15 +28,8 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
-import { clearReturnChat, takeFromFeed, useChatHost } from './chat-host';
+import { useChatHost } from './chat-host';
 import FeedPickThumb from './feed-pick-thumb';
-
-const stepDay = new Intl.DateTimeFormat('de-DE', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
 
 /** A procedure as feed items carry it, with its steps; null until loaded
  * or when no item does. */
@@ -82,13 +76,16 @@ function ChatAnchorCard() {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const summary = useProcedureSummary(vorgangId);
-  const steps = summary ? timelineSteps(summary.milestones) : [];
+  const hasTimeline = summary ? procedureTimeline(summary) !== null : false;
   const detailsId = useId();
   const fromFeed = useRef(false);
+  const marksRead = useRef(false);
   useEffect(() => {
-    if (host.mode !== 'page') return;
+    // Once: the marks are consumed on read, and StrictMode runs this twice.
+    if (host.mode !== 'page' || marksRead.current) return;
+    marksRead.current = true;
     fromFeed.current = takeFromFeed();
-    // Back in a chat: the feed no longer needs to lead here.
+    // Inside a chat, the feed's way back to it is stale.
     clearReturnChat();
   }, [host.mode]);
 
@@ -234,7 +231,7 @@ function ChatAnchorCard() {
               </span>
             )}
           </div>
-          {(item || steps.length > 0) && (
+          {(item || hasTimeline) && (
             <button
               type="button"
               onClick={() => setExpanded((open) => !open)}
@@ -253,7 +250,7 @@ function ChatAnchorCard() {
             </button>
           )}
         </div>
-        {!item && summary && expanded && procedureTimeline(summary) && (
+        {!item && summary && expanded && hasTimeline && (
           <div
             id={detailsId}
             className={cn(
@@ -263,25 +260,6 @@ function ChatAnchorCard() {
           >
             <ProcedureTimeline procedure={summary} />
           </div>
-        )}
-        {!item && summary && expanded && !procedureTimeline(summary) && (
-          <ol
-            id={detailsId}
-            aria-label="Verlauf"
-            className="flex flex-col border-t px-3 pb-2 pt-1.5 text-sm"
-          >
-            {steps.map((step) => (
-              <li
-                key={`${step.date}-${step.label}`}
-                className="flex gap-3 py-1"
-              >
-                <span className="w-24 shrink-0 tabular-nums text-muted-foreground">
-                  {stepDay.format(new Date(`${step.date}T00:00:00Z`))}
-                </span>
-                <span>{step.label}</span>
-              </li>
-            ))}
-          </ol>
         )}
         {item && expanded && (
           <div

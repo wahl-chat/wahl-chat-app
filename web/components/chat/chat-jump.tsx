@@ -1,6 +1,4 @@
 'use client';
-
-import { cn } from '@/lib/utils';
 import { ArrowUpIcon } from 'lucide-react';
 import {
   type ReactNode,
@@ -9,7 +7,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 
@@ -59,24 +56,23 @@ export function useChatJump(): ChatJump | null {
 
 /** Floats above the input after a jump; gone once the origin is back in
  * view, whether by the pill or by scrolling. */
-export function ChatJumpBackPill({ className }: { className?: string }) {
+export function ChatJumpBackPill() {
   const jumpState = useChatJump();
   const origin = jumpState?.origin ?? null;
   const clear = jumpState?.clear;
   const [left, setLeft] = useState(false);
-  const leftRef = useRef(false);
 
   useEffect(() => {
-    leftRef.current = false;
     setLeft(false);
     const element = origin ? document.getElementById(origin) : null;
     if (!element) return;
+    let away = false;
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) {
-        leftRef.current = true;
+        away = true;
         setLeft(true);
-      } else if (leftRef.current) {
-        leftRef.current = false;
+      } else if (away) {
+        away = false;
         setLeft(false);
         clear?.();
       }
@@ -87,16 +83,15 @@ export function ChatJumpBackPill({ className }: { className?: string }) {
 
   if (!origin || !left) return null;
   return (
-    <button
-      type="button"
-      onClick={jumpState?.back}
-      className={cn(
-        'pointer-events-auto mx-auto flex min-h-10 items-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-semibold text-background shadow-lg',
-        className,
-      )}
-    >
-      <ArrowUpIcon className="size-4" aria-hidden />
-      Zurück zu Kurz gesagt
-    </button>
+    <div className="pointer-events-none absolute inset-x-0 -top-14 z-10 flex justify-center">
+      <button
+        type="button"
+        onClick={jumpState?.back}
+        className="pointer-events-auto mx-auto flex min-h-10 items-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-semibold text-background shadow-lg"
+      >
+        <ArrowUpIcon className="size-4" aria-hidden />
+        Zurück zu Kurz gesagt
+      </button>
+    </div>
   );
 }

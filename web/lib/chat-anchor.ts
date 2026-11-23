@@ -140,3 +140,9 @@ export function anchorCard(
     feedHref: feedItemHref(item.id, item.region),
   };
 }
+
+/** Whether a URL is the chat page's own, which may carry a chat's state; a
+ * chat in a sheet over the feed leaves the feed's URL alone. */
+export function isChatPageUrl(url: URL): boolean {
+  return url.pathname === '/chat' || url.pathname.endsWith('/session');
+}

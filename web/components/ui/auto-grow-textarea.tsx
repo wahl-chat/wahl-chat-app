@@ -9,8 +9,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useMediaQuery } from 'usehooks-ts';
 
 const LINE_PX = 24;
+// Less visible height than this means an on-screen keyboard is up.
+const KEYBOARD_PX = 120;
 const MAX_LINES = 5;
 // Upward scroll elsewhere on the page that folds the box back to one line.
 const COLLAPSE_SCROLL_PX = 24;
@@ -49,7 +52,11 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
   ) {
     const ref = useRef<HTMLTextAreaElement | null>(null);
     const [collapsed, setCollapsed] = useState(false);
-    const touch = useCoarsePointer();
+    // Phones and tablets: the primary pointer is a finger. Read after
+    // hydration, so the server and first client render agree.
+    const touch = useMediaQuery('(pointer: coarse)', {
+      initializeWithValue: false,
+    });
     // Bumped when the box changes width, so the height follows the new wrap.
     const [width, setWidth] = useState(0);
     const composing = useRef(false);
@@ -178,22 +185,6 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
 
 export default AutoGrowTextarea;
 
-/** Phones and tablets: the primary pointer is a finger. */
-export function useCoarsePointer(): boolean {
-  const [coarse, setCoarse] = useState(false);
-  useEffect(() => {
-    const query = window.matchMedia?.('(pointer: coarse)');
-    if (!query) {
-      return;
-    }
-    setCoarse(query.matches);
-    const onChange = (event: MediaQueryListEvent) => setCoarse(event.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
-  return coarse;
-}
-
 /** The nearest painted background around the box, skipping its own form. */
 function surroundingBackground(node: HTMLElement): string {
   let element = node.closest('form')?.parentElement ?? node.parentElement;
@@ -239,8 +230,13 @@ function useKeyboardCover(target: React.RefObject<HTMLElement | null> | null) {
         viewport.pageTop + viewport.height,
         viewport.pageTop + box.bottom,
       );
+      // Only with a keyboard up, which shrinks the visible part; a desktop
+      // keeps what sits under the box in view.
+      const keyboard = viewport.height < window.innerHeight - KEYBOARD_PX;
       cover.style.top = `${top}px`;
-      cover.style.height = `${Math.max(0, Math.min(window.innerHeight, pageEnd - top))}px`;
+      cover.style.height = keyboard
+        ? `${Math.max(0, Math.min(window.innerHeight, pageEnd - top))}px`
+        : '0';
     };
     place();
     document.body.appendChild(cover);

@@ -62,23 +62,21 @@ export function ItemTeaser({
 /** "Interessant für dich?" bottom left, share bottom right. */
 export function CardFooter({ item }: { item: DetailItem }) {
   return (
-    <>
-      <div className="mt-auto flex items-end justify-between gap-3">
-        <InterestFeedback itemKey={item.key} className={ABOVE_CARD_LINK} />
-        <button
-          type="button"
-          aria-label="Teilen"
-          onClick={() => shareItem(item)}
-          className={cn(
-            FOCUS_RING,
-            ABOVE_CARD_LINK,
-            'flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--daily-surface)] hover:text-[var(--daily-ink)]',
-            MUTED_TEXT,
-          )}
-        >
-          <Share2Icon className="size-5" aria-hidden />
-        </button>
-      </div>
-    </>
+    <div className="mt-auto flex items-end justify-between gap-3">
+      <InterestFeedback itemKey={item.key} className={ABOVE_CARD_LINK} />
+      <button
+        type="button"
+        aria-label="Teilen"
+        onClick={() => shareItem(item)}
+        className={cn(
+          FOCUS_RING,
+          ABOVE_CARD_LINK,
+          'flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--daily-surface)] hover:text-[var(--daily-ink)]',
+          MUTED_TEXT,
+        )}
+      >
+        <Share2Icon className="size-5" aria-hidden />
+      </button>
+    </div>
   );
 }

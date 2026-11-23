@@ -20,6 +20,7 @@ import { GENERAL_CONTEXT_ID } from '@/lib/constants';
 import { storedItemId } from '@/lib/daily/chat-handoff';
 import { getChatFeedPicks } from '@/lib/server-actions/chat-feed-picks';
 import { cn } from '@/lib/utils';
+import { FocusScope } from '@radix-ui/react-focus-scope';
 import { ChevronDownIcon, XIcon } from 'lucide-react';
 import {
   type KeyboardEvent,
@@ -28,6 +29,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { RemoveScroll } from 'react-remove-scroll';
 import type { FeedChatContext, Sheet } from './feed-chat';
 
 type SheetProps = {
@@ -39,26 +41,6 @@ type SheetProps = {
   /** The chat's session and whether an answer is still coming. */
   onReport: (sessionId: string | null, busy: boolean) => void;
 };
-
-const FOCUSABLE =
-  'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
-
-/** Keeps Tab inside the sheet. */
-function trapTab(event: KeyboardEvent<HTMLElement>) {
-  const items = [
-    ...event.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE),
-  ].filter((element) => element.offsetParent !== null);
-  const first = items[0];
-  const last = items.at(-1);
-  if (!first || !last) return;
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-  }
-}
 
 /** The general chat in a sheet over the feed. It stays mounted while
  * tucked away, so a running answer keeps streaming. */
@@ -79,9 +61,6 @@ export default function FeedChatSheet({
 
   useEffect(() => {
     if (!open) return;
-    const root = document.documentElement;
-    const previous = root.style.overflow;
-    root.style.overflow = 'hidden';
     const returnTo =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
@@ -108,7 +87,6 @@ export default function FeedChatSheet({
       for (const key of ['top', 'height', 'bottom'] as const) {
         panel.current?.style.removeProperty(key);
       }
-      root.style.overflow = previous;
       if (returnTo?.isConnected && !returnTo.closest('[inert]')) {
         returnTo.focus({ preventScroll: true });
       }
@@ -119,8 +97,6 @@ export default function FeedChatSheet({
     // A preview or menu inside the chat handles its own Escape first.
     if (event.key === 'Escape' && !event.nativeEvent.defaultPrevented) {
       onMinimize();
-    } else if (event.key === 'Tab') {
-      trapTab(event);
     }
   };
 
@@ -171,65 +147,77 @@ export default function FeedChatSheet({
                 />
               )}
               {/* Below Radix overlays (z-50), so previews and menus opened
-                  from the chat show above it. */}
-              <div
-                ref={panel}
-                role="dialog"
-                aria-modal={open}
-                aria-label="Chat"
-                tabIndex={-1}
-                inert={!open}
-                onKeyDown={onKeyDown}
-                className={cn(
-                  'fixed inset-x-0 bottom-0 top-[5dvh] z-40 mx-auto flex max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-background outline-none transition-transform duration-300 ease-out motion-reduce:transition-none',
-                  open ? 'translate-y-0 shadow-2xl' : 'translate-y-full',
-                )}
-              >
-                <div className="flex items-center justify-between gap-2 px-2 pt-1.5">
-                  <button
-                    type="button"
-                    onClick={onMinimize}
-                    className="flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-medium hover:bg-muted"
+                  from the chat show above it. Not a Radix Dialog: parked,
+                  it would keep the feed scroll-locked and hidden from
+                  screen readers. */}
+              <RemoveScroll enabled={open} allowPinchZoom>
+                <FocusScope
+                  asChild
+                  loop
+                  trapped={open}
+                  onMountAutoFocus={(event) => event.preventDefault()}
+                  onUnmountAutoFocus={(event) => event.preventDefault()}
+                >
+                  <div
+                    ref={panel}
+                    role="dialog"
+                    aria-modal={open}
+                    aria-label="Chat"
+                    tabIndex={-1}
+                    inert={!open}
+                    onKeyDown={onKeyDown}
+                    className={cn(
+                      'fixed inset-x-0 bottom-0 top-[5dvh] z-40 mx-auto flex max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-background outline-none transition-transform duration-300 ease-out motion-reduce:transition-none',
+                      open ? 'translate-y-0 shadow-2xl' : 'translate-y-full',
+                    )}
                   >
-                    <ChevronDownIcon className="size-4" aria-hidden />
-                    Zum Feed
-                  </button>
-                  <span
-                    aria-hidden
-                    className="h-1.5 w-10 rounded-full bg-muted-foreground/30"
-                  />
-                  <button
-                    type="button"
-                    aria-label="Chat schließen"
-                    onClick={onClose}
-                    className="flex size-11 items-center justify-center rounded-md hover:bg-muted"
-                  >
-                    <XIcon className="size-5" aria-hidden />
-                  </button>
-                </div>
-                <ChatAnchorCard />
-                <ChatMessagesView
-                  sessionId={
-                    'sessionId' in request ? request.sessionId : undefined
-                  }
-                  initialQuestion={
-                    'question' in request ? request.question : undefined
-                  }
-                  anchor={itemId ? { feed_item_id: itemId } : undefined}
-                  feedPicks={empty ? (picks ?? []) : undefined}
-                  preset={
-                    'question' in request && itemId ? request.preset : undefined
-                  }
-                />
-                <div className="relative px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-4">
-                  <div className="pointer-events-none absolute inset-x-0 -top-14 z-10 flex justify-center">
-                    <ChatJumpBackPill />
+                    <div className="flex items-center justify-between gap-2 px-2 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={onMinimize}
+                        className="flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-medium hover:bg-muted"
+                      >
+                        <ChevronDownIcon className="size-4" aria-hidden />
+                        Zum Feed
+                      </button>
+                      <span
+                        aria-hidden
+                        className="h-1.5 w-10 rounded-full bg-muted-foreground/30"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Chat schließen"
+                        onClick={onClose}
+                        className="flex size-11 items-center justify-center rounded-md hover:bg-muted"
+                      >
+                        <XIcon className="size-5" aria-hidden />
+                      </button>
+                    </div>
+                    <ChatAnchorCard />
+                    <ChatMessagesView
+                      sessionId={
+                        'sessionId' in request ? request.sessionId : undefined
+                      }
+                      initialQuestion={
+                        'question' in request ? request.question : undefined
+                      }
+                      anchor={itemId ? { feed_item_id: itemId } : undefined}
+                      feedPicks={empty ? (picks ?? []) : undefined}
+                      preset={
+                        'question' in request && itemId
+                          ? request.preset
+                          : undefined
+                      }
+                    />
+                    <div className="relative px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-4">
+                      <ChatJumpBackPill />
+                      <ChatDynamicChatInput
+                        initialSystemStatus={{ is_at_rate_limit: false }}
+                      />
+                    </div>
                   </div>
-                  <ChatDynamicChatInput
-                    initialSystemStatus={{ is_at_rate_limit: false }}
-                  />
-                </div>
-              </div>
+                </FocusScope>
+              </RemoveScroll>
             </ChatJumpProvider>
           </ChatHostProvider>
         </SseChatProvider>

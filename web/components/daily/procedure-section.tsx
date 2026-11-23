@@ -549,9 +549,8 @@ export function CardProcedureMarker({
   return marker ? <ProcedureMarkerLine marker={marker} /> : null;
 }
 
-/** A law's timeline inside a chat about it: each step unfolds to its
- * summary and documents, without the feed's item links or chat buttons.
- * Null for anything but a law. */
+/** A procedure's timeline inside a chat about it: each step unfolds to its
+ * summary and documents, without the feed's item links or chat buttons. */
 export function ProcedureTimeline({
   procedure,
 }: {

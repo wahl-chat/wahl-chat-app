@@ -1,10 +1,11 @@
 'use client';
 
 import { useChatStore } from '@/components/providers/chat-store-provider';
+import { markReturnChat } from '@/lib/daily/chat-handoff';
 import { feedItemHref } from '@/lib/daily/share';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
-import { markReturnChat, useChatHost } from './chat-host';
+import { useChatHost } from './chat-host';
 
 /** Opens a feed item from the chat; the item's view then leads back. In
  * the sheet a loaded item opens under it instead. */

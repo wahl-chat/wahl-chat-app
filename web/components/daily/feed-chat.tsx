@@ -1,21 +1,19 @@
 'use client';
 
-import {
-  type ReturnChat,
-  clearReturnChat,
-  markFromFeed,
-  readReturnChat,
-} from '@/components/chat/chat-host';
 import StickyInput from '@/components/sticky-input';
 import {
   type FeedChatMode,
   type ItemChat,
+  type ReturnChat,
   chatAbout,
   chatSessionHref,
+  clearReturnChat,
   feedChatHref,
   itemChatHref,
   itemProcedureIds,
   latestGeneralChat,
+  markFromFeed,
+  readReturnChat,
   storedItemId,
 } from '@/lib/daily/chat-handoff';
 import { type DetailItem, itemTitle } from '@/lib/daily/items';
@@ -95,17 +93,8 @@ function openChatPage(
  * provides one. */
 export function useFeedChat(): FeedChat {
   const api = useContext(FeedChatApi);
-  const router = useRouter();
-  return useMemo(
-    () =>
-      api ?? {
-        ask: (request: FeedChatRequest) => openChatPage(router, request),
-        chatFor: () => null,
-        general: null,
-        parked: null,
-      },
-    [api, router],
-  );
+  if (!api) throw new Error('useFeedChat needs a FeedChatProvider');
+  return api;
 }
 
 export type Sheet = {
@@ -128,8 +117,7 @@ type ProviderProps = {
   chatContext?: FeedChatContext;
   /** Shows a feed item's detail view; false when the feed has not loaded it. */
   openItem: (feedItemId: string) => boolean;
-  /** Hides the open detail view: it is modal, so the sheet takes its place;
-   * leaving the sheet shows it again. */
+  /** Hides the open detail view while the sheet is up; it is modal. */
   closeItem: () => void;
 };
 
@@ -172,7 +160,7 @@ export function FeedChatProvider({
   const general = useMemo(() => latestGeneralChat(history), [history]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const seq = useRef(0);
-  const useSheet = mode === 'sheet' && chatContext !== undefined;
+  const inSheet = mode === 'sheet' && chatContext !== undefined;
   // The feed's callbacks change every render; read them through refs so
   // the chat's context stays stable.
   const feed = useRef({ openItem, closeItem });
@@ -219,13 +207,19 @@ export function FeedChatProvider({
   }, []);
 
   const end = useCallback(() => {
+    // Unmarked, Forward onto this entry later shows the feed, not a sheet
+    // that is gone.
+    if (pushed.current) {
+      const { [SHEET_STATE]: _, ...state } = window.history.state ?? {};
+      window.history.replaceState(state, '');
+    }
     minimize();
     setSheet(null);
   }, [minimize]);
 
   const ask = useCallback(
     (request: FeedChatRequest) => {
-      if (!useSheet) {
+      if (!inSheet) {
         openChatPage(router, request);
         return;
       }
@@ -261,13 +255,14 @@ export function FeedChatProvider({
           return {
             ...value,
             open: true,
+            parkedFor: null,
             followUp: { seq: id, question: request.question, itemId },
           };
         }
         return newSheet(`ask:${id}`, request, request.question);
       });
     },
-    [useSheet, router],
+    [inSheet, router],
   );
 
   const openFeedItem = useCallback((feedItemId: string) => {
@@ -298,8 +293,8 @@ export function FeedChatProvider({
   // The chat page variant: the chat the reader left for the feed.
   const [returnChat, setReturnChat] = useState<ReturnChat | null>(null);
   useEffect(() => {
-    if (!useSheet) setReturnChat(readReturnChat());
-  }, [useSheet]);
+    if (!inSheet) setReturnChat(readReturnChat());
+  }, [inSheet]);
 
   const label = sheet?.label;
   const parkedFor = sheet?.parkedFor ?? null;
@@ -339,7 +334,7 @@ export function FeedChatProvider({
   return (
     <FeedChatApi.Provider value={api}>
       {children}
-      {useSheet && sheet && chatContext && (
+      {inSheet && sheet && chatContext && (
         <FeedChatSheet
           key={sheet.key}
           sheet={sheet}
@@ -354,6 +349,16 @@ export function FeedChatProvider({
   );
 }
 
+/** A chat's name in its resume buttons. */
+function chatName(title: string | undefined): string {
+  return title?.trim() || 'Weitermachen';
+}
+
+/** Back into a saved chat, labelled by its title or `fallback`. */
+function resume(chat: ItemChat, fallback: string): FeedChatRequest {
+  return { sessionId: chat.sessionId, label: chat.title || fallback };
+}
+
 /** "Dein Chat: <title> →" as a translucent bubble, narrower than the
  * input under it, so it reads as a hint above it, not a second bar. */
 function ChatBubble({
@@ -365,25 +370,27 @@ function ChatBubble({
   onClick: () => void;
   className?: string;
 }) {
+  const name = chatName(title);
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`Dein Chat: ${name}`}
       className={cn(
-        'mx-auto w-[80%] rounded-full border border-[var(--daily-border)] bg-[var(--daily-canvas)]/70 px-3 text-[13px] text-[var(--daily-muted)] shadow-sm backdrop-blur-md',
+        'mx-auto flex min-h-10 w-[80%] min-w-0 items-center justify-center gap-1.5 rounded-full border border-[var(--daily-border)] bg-[var(--daily-canvas)]/70 px-3 text-[13px] text-[var(--daily-muted)] shadow-sm backdrop-blur-md transition-colors hover:text-[var(--daily-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--daily-ink)]',
         className,
       )}
     >
-      <ResumeLink
-        title={title}
-        onClick={onClick}
-        className="min-h-10 w-full justify-center"
-      />
-    </div>
+      <MessageCircleIcon className="size-4 shrink-0" aria-hidden />
+      <span className="truncate">
+        Dein Chat:{' '}
+        <span className="font-medium text-[var(--daily-ink)]">{name}</span>
+      </span>
+      <ArrowRightIcon className="size-4 shrink-0" aria-hidden />
+    </button>
   );
 }
 
-/** The one floating hint above an item's ask bar: back to the chat the
- * item was opened from, else the reader's own chat about it. A new chat
- * starts in the ask bar itself. */
 function useItemChatSlot(item: DetailItem) {
   const { chatFor, parked } = useFeedChat();
   const itemId = storedItemId(item);
@@ -398,6 +405,9 @@ export function ItemChatSlotSpace({ item }: { item: DetailItem }) {
   return cameFrom || chat ? <div aria-hidden className="h-14" /> : null;
 }
 
+/** The one floating hint above an item's ask bar: back to the chat the
+ * item was opened from, else the reader's own chat about it. A new chat
+ * starts in the ask bar itself. */
 export function ItemChatSlot({ item }: { item: DetailItem }) {
   const { ask } = useFeedChat();
   const { cameFrom, chat } = useItemChatSlot(item);
@@ -419,47 +429,11 @@ export function ItemChatSlot({ item }: { item: DetailItem }) {
         chat && (
           <ChatBubble
             title={chat.title}
-            onClick={() =>
-              ask({
-                sessionId: chat.sessionId,
-                label: chat.title || itemTitle(item),
-              })
-            }
+            onClick={() => ask(resume(chat, itemTitle(item)))}
           />
         )
       )}
     </div>
-  );
-}
-
-const RESUME_ACTION =
-  'flex min-h-11 items-center gap-1.5 rounded-lg transition-colors hover:text-[var(--daily-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--daily-ink)]';
-
-/** "Dein Chat: <title> →", the way back into a chat by its name. */
-function ResumeLink({
-  title,
-  onClick,
-  className,
-}: {
-  title: string | undefined;
-  onClick: () => void;
-  className?: string;
-}) {
-  const name = title?.trim() || 'Weitermachen, wo du aufgehört hast';
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={`Dein Chat: ${name}`}
-      className={cn(RESUME_ACTION, 'min-w-0 text-left', className)}
-    >
-      <MessageCircleIcon className="size-4 shrink-0" aria-hidden />
-      <span className="truncate">
-        Dein Chat:{' '}
-        <span className="font-medium text-[var(--daily-ink)]">{name}</span>
-      </span>
-      <ArrowRightIcon className="size-4 shrink-0" aria-hidden />
-    </button>
   );
 }
 
@@ -472,12 +446,7 @@ export function FeedAskBar({ className }: { className?: string }) {
       {general && (
         <ChatBubble
           title={general.title}
-          onClick={() =>
-            ask({
-              sessionId: general.sessionId,
-              label: general.title || 'Dein Chat',
-            })
-          }
+          onClick={() => ask(resume(general, 'Dein Chat'))}
           className="mb-1.5"
         />
       )}
@@ -517,12 +486,7 @@ export function ChatButtons({
     >
       <button
         type="button"
-        onClick={() =>
-          ask({
-            sessionId: chat.sessionId,
-            label: chat.title || itemTitle(item),
-          })
-        }
+        onClick={() => ask(resume(chat, itemTitle(item)))}
         title={chat.title}
         aria-label={`Dein Chat dazu${chat.title ? `: ${chat.title}` : ''}`}
         className={cn(segment, 'min-w-0 pl-3.5 pr-3')}
@@ -530,9 +494,7 @@ export function ChatButtons({
         <MessageCircleIcon className="size-4 shrink-0" aria-hidden />
         <span className="truncate">
           <span className="text-[var(--daily-muted)]">Dein Chat:</span>{' '}
-          <span className="font-semibold">
-            {chat.title?.trim() || 'Weitermachen'}
-          </span>
+          <span className="font-semibold">{chatName(chat.title)}</span>
         </span>
       </button>
       <span aria-hidden className="w-px shrink-0 bg-[var(--daily-border)]" />

@@ -1,4 +1,4 @@
-import { sanitizeChatAnchor } from '@/lib/chat-anchor';
+import { isChatPageUrl, sanitizeChatAnchor } from '@/lib/chat-anchor';
 import { chatViewScrollToBottom } from '@/lib/scroll-utils';
 import type { ChatStoreActionHandlerFor } from '@/lib/stores/chat-store.types';
 import { areSetsEqual, generateUuid } from '@/lib/utils';
@@ -63,10 +63,10 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
       typeof window !== 'undefined'
     ) {
       const url = new URL(window.location.href);
-      const handoff = ['q', 'prefill', 'preset'];
-      // A chat opened in a sheet over the feed leaves the feed's URL alone.
-      if (handoff.some((name) => url.searchParams.has(name))) {
-        for (const name of handoff) url.searchParams.delete(name);
+      if (isChatPageUrl(url)) {
+        for (const name of ['q', 'prefill', 'preset']) {
+          url.searchParams.delete(name);
+        }
         window.history.replaceState({}, '', url.toString());
       }
     }

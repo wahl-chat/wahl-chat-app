@@ -64,9 +64,7 @@ async function ChatView({
         </Suspense>
 
         <div className="relative px-3 md:px-4">
-          <div className="pointer-events-none absolute inset-x-0 -top-14 z-10 flex justify-center">
-            <ChatJumpBackPill />
-          </div>
+          <ChatJumpBackPill />
           <ChatProlificWrapper />
           <ChatStudyWrapper />
           <ChatScrollDownIndicator />

@@ -3,7 +3,7 @@
 import LoadingSpinner from '@/components/loading-spinner';
 import { useChatStore } from '@/components/providers/chat-store-provider';
 import { Input } from '@/components/ui/input';
-import { type FeedPick, filterPicks } from '@/lib/chat-feed';
+import { type FeedPick, filterPicks, pickMeta } from '@/lib/chat-feed';
 import { getChatFeedPicks } from '@/lib/server-actions/chat-feed-picks';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
@@ -20,19 +20,6 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
-
-const shortDay = new Intl.DateTimeFormat('de-DE', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-});
-
-export function pickMeta(pick: FeedPick): string {
-  const day = shortDay.format(new Date(`${pick.date}T00:00:00Z`));
-  return [pick.kind === 'vote' ? 'Abstimmung' : 'Debatte', day, pick.outcome]
-    .filter(Boolean)
-    .join(' · ');
-}
 
 /** Picks the feed item the general chat is about; replaces its anchor. */
 function ChatFeedPicker({ open, onOpenChange }: Props) {

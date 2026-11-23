@@ -39,7 +39,8 @@ BASELINE_RANK = 50
 MIN_LEAD = 0.065
 # A tail far behind a clear match ("Mercosur": 0.17, then 0.04) is dropped.
 LEAD_RATIO = 0.6
-# Leads this close count as equal; the newer item comes first.
+# Leads in the same band of this width count as equal; the newer item
+# comes first.
 TIE = 0.01
 
 _checked: set[int] = set()
@@ -63,7 +64,9 @@ def _mark_unavailable(parliament: str) -> None:
     _unavailable_until[parliament] = time.monotonic() + UNAVAILABLE_S
 
 
-def select(hits: Sequence[tuple[str, float, str]], baseline_rank: int = BASELINE_RANK) -> list[str]:
+def select(
+    hits: Sequence[tuple[str, float, str]], baseline_rank: int = BASELINE_RANK
+) -> list[str]:
     """Ids of the items that clearly lead the background, from (id, score,
     ISO date) in score order; none when the collection is too small to have
     a background."""
@@ -81,35 +84,42 @@ def select(hits: Sequence[tuple[str, float, str]], baseline_rank: int = BASELINE
 async def find(query: str, parliament: str, client: Optional[Any] = None) -> list[str]:
     """Published items of ``parliament`` that match ``query``, best first."""
     client = client if client is not None else _get_qdrant()
-    if id(client) not in _checked:
-        await acheck_fingerprint(client, FEED_COLLECTION_NAME)
-        _checked.add(id(client))
     vector = await embed_query(query)
     try:
+        if id(client) not in _checked:
+            await acheck_fingerprint(client, FEED_COLLECTION_NAME)
         response = await client.query_points(
             collection_name=FEED_COLLECTION_NAME,
             query=vector,
             using="dense",
             query_filter=models.Filter(
                 must=[
-                    models.FieldCondition(key="status", match=models.MatchValue(value="published")),
-                    models.FieldCondition(key="parliament", match=models.MatchValue(value=parliament)),
+                    models.FieldCondition(
+                        key="status", match=models.MatchValue(value="published")
+                    ),
+                    models.FieldCondition(
+                        key="parliament", match=models.MatchValue(value=parliament)
+                    ),
                 ]
             ),
             limit=BASELINE_RANK,
             with_payload=["item_id", "date"],
         )
     except Exception:
-        # Most likely a missing collection; retried after UNAVAILABLE_S.
+        # A missing collection or a fingerprint mismatch; retried after
+        # UNAVAILABLE_S.
         _mark_unavailable(parliament)
         raise
+    _checked.add(id(client))
     hits = [
         (str(payload["item_id"]), float(point.score), str(payload.get("date") or ""))
         for point in response.points
         if (payload := point.payload or {}).get("item_id")
     ]
     if len(hits) < BASELINE_RANK:
-        logger.info("related feed items: only %d %s items indexed", len(hits), parliament)
+        logger.info(
+            "related feed items: only %d %s items indexed", len(hits), parliament
+        )
         _mark_unavailable(parliament)
     return select(hits)
 
