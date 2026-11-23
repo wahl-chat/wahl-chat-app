@@ -7,9 +7,14 @@ export const setAnchor: ChatStoreActionHandlerFor<'setAnchor'> =
 
     const { chatSessionId, messages } = get();
     if (!chatSessionId || messages.length === 0) {
-      // Until its first message a new chat's anchor lives in its URL.
-      if (typeof window !== 'undefined') {
-        const url = new URL(window.location.href);
+      // Until its first message a new chat's anchor lives in its URL; a
+      // chat in a sheet over the feed leaves the feed's URL alone.
+      const url =
+        typeof window !== 'undefined' ? new URL(window.location.href) : null;
+      if (
+        url &&
+        (url.pathname === '/chat' || url.pathname.endsWith('/session'))
+      ) {
         url.searchParams.delete('feed_item');
         url.searchParams.delete('poll_id');
         url.searchParams.delete('procedure');

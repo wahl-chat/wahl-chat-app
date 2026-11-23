@@ -37,6 +37,7 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
       onSubmit,
       className,
       onFocus,
+      onBlur,
       onPointerDown,
       onKeyDown,
       onChange,
@@ -52,6 +53,8 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
     // Bumped when the box changes width, so the height follows the new wrap.
     const [width, setWidth] = useState(0);
     const composing = useRef(false);
+    const [focused, setFocused] = useState(false);
+    useKeyboardCover(focused ? ref : null);
 
     const setRefs = useCallback(
       (node: HTMLTextAreaElement | null) => {
@@ -128,7 +131,12 @@ const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(
         className={cn('block resize-none leading-6', className)}
         onFocus={(event) => {
           setCollapsed(false);
+          setFocused(true);
           onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setFocused(false);
+          onBlur?.(event);
         }}
         onPointerDown={(event) => {
           setCollapsed(false);
@@ -184,4 +192,66 @@ export function useCoarsePointer(): boolean {
     return () => query.removeEventListener('change', onChange);
   }, []);
   return coarse;
+}
+
+/** The nearest painted background around the box, skipping its own form. */
+function surroundingBackground(node: HTMLElement): string {
+  let element = node.closest('form')?.parentElement ?? node.parentElement;
+  while (element) {
+    const color = getComputedStyle(element).backgroundColor;
+    if (color && color !== 'transparent' && !color.endsWith(', 0)')) {
+      return color;
+    }
+    element = element.parentElement;
+  }
+  return getComputedStyle(document.body).backgroundColor;
+}
+
+/** With a phone keyboard open, iOS Safari shows the page below the visible
+ * part behind its toolbar, but without fixed and sticky boxes, so the feed
+ * shows between the box and the keyboard. A plain box in the page covers
+ * that strip in the box's surrounding colour; elsewhere it sits below the
+ * screen. */
+function useKeyboardCover(target: React.RefObject<HTMLElement | null> | null) {
+  useEffect(() => {
+    const node = target?.current;
+    const viewport = window.visualViewport;
+    if (!node || !viewport) {
+      return;
+    }
+    const cover = document.createElement('div');
+    cover.setAttribute('aria-hidden', 'true');
+    Object.assign(cover.style, {
+      position: 'absolute',
+      left: '0',
+      width: '100%',
+      // Over the page, under its ask bars (z-30 and up), sheets and dialogs.
+      zIndex: '25',
+      pointerEvents: 'none',
+      background: surroundingBackground(node),
+    });
+    // Never past the page's end, so it adds no scroll room.
+    const pageEnd = document.documentElement.scrollHeight;
+    const place = () => {
+      // From the box's lower edge, so no page peeks out between the two.
+      const box = (node.closest('form') ?? node).getBoundingClientRect();
+      const top = Math.min(
+        viewport.pageTop + viewport.height,
+        viewport.pageTop + box.bottom,
+      );
+      cover.style.top = `${top}px`;
+      cover.style.height = `${Math.max(0, Math.min(window.innerHeight, pageEnd - top))}px`;
+    };
+    place();
+    document.body.appendChild(cover);
+    viewport.addEventListener('resize', place);
+    viewport.addEventListener('scroll', place);
+    window.addEventListener('scroll', place, { passive: true });
+    return () => {
+      viewport.removeEventListener('resize', place);
+      viewport.removeEventListener('scroll', place);
+      window.removeEventListener('scroll', place);
+      cover.remove();
+    };
+  }, [target]);
 }

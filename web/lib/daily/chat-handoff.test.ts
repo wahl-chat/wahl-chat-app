@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { DailyDigest } from '@/lib/firebase/firebase.types';
-import { feedChatHref } from './chat-handoff';
+import type { ChatSession, DailyDigest } from '@/lib/firebase/firebase.types';
+import { chatAbout, feedChatHref, latestGeneralChat } from './chat-handoff';
 import { sectionItems, voteItems } from './items';
 
 const DIGEST: DailyDigest = {
@@ -109,5 +109,66 @@ describe('feedChatHref', () => {
     expect(why.searchParams.get('preset')).toBe('why');
     const typed = new URL(feedChatHref(vote, 'Warum?'), 'https://wahl.chat');
     expect(typed.searchParams.has('preset')).toBe(false);
+  });
+});
+
+describe('feedChatHref without an item', () => {
+  it('asks the question on its own', () => {
+    expect(feedChatHref(undefined, 'Was ist mit der Rente?')).toBe(
+      '/chat?q=Was+ist+mit+der+Rente%3F',
+    );
+  });
+});
+
+describe('chatAbout', () => {
+  const session = (
+    id: string,
+    anchor?: ChatSession['anchor'],
+    contextId = 'bundestag-aktuell',
+  ): ChatSession => ({ id, user_id: 'u', context_id: contextId, anchor });
+
+  it('takes the last active chat about the item or one of its procedures', () => {
+    const history = [
+      session('other-item', { feed_item_id: 'item-b' }),
+      session('timeline', { vorgang_id: '123' }),
+      session('item', { feed_item_id: 'item-a' }),
+    ];
+    expect(chatAbout(history, 'item-a', ['123'])?.sessionId).toBe('timeline');
+    expect(chatAbout(history, 'item-a', [])?.sessionId).toBe('item');
+    expect(chatAbout(history, 'item-c', ['999'])).toBeNull();
+  });
+
+  it('skips other contexts and chats about nothing', () => {
+    const history = [
+      session('election', { feed_item_id: 'item-a' }, 'bundestagswahl-2025'),
+      session('general'),
+    ];
+    expect(chatAbout(history, 'item-a', [])).toBeNull();
+  });
+});
+
+describe('latestGeneralChat', () => {
+  it('takes the newest chat that is about no item', () => {
+    const history: ChatSession[] = [
+      {
+        id: 'pinned',
+        user_id: 'u',
+        context_id: 'bundestag-aktuell',
+        anchor: { feed_item_id: 'x' },
+      },
+      { id: 'election', user_id: 'u', context_id: 'bundestagswahl-2025' },
+      {
+        id: 'general',
+        user_id: 'u',
+        context_id: 'bundestag-aktuell',
+        title: 'Klima',
+      },
+      { id: 'older', user_id: 'u', context_id: 'bundestag-aktuell' },
+    ];
+    expect(latestGeneralChat(history)).toEqual({
+      sessionId: 'general',
+      title: 'Klima',
+    });
+    expect(latestGeneralChat([])).toBeNull();
   });
 });

@@ -14,8 +14,7 @@ import pytest
 
 import src.generic_chat.positions as positions
 import src.generic_chat.tools as tools
-from src.generic_chat.schemas import Anchor, SearchInput
-from src.generic_chat.stream import settled_anchor
+from src.generic_chat.schemas import SearchInput
 from tests.generic_chat.conftest import FakeIO, make_deps, retrieve_signature_check
 
 LAW = "338341"
@@ -137,19 +136,6 @@ async def test_search_without_a_scope_is_unchanged(fake_io: FakeIO) -> None:
     result = await tools.search(make_deps(), SearchInput(query="Mieten", source_types=["parliamentary_speech"]))
     assert [d.tier for d in result.documents] == [None]
     assert all("vorgang_id" not in call for call in fake_io.retrieve_calls)
-
-
-def test_the_anchor_a_turn_settles_on() -> None:
-    deps = make_deps()
-    assert settled_anchor(deps) is None
-    deps.settle(Anchor(vorgang_id=LAW))
-    assert settled_anchor(deps) == Anchor(vorgang_id=LAW)
-    # The vote is more specific than its law.
-    deps.settle(Anchor(feed_item_id="bundestag_2026-11-13_v6771"))
-    assert settled_anchor(deps) == Anchor(feed_item_id="bundestag_2026-11-13_v6771")
-    # Two votes: the turn was a recap, nothing to pin.
-    deps.settle(Anchor(poll_id=6772))
-    assert settled_anchor(deps) is None
 
 
 async def test_a_tool_never_takes_an_id_no_tool_showed(fake_io: FakeIO) -> None:

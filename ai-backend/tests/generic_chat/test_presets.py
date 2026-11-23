@@ -173,3 +173,11 @@ async def test_a_failing_check_keeps_the_answer(
     monkeypatch.setattr(stream.citation_check, "check", broken)
     parts = await _run(Script(say("Die SPD stimmte mit Ja [0].")), monkeypatch, user_message=WHY, anchor={"poll_id": POLL_ID})
     assert _answer(parts) == "Die SPD stimmte mit Ja [0]."
+
+
+def test_the_tool_result_reminder_is_part_of_the_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    deps = make_deps()
+    deps.preset = "why"
+    before = presets.cache_key(deps, WHY, object())
+    monkeypatch.setattr(presets, "tool_result_reminder", lambda language: "changed")
+    assert presets.cache_key(deps, WHY, object()) != before

@@ -17,6 +17,7 @@ import AutoHeight from 'embla-carousel-auto-height';
 import ChatGroupSlideCounter from './chat-group-slide-counter';
 import ChatSingleMessage from './chat-single-message';
 import MessageLoadingBorderTrail from './message-loading-border-trail';
+import RelatedFeedItems from './related-feed-items';
 import SurveyBanner from './survey-banner';
 
 type Props = {
@@ -26,7 +27,7 @@ type Props = {
   parties?: PartyDetails[];
 };
 
-function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
+function GroupedMessageBody({ message, isLastMessage, parties }: Props) {
   const isLoadingAnyAction = useChatStore(
     (state) =>
       state.loading.proConPerspective === message.id ||
@@ -95,6 +96,19 @@ function ChatGroupedMessages({ message, isLastMessage, parties }: Props) {
       {isLastMessage && !isProlificStudy() && <SurveyBanner />}
       {isLoadingAnyAction && <MessageLoadingBorderTrail />}
     </Carousel>
+  );
+}
+
+function ChatGroupedMessages(props: Props) {
+  const related = props.message.related_item_ids;
+  if (!related?.length) {
+    return <GroupedMessageBody {...props} />;
+  }
+  return (
+    <div className="flex flex-col gap-4">
+      <GroupedMessageBody {...props} />
+      <RelatedFeedItems ids={related} />
+    </div>
   );
 }
 

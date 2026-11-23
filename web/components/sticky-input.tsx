@@ -5,7 +5,7 @@ import { ArrowUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Logo from './chat/logo';
 import MessageLoadingBorderTrail from './chat/message-loading-border-trail';
-import AutoGrowTextarea, { useCoarsePointer } from './ui/auto-grow-textarea';
+import AutoGrowTextarea from './ui/auto-grow-textarea';
 import { Button } from './ui/button';
 
 type Props = {
@@ -14,6 +14,8 @@ type Props = {
   quickReplies?: string[];
   placeholder?: string;
   className?: string;
+  /** For an input that stays on screen after asking. */
+  clearOnSubmit?: boolean;
 };
 
 function StickyInput({
@@ -22,12 +24,12 @@ function StickyInput({
   quickReplies,
   placeholder = 'Frage die Parteien...',
   className,
+  clearOnSubmit = false,
 }: Props) {
   const [input, setInput] = useState('');
   const [isSticky, setIsSticky] = useState(true);
   const [focused, setFocused] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const touch = useCoarsePointer();
 
   useEffect(() => {
     const node = ref.current;
@@ -67,6 +69,7 @@ function StickyInput({
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
     onSubmit(input);
+    if (clearOnSubmit) setInput('');
   };
 
   const handleQuickReplyClick = (reply: string) => {
@@ -82,23 +85,13 @@ function StickyInput({
         className,
       )}
     >
-      {/* With the keyboard open, the page below the box shows above it.
-          A shadow covers it without changing the layout. */}
-      {focused && touch && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            boxShadow:
-              '0 100vh 0 100vh var(--daily-canvas, hsl(var(--background)))',
-          }}
-        />
-      )}
       <form
         onSubmit={handleSubmit}
         className={cn(
           'relative shadow-2xl transition-shadow duration-300 max-w-xl mx-auto w-full grid overflow-hidden rounded-[20px] border border-input dark:focus-within:border-zinc-700 focus-within:border-zinc-300 bg-chat-input ease-out md:shadow-none',
-          !isSticky && 'shadow-none',
+          // Typing, the box sits on the keyboard; a shadow there reads as a
+          // gap.
+          (!isSticky || focused) && 'shadow-none',
         )}
       >
         {isLoading && <MessageLoadingBorderTrail />}

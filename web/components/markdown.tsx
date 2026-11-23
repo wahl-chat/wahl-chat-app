@@ -1,3 +1,4 @@
+import { cleanLabel, pointAnchorId } from '@/lib/chat-summary';
 import Link from 'next/link';
 import {
   type DetailedHTMLProps,
@@ -10,12 +11,37 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ChatMessageReference from './chat/chat-message-reference';
 
+const REFERENCE = /^\[\d+(?:\s*,\s*\d+)*]$/;
+const TRAILING_PUNCTUATION = /^[.,;:!?)\]»“"']+/;
+
+type HastNode = {
+  type: string;
+  tagName?: string;
+  value?: string;
+  children?: HastNode[];
+};
+
+/** The text of a block's leading bold span, as in `**Grüne** stimmten …`. */
+function leadingBold(node: unknown): string | undefined {
+  const first = (node as HastNode | undefined)?.children?.find(
+    (child) => child.type !== 'text' || child.value?.trim(),
+  );
+  if (first?.tagName !== 'strong') return undefined;
+  return cleanLabel(
+    first.children?.map((child) => child.value ?? '').join('') ?? '',
+  );
+}
+
 type Props = {
   children: string;
   onReferenceClick: (number: number) => void;
   getReferenceName?: (number: number) => string | null;
   getReferenceTooltip?: (number: number) => string | null;
   getReferenceIsVideo?: (number: number) => boolean;
+  /** With `anchorLabels`: a block that opens with one of these bold labels
+   * gets an id from `anchorPrefix`, for the "Kurz gesagt" points to jump to. */
+  anchorPrefix?: string;
+  anchorLabels?: ReadonlySet<string>;
 };
 
 const NonMemoizedMarkdown = ({
@@ -24,7 +50,19 @@ const NonMemoizedMarkdown = ({
   getReferenceTooltip,
   getReferenceName,
   getReferenceIsVideo,
+  anchorPrefix,
+  anchorLabels,
 }: Props) => {
+  // Pure per block: React may render a block twice. A repeated label
+  // repeats the id, and a jump lands on its first block.
+  const anchorId = (node: unknown): string | undefined => {
+    if (!anchorPrefix || !anchorLabels) return undefined;
+    const label = leadingBold(node);
+    return label && anchorLabels.has(label)
+      ? pointAnchorId(anchorPrefix, label)
+      : undefined;
+  };
+
   // react-markdown v9 passes a 'node' prop to components which is not a valid DOM attribute
   // and causes TypeScript errors when spreading props to elements like Link or pre.
   const cleanProps = (props: Record<string, unknown>) => {
@@ -48,7 +86,7 @@ const NonMemoizedMarkdown = ({
           const match = part.match(/^\[(\d+(?:\s*,\s*\d+)*)]$/);
           if (match) {
             const numbers = match[1].split(',');
-            return (
+            const pill = (
               <ChatMessageReference
                 key={`${index}-${numbers}`}
                 numbers={numbers}
@@ -59,8 +97,21 @@ const NonMemoizedMarkdown = ({
                 getReferenceIsVideo={getReferenceIsVideo}
               />
             );
+            // Punctuation right after a pill wraps with it, never alone.
+            const trailing = TRAILING_PUNCTUATION.exec(parts[index + 1] ?? '');
+            return trailing ? (
+              <span key={`${index}-${numbers}`} className="whitespace-nowrap">
+                {pill}
+                {trailing[0]}
+              </span>
+            ) : (
+              pill
+            );
           }
-          return part;
+          const previous = parts[index - 1];
+          return previous && REFERENCE.test(previous)
+            ? part.replace(TRAILING_PUNCTUATION, '')
+            : part;
         });
       }
 
@@ -117,10 +168,13 @@ const NonMemoizedMarkdown = ({
         </ol>
       );
     },
-    li: ({ children, ...props }) => {
+    li: ({ children, node, ...props }) => {
+      const id = anchorId(node);
       return checkAndBuildReference('li', {
         children,
-        className: 'py-1',
+        className: id ? 'scroll-mt-4 py-1 outline-none' : 'py-1',
+        id,
+        tabIndex: id ? -1 : undefined,
         ...cleanProps(props),
       });
     },
@@ -141,8 +195,15 @@ const NonMemoizedMarkdown = ({
     em: ({ children, ...props }) => {
       return checkAndBuildReference('em', { children, ...cleanProps(props) });
     },
-    p: ({ children, ...props }) => {
-      return checkAndBuildReference('p', { children, ...cleanProps(props) });
+    p: ({ children, node, ...props }) => {
+      const id = anchorId(node);
+      return checkAndBuildReference('p', {
+        children,
+        id,
+        tabIndex: id ? -1 : undefined,
+        className: id ? 'scroll-mt-4 outline-none' : undefined,
+        ...cleanProps(props),
+      });
     },
     a: ({ children, href, ...props }) => {
       if (!href) {

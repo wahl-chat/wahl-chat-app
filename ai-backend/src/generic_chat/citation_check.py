@@ -112,7 +112,8 @@ def cited_sentences(answer: str) -> list[CitedSentence]:
         end = boundary.start() if boundary else len(answer)
         chunk = answer[start:end]
         cited = tuple(dict.fromkeys(n for m in _CITE.finditer(chunk) for n in _ids(m.group(1))))
-        text = _CITE.sub("", chunk).strip(" *-•\t")
+        # Bold is layout; the check reads the words.
+        text = _CITE.sub("", chunk).replace("**", "").strip(" *-•\t")
         if cited and text:
             out.append(CitedSentence(len(out), text, cited, start, end))
         if boundary:

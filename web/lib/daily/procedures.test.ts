@@ -12,6 +12,7 @@ import {
   procedureChatHref,
   procedureMarker,
   procedureSection,
+  procedureTimeline,
   stepFeedLinks,
   stepHref,
   timelineSteps,
@@ -111,6 +112,27 @@ describe('procedureSection', () => {
     expect(section.status).toBe(
       'Im Bundestag beschlossen am 12.11.26 · als Nächstes: Bundesrat: Entscheidung',
     );
+  });
+
+  it('shows a law from outside any item: newest step stands out, next open', () => {
+    const steps = procedureTimeline(IN_COMMITTEE);
+    expect(steps?.some((s) => s.state === 'here')).toBe(false);
+    expect(steps?.find((s) => s.state === 'latest')?.label).toBe(
+      'Ausschuss: Empfehlung',
+    );
+    expect(steps?.at(-1)?.state).toBe('next');
+  });
+
+  it('shows the steps of a motion too, without a next one', () => {
+    const steps = procedureTimeline(
+      motion('7', {
+        milestones: [
+          { date: '2026-10-01', chamber: 'BT', name: '1. Beratung' },
+          { date: '2026-10-08', chamber: 'BT', name: 'Beschlussempfehlung' },
+        ],
+      }),
+    );
+    expect(steps?.map((s) => s.state)).toEqual(['done', 'latest']);
   });
 
   it('marks the latest step after a debate and asks how it went on', () => {

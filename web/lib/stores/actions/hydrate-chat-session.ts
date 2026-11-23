@@ -63,10 +63,12 @@ export const hydrateChatSession: ChatStoreActionHandlerFor<
       typeof window !== 'undefined'
     ) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('q');
-      url.searchParams.delete('prefill');
-      url.searchParams.delete('preset');
-      window.history.replaceState({}, '', url.toString());
+      const handoff = ['q', 'prefill', 'preset'];
+      // A chat opened in a sheet over the feed leaves the feed's URL alone.
+      if (handoff.some((name) => url.searchParams.has(name))) {
+        for (const name of handoff) url.searchParams.delete(name);
+        window.history.replaceState({}, '', url.toString());
+      }
     }
 
     if (chatSession && messages !== undefined) {

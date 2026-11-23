@@ -249,3 +249,12 @@ def _no_citation_check(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.generic_chat import citation_check
 
     monkeypatch.setenv(citation_check.ENV, "off")
+
+
+@pytest.fixture(autouse=True)
+def _no_related_items(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No feed search from tests; test_related switches it on with a fake."""
+    from src.generic_chat import related
+
+    monkeypatch.setenv(related.ENV, "off")
+    monkeypatch.setattr(related, "_unavailable_until", {})

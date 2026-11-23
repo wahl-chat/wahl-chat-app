@@ -34,7 +34,7 @@ def test_ordinals_and_dates_do_not_end_a_sentence() -> None:
 def test_sentences_carry_their_citations() -> None:
     sentences = cc.cited_sentences(ANSWER)
     assert [s.cited for s in sentences] == [(0,), (2, 4), (5, 9)]
-    assert sentences[2].text.startswith("Linke:**")
+    assert sentences[2].text.startswith("Linke: Bünger")
     assert "[" not in sentences[1].text
 
 
@@ -60,6 +60,47 @@ def test_repair_keeps_repoints_and_drops() -> None:
 
     dropped = cc.repair(ANSWER, _verdicts([set(), {2, 4}, {5, 9}]))
     assert dropped.startswith("Der Bundestag nahm das Gesetz an. Krings")
+
+
+SUMMARY_ANSWER = (
+    "**Kurz gesagt:**\n"
+    "- **SPD**: dafür, weil es Mieter entlaste\n"
+    "- **Grüne**: dagegen, weil die Dienste zu viel dürften\n"
+    "\n"
+    "**SPD**: Die Fraktion stimmte mit **Ja** [0]. Krings sagte, die Dienste brauchten mehr Befugnisse [4].\n"
+    "\n"
+    "**Grüne**: Die Fraktion lehnte ab [2]."
+)
+SUMMARY_HEAD = SUMMARY_ANSWER.split("\n\n**SPD**:")[0]
+
+
+def test_summary_block_is_not_checked_and_survives_repair() -> None:
+    sentences = cc.cited_sentences(SUMMARY_ANSWER)
+    assert [s.text for s in sentences] == [
+        "SPD: Die Fraktion stimmte mit Ja.",
+        "Krings sagte, die Dienste brauchten mehr Befugnisse.",
+        "Grüne: Die Fraktion lehnte ab.",
+    ]
+    verdicts = [cc.Verdict(s, sup) for s, sup in zip(sentences, [{0}, set(), {2}])]
+    fixed = cc.repair(SUMMARY_ANSWER, verdicts, SOURCES)
+    assert fixed.startswith(SUMMARY_HEAD + "\n\n**SPD**: Die Fraktion stimmte mit **Ja** [0]. Krings")
+    assert "Befugnisse.\n\n**Grüne**: Die Fraktion lehnte ab [2]." in fixed
+
+
+def test_a_citation_in_a_summary_bullet_is_checked_like_any_line() -> None:
+    answer = SUMMARY_ANSWER.replace("entlaste\n", "entlaste [0]\n").replace(
+        "viel dürften\n", "viel dürften [9]\n"
+    )
+    sentences = cc.cited_sentences(answer)
+    assert sentences[0].text == "SPD: dafür, weil es Mieter entlaste"
+    assert sentences[1].text == "Grüne: dagegen, weil die Dienste zu viel dürften"
+    verdicts = [cc.Verdict(s, sup) for s, sup in zip(sentences, [{0}, set(), {0}, set(), {2}])]
+    fixed = cc.repair(answer, verdicts, SOURCES)
+    # [9] is unsupported; the bullet keeps its text and its line.
+    assert "- **SPD**: dafür, weil es Mieter entlaste [0]\n" in fixed
+    assert "- **Grüne**: dagegen, weil die Dienste zu viel dürften\n" in fixed
+    assert fixed.startswith("**Kurz gesagt:**\n- **SPD**")
+    assert cc._CITE.sub("", fixed) == cc._CITE.sub("", answer)
 
 
 def test_the_text_never_changes() -> None:

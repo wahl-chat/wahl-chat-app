@@ -1,6 +1,6 @@
 'use client';
 
-import { sanitizeChatAnchor } from '@/lib/chat-anchor';
+import { FEED_ITEM_ID } from '@/lib/chat-anchor';
 import { getAuthHeader } from '@/lib/firebase/firebase';
 import type { ChatAnchor, ChatPreset } from '@/lib/firebase/firebase.types';
 import type {
@@ -54,10 +54,10 @@ function SseChatProvider({ children }: Props) {
     (state) => state.streamingMessageSourcesReady,
   );
   const updateToolStatus = useChatStore((state) => state.updateToolStatus);
-  const setAnchor = useChatStore((state) => state.setAnchor);
   const mergeStreamingChunkPayloadForMessage = useChatStore(
     (state) => state.mergeStreamingChunkPayloadForMessage,
   );
+  const setRelatedItems = useChatStore((state) => state.setRelatedItems);
   const updateQuickRepliesAndTitleForCurrentStreamingMessage = useChatStore(
     (state) => state.updateQuickRepliesAndTitleForCurrentStreamingMessage,
   );
@@ -142,12 +142,6 @@ function SseChatProvider({ children }: Props) {
           ann.party_id as string,
           ann.sources as Parameters<typeof streamingMessageSourcesReady>[2],
         );
-      } else if (type === 'anchor') {
-        // The vote or law a chat without one settled on: it stays on it.
-        const anchor = sanitizeChatAnchor(ann.anchor);
-        if (anchor) {
-          setAnchor(anchor);
-        }
       } else if (type === 'tool_status') {
         updateToolStatus(ann.session_id as string, {
           call_id: ann.call_id as string,
@@ -186,6 +180,15 @@ function SseChatProvider({ children }: Props) {
             ann.pledge_tracker as PledgeTrackerSuggestions | undefined,
           );
         }
+      } else if (type === 'related_items') {
+        const items = Array.isArray(ann.items) ? ann.items : [];
+        const ids = items
+          .map((item) => (item as { id?: unknown })?.id)
+          .filter(
+            (id): id is string =>
+              typeof id === 'string' && FEED_ITEM_ID.test(id),
+          );
+        setRelatedItems(ann.session_id as string, ids);
       } else if (type === 'quick_replies_title') {
         // V1: 'quick_replies_and_title_ready' event
         updateQuickRepliesAndTitleForCurrentStreamingMessage(

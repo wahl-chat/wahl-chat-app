@@ -22,7 +22,6 @@ from typing import Callable, Optional
 from src.generic_chat import tools
 from src.generic_chat.positions import party_positions
 from src.generic_chat.schemas import (
-    Anchor,
     GenericChatDeps,
     GetProcessInput,
     NumberedDocument,
@@ -463,7 +462,6 @@ async def get_process(deps: GenericChatDeps, args: GetProcessInput) -> ProcessRe
     steps = _steps(deps, record)
     documents = await _evidence(deps, record, args)
     deps.add_scope([record.vorgang_id])
-    deps.settle(Anchor(vorgang_id=record.vorgang_id))
     if args.party_id:
         shown = {str(d.title) for d in documents if d.source_type == "parliamentary_speech"}
         documents += await party_positions(

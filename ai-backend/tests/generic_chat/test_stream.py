@@ -30,6 +30,7 @@ from pydantic_ai.models.function import (
 )
 
 import src.generic_chat.stream as stream
+from src.generic_chat import related
 from src.generic_chat.schemas import ProcessChoice, ProcessResult
 import src.services.chat.service as service
 from src.models.structured_outputs import GroupChatTitleQuickReplyGenerator
@@ -174,12 +175,12 @@ async def test_event_order_and_sources(turn_io: FakeIO, monkeypatch: pytest.Monk
 
     assert _collapse(kinds) == [
         "start", "start-step", "responding_parties", "tool_status", "sources_ready",
-        "text-start", "text-delta", "text-end", "party_complete", "anchor",
+        "text-start", "text-delta", "text-end", "party_complete",
         "quick_replies_title", "finish-step", "finish", "[DONE]",
     ]
     assert _events(parts, "responding_parties")[0]["party_ids"] == ["wahl-chat"]
-    # The one vote the turn looked up becomes the chat's anchor.
-    assert _events(parts, "anchor")[0]["anchor"] == {"poll_id": POLL_ID}
+    # A vote the turn looked up does not tie the chat to it.
+    assert _events(parts, "anchor") == []
 
     statuses = _events(parts, "tool_status")
     assert {(s["tool"], s["state"]) for s in statuses} == {
@@ -261,6 +262,7 @@ async def test_language_rule_follows_tool_results_without_piling_up(
         assert isinstance(last, ModelRequest)
         assert isinstance(last.parts[-1], UserPromptPart)
         assert "answer in English" in str(last.parts[-1].content)
+        assert "Kurz gesagt" in str(last.parts[-1].content)
         reminders = [
             p for m in messages if isinstance(m, ModelRequest) for p in m.parts
             if isinstance(p, UserPromptPart) and "Answer in the language" in str(p.content)
@@ -402,3 +404,158 @@ async def test_open_procedure_choices_become_quick_replies(
     parts = await _run(script, monkeypatch, user_message="Wie ist der Stand beim Haushalt 2027?")
 
     assert _events(parts, "quick_replies_title")[0]["quick_replies"] == [c.label for c in choices]
+
+
+@pytest.fixture()
+def related_search(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+    """Switches the feed search on with a fake ``find``; records its calls."""
+    calls: list[dict] = []
+    monkeypatch.setenv(related.ENV, "on")
+
+    async def _find(query: str, parliament: str) -> list[str]:
+        calls.append({"query": query, "parliament": parliament})
+        return ["bundestag_2026-11-13_v1", "bundestag_2026-11-12_d1-top3"]
+
+    monkeypatch.setattr(related, "find", _find)
+    return calls
+
+
+async def test_related_items_follow_the_answer(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    script = Script(say("Die SPD stimmte mit Ja."))
+
+    parts = await _run(script, monkeypatch)
+
+    assert related_search == [
+        {"query": "Wie hat die SPD zur Mietpreisbremse abgestimmt?", "parliament": "bundestag"}
+    ]
+    assert _events(parts, "related_items") == [
+        {
+            "type": "related_items",
+            "session_id": "s-1",
+            "items": [{"id": "bundestag_2026-11-13_v1"}, {"id": "bundestag_2026-11-12_d1-top3"}],
+        }
+    ]
+    kinds = _kinds(parts)
+    assert kinds.index("party_complete") < kinds.index("related_items") < kinds.index("quick_replies_title")
+
+
+async def test_no_related_items_when_anchored(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    turn_io.feed[DEBATE_ID] = feed_item(DEBATE_ID, "debate", speech_ids=SPEECH_IDS[:1])
+    turn_io.speeches = [speech_chunk(SPEECH_IDS[0], 0, "Rede zur Mietpreisbremse.")]
+    script = Script(say("In der Debatte begründete die SPD … [0]."))
+
+    parts = await _run(script, monkeypatch, anchor={"feed_item_id": DEBATE_ID})
+
+    assert related_search == []
+    assert _events(parts, "related_items") == []
+
+
+async def test_no_related_items_without_matches(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    async def _none(query: str, parliament: str) -> list[str]:
+        return []
+
+    monkeypatch.setattr(related, "find", _none)
+    parts = await _run(Script(say("Hallo!")), monkeypatch)
+
+    assert _events(parts, "related_items") == []
+    assert "quick_replies_title" in _kinds(parts)
+
+
+async def test_related_items_fail_open(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def _broken(query: str, parliament: str) -> list[str]:
+        raise RuntimeError("qdrant down")
+
+    monkeypatch.setattr(related, "find", _broken)
+    parts = await _run(Script(say("Die SPD stimmte mit Ja.")), monkeypatch)
+
+    assert _events(parts, "related_items") == []
+    assert _events(parts, "party_complete")[0]["status"]["indicator"] == "success"
+    assert "quick_replies_title" in _kinds(parts)
+    assert "qdrant down" in caplog.text
+
+
+async def test_slow_related_search_is_skipped(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    import asyncio
+
+    async def _slow(query: str, parliament: str) -> list[str]:
+        await asyncio.sleep(10)
+        return ["late"]
+
+    monkeypatch.setattr(related, "find", _slow)
+    monkeypatch.setattr(stream, "_RELATED_TIMEOUT_S", 0.01)
+    parts = await _run(Script(say("Die SPD stimmte mit Ja.")), monkeypatch)
+
+    assert _events(parts, "related_items") == []
+    assert "quick_replies_title" in _kinds(parts)
+
+
+async def test_related_search_is_cancelled_when_the_turn_fails(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    import asyncio
+
+    cancelled: list[bool] = []
+
+    async def _hanging(query: str, parliament: str) -> list[str]:
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            cancelled.append(True)
+            raise
+        return []
+
+    def broken(_m: list[ModelMessage], _i: AgentInfo) -> ModelResponse:
+        raise RuntimeError("model down")
+
+    monkeypatch.setattr(related, "find", _hanging)
+    parts = await _run(Script(broken), monkeypatch)
+    await asyncio.sleep(0)
+
+    assert _events(parts, "related_items") == []
+    assert cancelled == [True]
+
+
+async def test_short_follow_up_does_not_search(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    history = [
+        {"role": "user", "content": "Wie hat die SPD zur Mietpreisbremse abgestimmt?"},
+        {"role": "assistant", "content": "Mit Ja.", "party_id": "wahl-chat"},
+    ]
+    await _run(Script(say("Mit Nein.")), monkeypatch, user_message="Und die Grünen?", chat_history=history)
+    assert related_search == []
+
+    await _run(
+        Script(say("Mit Nein.")), monkeypatch,
+        user_message="Wie haben die Grünen zur Mietpreisbremse abgestimmt?", chat_history=history,
+    )
+    assert len(related_search) == 1
+
+
+async def test_a_looked_up_vote_stays_among_the_related_items(
+    turn_io: FakeIO, monkeypatch: pytest.MonkeyPatch, related_search: list[dict]
+) -> None:
+    async def _find(query: str, parliament: str) -> list[str]:
+        return [f"bundestag_2026-11-13_v{POLL_ID}", "bundestag_2026-11-12_d1-top3"]
+
+    monkeypatch.setattr(related, "find", _find)
+    script = Script(call(("get_vote", {"poll_id": POLL_ID})), say("Die SPD stimmte mit Ja [0]."))
+
+    parts = await _run(script, monkeypatch)
+
+    assert _events(parts, "anchor") == []
+    assert _events(parts, "related_items")[0]["items"] == [
+        {"id": f"bundestag_2026-11-13_v{POLL_ID}"},
+        {"id": "bundestag_2026-11-12_d1-top3"},
+    ]

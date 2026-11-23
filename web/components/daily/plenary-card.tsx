@@ -129,6 +129,7 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
           terms={itemTerms(item)}
           label={section.headline}
           onOpen={onOpen}
+          item={item}
         >
           <CardProcedureMarker
             day={item.digest.date}

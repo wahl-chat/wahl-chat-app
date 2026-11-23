@@ -616,7 +616,6 @@ async def get_debate(
         return await get_vote(deps, item.vote.poll_id, party_ids)
     documents, note = await _debate_documents(deps, item)
     deps.add_scope(item.procedure_ids)
-    deps.settle(Anchor(feed_item_id=item.id))
     if party_ids and item.procedure_ids:
         from src.generic_chat.positions import party_positions  # noqa: PLC0415 (positions imports tools)
 
@@ -689,9 +688,6 @@ async def get_vote(
         )
     )
     deps.add_scope(vorgang_ids)
-    deps.settle(
-        Anchor(feed_item_id=vote_item.id) if vote_item is not None else Anchor(poll_id=poll_id)
-    )
     if party_ids and vorgang_ids:
         documents += await _party_documents(
             deps, vorgang_ids, party_ids, poll_id, str(payload.get("citation_title") or ""),

@@ -36,6 +36,7 @@ from typing import Any, Iterable, Optional
 
 from langchain_core.embeddings import Embeddings
 from qdrant_client import QdrantClient, models
+from wahlchat_common.corpus import FEED_COLLECTION_NAME
 
 from ingestion.feed.items import content_hash
 from ingestion.feed.models import CANONICAL_LOCALE, FeedItem
@@ -43,13 +44,11 @@ from ingestion.ids import WAHL_CHAT_NS
 from ingestion.run import DimensionMismatchError, _embed_texts
 from ingestion.setup_collection import (
     EMBEDDING_DIM,
-    ENV,
     check_fingerprint,
     read_fingerprint,
     write_fingerprint,
 )
 
-FEED_COLLECTION_NAME: str = os.getenv("FEED_COLLECTION_NAME", f"wahlchat_feed_{ENV}")
 
 _INDEX_SPECS: list[tuple[str, Any]] = [
     ("item_id", models.PayloadSchemaType.KEYWORD),

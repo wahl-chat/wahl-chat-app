@@ -11,6 +11,7 @@ import {
   FOCUS_RING,
   MUTED_TEXT,
 } from './card-styles';
+import { ChatButtons } from './feed-chat';
 import { GlossaryText } from './glossary-text';
 import InterestFeedback from './interest-feedback';
 
@@ -20,8 +21,11 @@ export function ItemTeaser({
   terms,
   label,
   onOpen,
+  item,
   children,
 }: {
+  /** With an item, the reader's chat about it sits beside the link. */
+  item?: DetailItem;
   text: string | null;
   /** The expert terms in it the glossary explains. */
   terms?: TermRef[];
@@ -39,15 +43,18 @@ export function ItemTeaser({
         </p>
       )}
       {children}
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label={`Mehr anzeigen: ${label}`}
-        className={cn(FOCUS_RING, ABOVE_CARD_LINK, CARD_ACTION)}
-      >
-        Mehr anzeigen
-        <ArrowRightIcon className="size-4" aria-hidden />
-      </button>
+      <div className="flex w-full flex-wrap items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={`Mehr anzeigen: ${label}`}
+          className={cn(FOCUS_RING, ABOVE_CARD_LINK, CARD_ACTION)}
+        >
+          Mehr anzeigen
+          <ArrowRightIcon className="size-4" aria-hidden />
+        </button>
+        {item && <ChatButtons item={item} className={ABOVE_CARD_LINK} />}
+      </div>
     </div>
   );
 }
@@ -55,21 +62,23 @@ export function ItemTeaser({
 /** "Interessant für dich?" bottom left, share bottom right. */
 export function CardFooter({ item }: { item: DetailItem }) {
   return (
-    <div className="mt-auto flex items-end justify-between gap-3">
-      <InterestFeedback itemKey={item.key} className={ABOVE_CARD_LINK} />
-      <button
-        type="button"
-        aria-label="Teilen"
-        onClick={() => shareItem(item)}
-        className={cn(
-          FOCUS_RING,
-          ABOVE_CARD_LINK,
-          'flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--daily-surface)] hover:text-[var(--daily-ink)]',
-          MUTED_TEXT,
-        )}
-      >
-        <Share2Icon className="size-5" aria-hidden />
-      </button>
-    </div>
+    <>
+      <div className="mt-auto flex items-end justify-between gap-3">
+        <InterestFeedback itemKey={item.key} className={ABOVE_CARD_LINK} />
+        <button
+          type="button"
+          aria-label="Teilen"
+          onClick={() => shareItem(item)}
+          className={cn(
+            FOCUS_RING,
+            ABOVE_CARD_LINK,
+            'flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--daily-surface)] hover:text-[var(--daily-ink)]',
+            MUTED_TEXT,
+          )}
+        >
+          <Share2Icon className="size-5" aria-hidden />
+        </button>
+      </div>
+    </>
   );
 }

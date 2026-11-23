@@ -135,6 +135,8 @@ export type GroupedMessage = {
   messages: MessageItem[];
   chat_title?: string;
   quick_replies?: string[];
+  /** General chat: feed items matching the question, shown under the answer. */
+  related_item_ids?: string[];
   role: 'user' | 'assistant';
   created_at?: Timestamp;
 };
@@ -302,6 +304,7 @@ export type ChatStoreActions = {
     streamingMessage: PartyResponseChunkReadyPayload,
   ) => void;
   updateToolStatus: (sessionId: string, status: ToolStatus) => void;
+  setRelatedItems: (sessionId: string, itemIds: string[]) => Promise<void>;
   updateQuickRepliesAndTitleForCurrentStreamingMessage: (
     sessionId: string,
     quickReplies: string[],

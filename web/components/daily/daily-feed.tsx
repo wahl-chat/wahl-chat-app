@@ -1,7 +1,7 @@
 'use client';
 
 import AiDisclaimer from '@/components/legal/ai-disclaimer';
-import { FEED_CHAT_ENABLED } from '@/lib/daily/chat-handoff';
+import { FEED_CHAT_ENABLED, FEED_CHAT_MODE } from '@/lib/daily/chat-handoff';
 import { feedToDigests } from '@/lib/daily/editions';
 import {
   buildFeed,
@@ -19,7 +19,7 @@ import {
   isDefaultFilter,
   kindParamValue,
 } from '@/lib/daily/filter';
-import { type DetailItem, findItem } from '@/lib/daily/items';
+import { findItem } from '@/lib/daily/items';
 import {
   type OlderCursor,
   type Pages,
@@ -51,9 +51,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FOCUS_RING, MUTED_TEXT } from './card-styles';
 import DailyDaySection from './daily-day-section';
-import { AskPanel, DailyDetailDialog } from './daily-detail-dialog';
+import { DailyDetailDialog } from './daily-detail-dialog';
 import { FeedFilters, FilterBar, ParliamentSelector } from './daily-filters';
 import DaySkeleton from './day-skeleton';
+import {
+  FeedAskBar,
+  type FeedChatContext,
+  FeedChatProvider,
+  isSheetEntry,
+} from './feed-chat';
 import { OpenFeedItemContext } from './feed-nav';
 import { GlossaryProvider } from './glossary-text';
 
@@ -78,6 +84,8 @@ type Props = {
   glossary?: GlossaryEntry[];
   /** Whether readers may rate positions and votes, see `DailyDetailDialog`. */
   opinionsEnabled?: boolean;
+  /** The general chat's context, for the chat sheet over the feed. */
+  chatContext?: FeedChatContext;
 };
 
 type View = {
@@ -117,27 +125,6 @@ function storeStates(states: StateSelection) {
   } catch {
     // Storage blocked: the choice still holds for this visit via the URL.
   }
-}
-
-/** The card most in view, so the floating input asks about what is read. */
-function useItemInView(deps: unknown): string | null {
-  const [key, setKey] = useState<string | null>(null);
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.find((e) => e.isIntersecting);
-        if (visible) {
-          setKey((visible.target as HTMLElement).dataset.itemKey ?? null);
-        }
-      },
-      { rootMargin: '-40% 0px -40% 0px' },
-    );
-    for (const el of document.querySelectorAll('[data-item-key]')) {
-      observer.observe(el);
-    }
-    return () => observer.disconnect();
-  }, [deps]);
-  return key;
 }
 
 /**
@@ -197,6 +184,7 @@ function DailyFeed({
   editionDates = [],
   glossary = [],
   opinionsEnabled = true,
+  chatContext,
 }: Props) {
   const [states, setStates] = useState<StateSelection>(
     initialStates ?? DEFAULT_SELECTION,
@@ -355,18 +343,17 @@ function DailyFeed({
     .map((d) => (openItem ? d.heat.get(openItem.key) : undefined))
     .find((h) => h !== undefined);
 
-  const inViewKey = useItemInView(days);
-  const askItem: DetailItem | null =
-    (inViewKey && findItem(allDigests, inViewKey)) ||
-    days.find((d) => d.hot)?.hot ||
-    null;
-
   useEffect(() => {
     setDepth(trailDepth(window.history.state));
     const onPop = (event: PopStateEvent) => {
       backPending.current = false;
       setDepth(trailDepth(event.state));
-      setOpenKey(new URL(window.location.href).searchParams.get(ITEM_PARAM));
+      // The chat sheet's entry keeps the item it covers in its URL.
+      setOpenKey(
+        isSheetEntry(event.state)
+          ? null
+          : new URL(window.location.href).searchParams.get(ITEM_PARAM),
+      );
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -430,6 +417,10 @@ function DailyFeed({
     setOpenKey(key);
     return true;
   };
+  // Hidden, not closed: the item stays in the URL, so leaving the chat
+  // (Back, Zum Feed, ×) lands on it again. Walking the trail back instead
+  // would reopen the item the open one was reached from, under the chat.
+  const closeForChat = () => setOpenKey(null);
   const close = () => {
     if (backPending.current) {
       return;
@@ -444,93 +435,97 @@ function DailyFeed({
 
   return (
     <GlossaryProvider entries={glossary}>
-      <OpenFeedItemContext.Provider value={openFromItem}>
-        <div className="flex flex-col gap-4 pt-4">
-          <FilterBar>
-            {(onOpenChange) => (
-              <>
-                <div className="min-w-0 flex-1">
-                  <ParliamentSelector
-                    states={states}
-                    onChange={changeStates}
-                    calendar={calendar}
-                    editionDates={editionDates}
-                    waitingEditions={waitingEditions}
-                    onJumpToDay={jumpToDay}
+      <FeedChatProvider
+        mode={FEED_CHAT_MODE}
+        chatContext={chatContext}
+        openItem={openFromItem}
+        closeItem={closeForChat}
+      >
+        <OpenFeedItemContext.Provider value={openFromItem}>
+          <div className="flex flex-col gap-4 pt-4">
+            <FilterBar>
+              {(onOpenChange) => (
+                <>
+                  <div className="min-w-0 flex-1">
+                    <ParliamentSelector
+                      states={states}
+                      onChange={changeStates}
+                      calendar={calendar}
+                      editionDates={editionDates}
+                      waitingEditions={waitingEditions}
+                      onJumpToDay={jumpToDay}
+                      onOpenChange={onOpenChange}
+                    />
+                  </div>
+                  <FeedFilters
+                    filter={filter}
+                    onChange={changeFilter}
                     onOpenChange={onOpenChange}
                   />
-                </div>
-                <FeedFilters
-                  filter={filter}
-                  onChange={changeFilter}
-                  onOpenChange={onOpenChange}
-                />
-              </>
-            )}
-          </FilterBar>
+                </>
+              )}
+            </FilterBar>
 
-          <AiDisclaimer
-            variant="feed"
-            className={cn('-mt-2 mb-0 text-left text-[13px]', MUTED_TEXT)}
-          />
-
-          <div className="flex flex-col gap-12 pt-2">
-            {visibleDays.length === 0 ? (
-              <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
-                Noch keine Inhalte zu deiner Auswahl. Schau bald wieder vorbei.
-              </p>
-            ) : (
-              visibleDays.map((day) => (
-                <DailyDaySection
-                  key={day.date}
-                  day={day}
-                  onOpen={(item) => open(item.key)}
-                />
-              ))
-            )}
-            {older.length > 0 && (
-              <div
-                ref={olderRef}
-                aria-live="polite"
-                className="flex min-h-10 items-center justify-center"
-              >
-                {olderFailed ? (
-                  <button
-                    type="button"
-                    onClick={loadOlder}
-                    className={cn(
-                      'h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)]',
-                      MUTED_TEXT,
-                      FOCUS_RING,
-                    )}
-                  >
-                    Erneut versuchen
-                  </button>
-                ) : (
-                  loadingOlder && <DaySkeleton />
-                )}
-              </div>
-            )}
-          </div>
-
-          {FEED_CHAT_ENABLED && askItem && (
-            <AskPanel
-              item={askItem}
-              withSuggestions={false}
-              showTarget
-              className="sticky bottom-0 z-30 -mx-2 mt-4"
+            <AiDisclaimer
+              variant="feed"
+              className={cn('-mt-2 mb-0 text-left text-[13px]', MUTED_TEXT)}
             />
-          )}
 
-          <DailyDetailDialog
-            item={openItem}
-            heat={openHeat}
-            onClose={close}
-            backToItem={depth > 0}
-            opinionsEnabled={opinionsEnabled}
-          />
-        </div>
-      </OpenFeedItemContext.Provider>
+            <div className="flex flex-col gap-12 pt-2">
+              {visibleDays.length === 0 ? (
+                <p className={cn('py-12 text-center text-[15px]', MUTED_TEXT)}>
+                  Noch keine Inhalte zu deiner Auswahl. Schau bald wieder
+                  vorbei.
+                </p>
+              ) : (
+                visibleDays.map((day) => (
+                  <DailyDaySection
+                    key={day.date}
+                    day={day}
+                    onOpen={(item) => open(item.key)}
+                  />
+                ))
+              )}
+              {older.length > 0 && (
+                <div
+                  ref={olderRef}
+                  aria-live="polite"
+                  className="flex min-h-10 items-center justify-center"
+                >
+                  {olderFailed ? (
+                    <button
+                      type="button"
+                      onClick={loadOlder}
+                      className={cn(
+                        'h-10 rounded-lg border border-[var(--daily-border)] px-4 text-[15px] transition-colors hover:bg-[var(--daily-surface)]',
+                        MUTED_TEXT,
+                        FOCUS_RING,
+                      )}
+                    >
+                      Erneut versuchen
+                    </button>
+                  ) : (
+                    loadingOlder && <DaySkeleton />
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* The open item has its own ask bar. */}
+            {FEED_CHAT_ENABLED && !openItem && (
+              <FeedAskBar className="sticky bottom-0 z-30 -mx-2 mt-4" />
+            )}
+
+            <DailyDetailDialog
+              item={openItem}
+              heat={openHeat}
+              onClose={close}
+              backToItem={depth > 0}
+              opinionsEnabled={opinionsEnabled}
+            />
+          </div>
+        </OpenFeedItemContext.Provider>
+      </FeedChatProvider>
     </GlossaryProvider>
   );
 }

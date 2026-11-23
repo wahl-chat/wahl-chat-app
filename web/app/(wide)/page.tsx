@@ -1,16 +1,22 @@
 import DailyFeed from '@/components/daily/daily-feed';
 import JsonLd from '@/components/seo/json-ld';
+import { GENERAL_CONTEXT_ID } from '@/lib/constants';
+import { FEED_CHAT_MODE } from '@/lib/daily/chat-handoff';
 import { parseKindParam } from '@/lib/daily/filter';
 import { getLinkedItem } from '@/lib/daily/linked-item';
 import { getLocalPreviewDigests } from '@/lib/daily/local-preview';
 import { parseStateParam } from '@/lib/daily/region';
 import { itemShareMetadata } from '@/lib/daily/share-metadata';
 import { parseTopicsParam } from '@/lib/daily/topics';
+import { electionContexts } from '@/lib/elections';
 import {
+  getContext,
+  getContexts,
   getEditionDates,
   getGlossary,
   getLinkedFeedDay,
   getParliamentFeed,
+  getPartiesForContext,
   getSittingCalendar,
 } from '@/lib/firebase/firebase-server';
 import type { FeedPage } from '@/lib/firebase/firebase.types';
@@ -117,6 +123,18 @@ const NO_FEED: FeedPage = {
   hasOlder: false,
 };
 
+/** The general chat's context and parties, for the chat sheet. */
+async function generalChatContext() {
+  const [context, contexts, parties] = await Promise.all([
+    getContext(GENERAL_CONTEXT_ID),
+    getContexts(),
+    getPartiesForContext(GENERAL_CONTEXT_ID),
+  ]);
+  return context
+    ? { context, contexts: electionContexts(contexts), parties }
+    : undefined;
+}
+
 async function HomePage({ searchParams }: Props) {
   const params = await searchParams;
 
@@ -129,6 +147,7 @@ async function HomePage({ searchParams }: Props) {
     calendar,
     editionDates,
     glossary,
+    chatContext,
   ] = await Promise.all([
     getParliamentFeed('bundestag'),
     getLocalPreviewDigests(),
@@ -136,6 +155,7 @@ async function HomePage({ searchParams }: Props) {
     getSittingCalendar('bundestag'),
     getEditionDates('bundestag'),
     getGlossary(),
+    FEED_CHAT_MODE === 'sheet' ? generalChatContext() : undefined,
   ]);
 
   return (
@@ -159,6 +179,7 @@ async function HomePage({ searchParams }: Props) {
         editionDates={editionDates}
         glossary={glossary}
         opinionsEnabled={!IS_EMBEDDED}
+        chatContext={chatContext}
       />
     </>
   );

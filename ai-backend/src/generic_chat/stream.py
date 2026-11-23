@@ -5,9 +5,10 @@
 """One generic-chat turn as the chat's existing SSE events.
 
 Order: responding_parties ["wahl-chat"] → tool_status* → sources_ready →
-text deltas + party_chunk → party_complete → quick_replies_title. Only a
-feed button's first question is cached (see ``presets``); typed questions
-depend on the day's feed and the web.
+text deltas + party_chunk → party_complete → related_items (unanchored
+turns with a match) → quick_replies_title. Only a feed button's first
+question is cached (see ``presets``); typed questions depend on the day's
+feed and the web.
 """
 
 from __future__ import annotations
@@ -52,9 +53,9 @@ from src.core.utils import (
 from src.generic_chat import citation_check
 from src.generic_chat.citations import drop_unknown_citations
 from src.generic_chat import agent as agent_module
-from src.generic_chat import presets, prompt
+from src.generic_chat import presets, prompt, related
 from src.generic_chat import tools
-from src.generic_chat.schemas import Anchor, GenericChatDeps, NumberedDocument, ProcessStep
+from src.generic_chat.schemas import GenericChatDeps, NumberedDocument, ProcessStep
 from src.models.chat import Message, Role
 from src.models.context import Context
 from src.models.dtos import (
@@ -184,18 +185,6 @@ def message_history(body: Any) -> list[ModelMessage]:
     return history
 
 
-def settled_anchor(deps: GenericChatDeps) -> Optional[Anchor]:
-    """The one vote, debate or law a turn settled on; None when it touched
-    several or left a choice open. An item beats the law it belongs to."""
-    if deps.choices:
-        return None
-    items = [a for a in deps.settled if a.vorgang_id is None]
-    laws = [a for a in deps.settled if a.vorgang_id is not None]
-    if len(items) == 1:
-        return items[0]
-    return laws[0] if not items and len(laws) == 1 else None
-
-
 def _text_of(event: object) -> Optional[str]:
     if isinstance(event, PartStartEvent) and isinstance(event.part, TextPart):
         return event.part.content
@@ -236,6 +225,8 @@ _CHECK_TIMEOUT_S = 5.0
 _ANCHOR_TIMEOUT_S = 20.0
 _QUICK_REPLIES_TIMEOUT_S = 10.0
 _CACHE_WRITE_TIMEOUT_S = 5.0
+# Past the answer's end; the search began with the turn.
+_RELATED_TIMEOUT_S = 3.0
 
 
 def _entry(deps: GenericChatDeps, number: int) -> dict:
@@ -323,6 +314,22 @@ async def _checked(
     return repaired
 
 
+def _cancel(*tasks: Optional[asyncio.Task[Any]]) -> None:
+    for task in tasks:
+        if task is not None:
+            task.cancel()
+
+
+async def _related_items(task: Optional[asyncio.Task[list[str]]]) -> list[str]:
+    if task is None:
+        return []
+    try:
+        return await asyncio.wait_for(task, _RELATED_TIMEOUT_S)
+    except Exception as exc:  # noqa: BLE001 (no carousel, the answer stands)
+        logger.warning("related feed items skipped: %r", exc)
+        return []
+
+
 def _replay(session_id: str, turn: presets.CachedTurn) -> list[str]:
     """A cached answer as the same events a live turn sends."""
     text_id = str(uuid.uuid4())
@@ -371,6 +378,7 @@ async def stream_generic_chat(
     guidelines: Optional[str] = None
     cache_key: Optional[str] = None
     replies_task: Optional[asyncio.Task[Optional[QuickRepliesAndTitleDto]]] = None
+    related_task: Optional[asyncio.Task[list[str]]] = None
     try:
         deps = GenericChatDeps(
             context=context,
@@ -383,6 +391,13 @@ async def stream_generic_chat(
 
         anchor = getattr(body, "anchor", None)
         history = message_history(body)
+        parliament = tools.parliament_for(deps)
+        if anchor is None and parliament is not None and related.wanted(
+            parliament, body.user_message, bool(history)
+        ):
+            related_task = asyncio.create_task(
+                related.safe_find(body.user_message, parliament)
+            )
         # A button's question opens the chat; later turns are the reader's own.
         if anchor is not None and not history:
             deps.preset = getattr(body, "preset", None)
@@ -495,21 +510,13 @@ async def stream_generic_chat(
             status=Status(indicator=StatusIndicator.SUCCESS, message="Success"),
         )
         yield data_event({"type": "party_complete", **complete.model_dump()})
-        settled = settled_anchor(deps) if anchor is None else None
-        if settled is not None:
-            yield data_event(
-                {"type": "anchor", "session_id": session_id,
-                 "anchor": settled.model_dump(exclude_none=True)}
-            )
     except (asyncio.CancelledError, GeneratorExit):
         # The client left mid-turn: no reply call keeps running for nobody.
-        if replies_task is not None:
-            replies_task.cancel()
+        _cancel(replies_task, related_task)
         raise
     except Exception as exc:  # noqa: BLE001 (terminal error contract, as the election path)
         logger.error("generic chat turn failed: %s", exc, exc_info=True)
-        if replies_task is not None:
-            replies_task.cancel()
+        _cancel(replies_task, related_task)
         if text_id is not None:
             yield text_end(text_id)
         yield data_event({"type": "error", "message": GENERIC_ERROR_MESSAGE})
@@ -521,9 +528,14 @@ async def stream_generic_chat(
 
     if request is not None and await request.is_disconnected():
         logger.info("generic chat: client disconnected, skipping quick replies")
-        if replies_task is not None:
-            replies_task.cancel()
+        _cancel(replies_task, related_task)
         return
+    items = await _related_items(related_task)
+    if items:
+        yield data_event(
+            {"type": "related_items", "session_id": session_id,
+             "items": [{"id": item_id} for item_id in items]}
+        )
     try:
         quick_replies = await replies_task if replies_task is not None else None
     except Exception as exc:  # noqa: BLE001 (quick replies are optional)
