@@ -12,6 +12,7 @@ import {
   getLinkedFeedDay,
   getParliamentFeed,
   getSittingCalendar,
+  getStimmtsStatus,
 } from '@/lib/firebase/firebase-server';
 import type { FeedPage } from '@/lib/firebase/firebase.types';
 import {
@@ -21,6 +22,8 @@ import {
   WEBSITE_ID,
   productionRobots,
 } from '@/lib/seo';
+import { hasPuzzleToday } from '@/lib/stimmts/feed-entry';
+import type { StimmtsStatus } from '@/lib/stimmts/status';
 import { IS_EMBEDDED } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
@@ -129,6 +132,7 @@ async function HomePage({ searchParams }: Props) {
     calendar,
     editionDates,
     glossary,
+    stimmtsStatus,
   ] = await Promise.all([
     getParliamentFeed('bundestag'),
     getLocalPreviewDigests(),
@@ -136,7 +140,17 @@ async function HomePage({ searchParams }: Props) {
     getSittingCalendar('bundestag'),
     getEditionDates('bundestag'),
     getGlossary(),
+    getStimmtsStatus(),
   ]);
+  // The page renders per request, so it can tell whether a puzzle runs
+  // today. With none (before the launch, after the last puzzle) the server
+  // draws no card, rather than one the browser would then remove.
+  const stimmtsCardStatus: StimmtsStatus = hasPuzzleToday(
+    stimmtsStatus,
+    new Date(),
+  )
+    ? stimmtsStatus
+    : { enabled: false };
 
   return (
     <>
@@ -159,6 +173,7 @@ async function HomePage({ searchParams }: Props) {
         editionDates={editionDates}
         glossary={glossary}
         opinionsEnabled={!IS_EMBEDDED}
+        stimmtsStatus={stimmtsCardStatus}
       />
     </>
   );

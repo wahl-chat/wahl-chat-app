@@ -38,6 +38,7 @@ import { GlossaryText } from './glossary-text';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
 import { InlineAnswers } from './inline-answers';
 import { OpinionConsentSheet } from './opinion-consent-sheet';
+import { OutcomeBadge } from './outcome-badge';
 import { PartyPositions, orderedPositions } from './party-positions';
 import { HeatInfo } from './plenary-card';
 import {
@@ -50,7 +51,6 @@ import { ProcedureSection } from './procedure-section';
 import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
-import { OutcomeBadge } from './vote-card';
 import { VoteOpinion } from './vote-opinion';
 import { PartyVoteTable, SourceLink } from './vote-panels';
 

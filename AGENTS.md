@@ -499,7 +499,8 @@ PledgeTracker change users' willingness to engage in political debate?
   study is on, the study questionnaire is the ONLY thing anyone is asked for,
   app-wide: `StudyStatusProvider` holds one kill-switch subscription and
   `useStudyRunning()` suppresses the general feedback banner, the newsletter
-  step after login, and the Wahl-Swiper feedback card. The rule ignores the
+  step after login, the Wahl-Swiper feedback card, and the Stimmt’s? feedback
+  question (once, in the feed). The rule ignores the
   cohort and consent, so no arm is exposed differently, and everything returns
   the moment the kill switch goes off.
 - **Analysis joins**: `study_participants/{uid}` ↔ `chat_sessions.user_id`
@@ -547,6 +548,69 @@ Terraform workstream — see `infra/README.md`).
 Ingestion must tolerate the 15-minute scheduled-job cap: runs are
 batch-windowed and time-budgeted (`--batch-size`, `--time-budget`) and resume
 from the Qdrant-derived cursor on the next run.
+
+### Stimmt's? (daily quiz at `/stimmts`)
+
+The game's analytics events and their props are listed in
+`docs/stimmts/DESIGN.md` under "Measuring".
+
+- **Switch**: Firestore doc `system_status/stimmts`
+  `{enabled: true, launch_date: "2026-11-15"}` (`launch_date` is a string,
+  `YYYY-MM-DD`). The launch date is day 1 in Berlin time, day N is
+  `launch_date + N − 1`, and the game runs for as many days as
+  `web/lib/stimmts/content/schedule.json` lists puzzles (changing them:
+  `docs/stimmts/CONTENT.md`). The doc is public-read
+  under the existing `system_status/{id}` rule; edit it in the console, no
+  deploy. Open pages follow it live.
+- **Server read.** The first paint of `/` and the other `(wide)` pages uses a
+  server read of the switch, `getStimmtsStatus()` in
+  `web/lib/firebase/firebase-server.ts`, cached for 5 minutes under the tag
+  `stimmts-status` (bust it via `/api/revalidate` with that tag). After a
+  flip, the feed card and the header icon can take up to 5 minutes to appear
+  in the HTML; until then they appear client-side, from the live listener. A
+  failed server read counts as off and is not cached.
+- **Off is the default.** A missing doc, `enabled` not exactly `true`, or a
+  `launch_date` that is not a real date all hide the game. Before the launch
+  date it says when it starts. If Firestore cannot be reached (ad blocker,
+  firewall), `/stimmts` offers a retry after 8 seconds; on `/` the feed card
+  and the header icon keep the server's reading.
+- **Feed card.** Above the Hot Topic on `/`
+  (`web/components/daily/stimmts-feed-card.tsx`), only while the switch is on
+  and a puzzle runs today. The page is shared, so the server draws the card
+  with empty slots and the browser fills in the name and countdown.
+- **Header icon.** Players (any finished game on this device) get the
+  Stimmt's? mark in the header of the `(wide)` pages
+  (`web/components/daily/stimmts-header-icon.tsx`), with a check once
+  today's game is done. Right after a game, the feed card shows the result
+  once and flies into the icon (`stimmts-fly-in.tsx`).
+- **Presence mark.** Whether this device played is device state on a shared,
+  cached page. An inline script in the root layout
+  (`web/lib/stimmts/presence.ts`) sets `data-stimmts` (`today` / `before`) and
+  `data-stimmts-fly` on `<html>` before first paint, and rules in
+  `web/app/globals.css` show or hide the card and the icon from those marks,
+  so neither flashes nor shifts the feed.
+- **Chat card.** Follow-up questions on the result screen, answered inside
+  the card (`web/components/stimmts/chat-card.tsx`); "Im Chat weiter" opens
+  the general chat at `/chat?q=…&poll_id=…` (the question and the vote's
+  Abgeordnetenwatch poll id, no `party_id`), which `web/middleware.ts`
+  serves from the `bundestag-aktuell` context. The card asks the same
+  general chat through `/api/chat`, anchored on the poll. Two switches go
+  together: `STIMMTS_CHAT_ENABLED` in `web/lib/stimmts/chat-chips.ts` shows
+  the card, and `CHAT_ANSWERS` in `web/lib/stimmts/chat-answer.ts` picks
+  where its answers come from (`'general-chat'`, or a local placeholder for
+  trying the card without a backend); a test refuses the card on with the
+  placeholder. The ordered launch checklist (production switch doc,
+  indexing) is in `docs/stimmts/DESIGN.md` under "Status and rollout".
+- **Never change `launch_date` once anyone has played.** It renumbers every
+  day, so played days turn into missed ones. Switching off and on again does
+  not pause the calendar: the days keep counting from the launch date.
+- **Local**: the emulator UI is disabled, so write the doc over REST:
+
+  ```bash
+  curl -X PATCH 'http://localhost:8081/v1/projects/demo-wahl-chat/databases/(default)/documents/system_status/stimmts' \
+    -H 'Authorization: Bearer owner' -H 'Content-Type: application/json' \
+    -d '{"fields":{"enabled":{"booleanValue":true},"launch_date":{"stringValue":"2026-11-15"}}}'
+  ```
 
 ### The parliament feed
 

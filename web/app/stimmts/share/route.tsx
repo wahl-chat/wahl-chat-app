@@ -1,0 +1,105 @@
+import ShareImage, {
+  SHARE_FONTS,
+  SHARE_IMAGE_TEXT,
+} from '@/components/stimmts/share-image';
+import { loadGoogleFont } from '@/lib/og/google-font';
+import { berlinDate } from '@/lib/stimmts/berlin-time';
+import { PUZZLE_COUNT, puzzleTitle } from '@/lib/stimmts/content';
+import { createLoadOnce } from '@/lib/stimmts/load-once';
+import {
+  SHARE_FORMATS,
+  canonicalSharePath,
+  parseShareParams,
+  parseShareStyle,
+} from '@/lib/stimmts/share-image';
+import { ImageResponse } from 'next/og';
+
+// The images are drawn from their parameters alone, so a URL always draws the
+// same PNG and the CDN may keep it as long as the deployment lives (a new
+// deployment starts a fresh cache). Browsers only keep it a day, so a change
+// to the design reaches them. Never cached while developing.
+const CACHE_CONTROL =
+  process.env.NODE_ENV === 'development'
+    ? 'no-store'
+    : 'public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400';
+
+const loadFonts = createLoadOnce(async () => {
+  const [display, sans, sansBold] = await Promise.all([
+    loadGoogleFont('Bricolage+Grotesque:wght@800', SHARE_IMAGE_TEXT),
+    loadGoogleFont('Arimo:wght@400', SHARE_IMAGE_TEXT),
+    loadGoogleFont('Arimo:wght@700', SHARE_IMAGE_TEXT),
+  ]);
+  return [
+    { name: SHARE_FONTS.display, data: display, weight: 800 as const },
+    { name: SHARE_FONTS.sans, data: sans, weight: 400 as const },
+    { name: SHARE_FONTS.sans, data: sansBold, weight: 700 as const },
+  ];
+});
+
+// Papier's headlines only. Loaded apart from the base fonts: a failed Tinos
+// fetch must not drag every other style into the fallback face, and Papier
+// alone can live with its serif fallback.
+const loadSerif = createLoadOnce(async () => ({
+  name: SHARE_FONTS.serif,
+  data: await loadGoogleFont('Tinos:wght@700', SHARE_IMAGE_TEXT),
+  weight: 700 as const,
+}));
+
+/**
+ * The Stimmt's? share image, for the share sheet and for link previews. Its
+ * parameters and the committed puzzles say everything it shows (number and
+ * its vote's title, score, day, the player's period), so nothing is stored on
+ * a server.
+ */
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const parsed = parseShareParams(
+    url.searchParams,
+    PUZZLE_COUNT,
+    berlinDate(new Date()),
+  );
+  if (!parsed) {
+    return new Response('Invalid share image parameters', { status: 400 });
+  }
+  // An unknown style is drawn as Standard, not refused: the canonical
+  // redirect below then drops it from the URL. With several `t`, the first
+  // counts, as for every other parameter.
+  const data = { ...parsed, style: parseShareStyle(url.searchParams.get('t')) };
+  const canonical = canonicalSharePath(data);
+  if (`${url.pathname}${url.search}` !== canonical) {
+    return Response.redirect(new URL(canonical, url), 308);
+  }
+
+  // The title comes from the number, never from the URL, so nobody can put
+  // their own words on an image that carries the site's logo.
+  const result = data.result && {
+    ...data.result,
+    title: puzzleTitle(data.result.number) ?? undefined,
+  };
+
+  // Without the fonts the image still draws, in next/og's own face, and is
+  // not cached, so the next request tries the fonts again. That includes a
+  // Papier image missing its serif: the CDN must not keep a fallback face.
+  // The serif is fetched only for the style that draws with it: every other
+  // request would wait on a font it never uses.
+  const [baseFonts, serif] = await Promise.all([
+    loadFonts(),
+    data.style === 'papier' ? loadSerif() : null,
+  ]);
+  const fonts = baseFonts && (serif ? [...baseFonts, serif] : baseFonts);
+  const complete = baseFonts && (data.style !== 'papier' || serif);
+  const { width, height } = SHARE_FORMATS[data.format];
+  return new ImageResponse(
+    <ShareImage format={data.format} result={result} style={data.style} />,
+    {
+      width,
+      height,
+      // Left out, not empty: an empty list leaves next/og no font at all.
+      ...(fonts && { fonts }),
+      headers: {
+        'Cache-Control': complete ? CACHE_CONTROL : 'no-store',
+        'X-Robots-Tag': 'noindex',
+      },
+    },
+  );
+}
