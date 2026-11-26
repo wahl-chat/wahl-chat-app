@@ -44,7 +44,8 @@ const WeeklySignupButton = forwardRef<
       )}
     >
       <MailIcon className="size-4" aria-hidden />
-      <span className="daily-header-weekly-label">Meine Woche</span>
+      {/* Narrow phones keep the icon, so the header's links fit. */}
+      <span className="max-[430px]:sr-only">Meine Woche</span>
       {isNew && (
         <span className="absolute -right-1 -top-1 flex size-2.5">
           <span

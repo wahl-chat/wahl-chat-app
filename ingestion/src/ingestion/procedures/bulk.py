@@ -31,11 +31,12 @@ if __name__ == "__main__":
     load_env_file()
 
 import argparse
+import asyncio
 import logging
 import os
 import sys
 from collections.abc import Callable
-from datetime import date
+from datetime import date, timedelta
 from functools import partial
 from typing import Any, Optional
 
@@ -46,6 +47,7 @@ from ingestion.connectors.bundestag_speeches.connector import _require_dip_key
 from ingestion.firestore_guard import guard_firestore_target
 from ingestion.procedures.dip import DipReader, LiveDip
 from ingestion.procedures.drucksachen import (
+    CHUNK_RULES,
     ingest_drucksachen,
     stored_drucksachen,
     wanted_numbers,
@@ -54,6 +56,7 @@ from ingestion.procedures.feed_links import FirestoreProcedures, link_feed_items
 from ingestion.procedures.link_apply import Linker, linked_procedure_ids
 from ingestion.procedures.pdf_pages import PdfSource
 from ingestion.procedures.report import collect, render, scroll_linkable
+from ingestion.procedures.step_summaries import Call, summarise_procedures
 from ingestion.procedures.store import PENDING_STEPS, ProcedureStore
 from ingestion.procedures.sync import SyncReport, follow_up, run_sync, sync_ids
 from ingestion.setup_collection import COLLECTION_NAME, check_fingerprint
@@ -62,6 +65,15 @@ from wahlchat_common.procedures import ProcedureRecord
 logger = logging.getLogger(__name__)
 
 WAHLPERIODEN = [20, 21]
+
+_SUMMARY_LOOKBACK_DAYS = 7
+
+
+def known_empty(state: dict) -> set[str]:
+    """Drucksachen found to have no chunk under the current rules."""
+    if state.get("drucksachen_chunk_rules") != CHUNK_RULES:
+        return set()
+    return set(state.get("drucksachen_without_chunks") or [])
 
 
 def run(
@@ -77,6 +89,7 @@ def run(
     sync: bool,
     feed: bool,
     today: date,
+    summary_call: Optional[Call] = None,
     dry_run: bool = False,
     pdfs: Optional[PdfSource] = None,
     revalidate: Optional[Callable[[], None]] = None,
@@ -116,16 +129,20 @@ def run(
     for step in PENDING_STEPS:
         work[step] |= store.pending(step)
 
-    def read_drucksachen(of: dict[str, ProcedureRecord], *, reread: bool) -> set[str]:
+    def read_drucksachen(
+        of: dict[str, ProcedureRecord],
+        *,
+        reread: bool,
+        on_batch: Optional[Callable[[list[str], set[str]], None]] = None,
+    ) -> set[str]:
         """Read the procedures' Drucksachen: all of them, or only those not
         stored yet (nor known to have no text worth a chunk). Returns the
         numbers that could not be read."""
         numbers = wanted_numbers(of)
         if not reread:
-            known_empty = set(
-                store.sync_state().get("drucksachen_without_chunks") or []
+            numbers -= stored_drucksachen(qdrant, collection) | known_empty(
+                store.sync_state()
             )
-            numbers -= stored_drucksachen(qdrant, collection) | known_empty
         result = ingest_drucksachen(
             numbers,
             dip=dip,
@@ -135,18 +152,21 @@ def run(
             procedures=procedures,
             today=today,
             pdfs=pdfs,
+            on_batch=on_batch,
         )
         print(
             f"drucksachen: documents={result.documents} chunks={result.chunks} "
             f"written={result.written} unchanged={result.skipped} failed={len(result.failed)}"
         )
-        if result.empty:
-            current = store.sync_state()
-            known = set(current.get("drucksachen_without_chunks") or []) | set(
-                result.empty
-            )
+        current = store.sync_state()
+        if result.empty or current.get("drucksachen_chunk_rules") != CHUNK_RULES:
+            known = known_empty(current) | set(result.empty)
             store.set_sync_state(
-                {**current, "drucksachen_without_chunks": sorted(known)}
+                {
+                    **current,
+                    "drucksachen_without_chunks": sorted(known),
+                    "drucksachen_chunk_rules": CHUNK_RULES,
+                }
             )
         return set(result.failed)
 
@@ -155,7 +175,13 @@ def run(
         # stored Drucksache may now belong to one more procedure.
         due = work["pending_drucksachen"]
         moved = {v: procedures[v] for v in due if v in procedures}
-        unread = read_drucksachen(moved, reread=True)
+        unread = read_drucksachen(
+            moved,
+            reread=True,
+            on_batch=_clear_as_read(
+                moved, lambda done: store.clear_pending("pending_drucksachen", done)
+            ),
+        )
         unread_new = read_drucksachen(procedures, reread=False)
         failed |= bool(unread or unread_new)
         # An id with no stored record has nothing to read: a failed sync
@@ -210,10 +236,42 @@ def run(
             failed |= bool(unread)
             store.clear_pending("pending_drucksachen", _read_through(created, unread))
 
+    summarised: set[str] = set()
+    if summary_call is not None and not dry_run:
+        in_feed = _feed_procedure_ids(db)
+        # A law the feed links for the first time had a stage within the
+        # lookback, so it has its summaries by then.
+        recent = today - timedelta(days=_SUMMARY_LOOKBACK_DAYS)
+        summaries = asyncio.run(
+            summarise_procedures(
+                {
+                    v: r
+                    for v, r in procedures.items()
+                    if v in in_feed
+                    or (r.stage_changed_on is not None and r.stage_changed_on >= recent)
+                },
+                qdrant=qdrant,
+                collection=collection,
+                call=summary_call,
+                today=today,
+                write=store.set_step_summaries,
+            )
+        )
+        print(
+            f"step summaries: written={len(summaries.written)} "
+            f"rejected={len(summaries.rejected)} failed={len(summaries.failed)}"
+        )
+        failed |= bool(summaries.failed)
+        # Every summarised law, not only this run's: a run that stopped
+        # before the feed refresh leaves items behind their procedure.
+        summarised = summaries.procedures | {
+            v for v, r in procedures.items() if v in in_feed and r.step_summaries
+        }
+
     if feed:
         lookup = FirestoreProcedures(db)
         moved_on = work["pending_feed"]
-        only = None if backfill else moved_on
+        only = None if backfill else moved_on | summarised
         if only is None or only:
             n = link_feed_items(
                 db, qdrant, collection, lookup=lookup, only_ids=only, dry_run=dry_run
@@ -245,6 +303,43 @@ def run(
     return 1 if failed else 0
 
 
+def _publication_call() -> Call:
+    from ingestion.feed.publication_llms import (  # noqa: PLC0415 (needs the model env)
+        structured_output_from_publication_llms,
+    )
+
+    return structured_output_from_publication_llms
+
+
+def _clear_as_read(
+    of: dict[str, ProcedureRecord], clear: Callable[[set[str]], None]
+) -> Callable[[list[str], set[str]], None]:
+    """A batch callback that clears each procedure once the last of its
+    Drucksachen is written, so a run stopped mid-step resumes there instead
+    of reading every document again. A procedure with a failed document stays
+    pending."""
+    left = {vid: wanted_numbers({vid: record}) for vid, record in of.items()}
+    owners: dict[str, set[str]] = {}
+    for vid, numbers in left.items():
+        for number in numbers:
+            owners.setdefault(number, set()).add(vid)
+    failed_in: set[str] = set()
+
+    def on_batch(batch: list[str], failed: set[str]) -> None:
+        done: set[str] = set()
+        for number in batch:
+            for vid in owners.get(number, ()):
+                if number in failed:
+                    failed_in.add(vid)
+                left[vid].discard(number)
+                if not left[vid] and vid not in failed_in:
+                    done.add(vid)
+        if done:
+            clear(done)
+
+    return on_batch
+
+
 def _read_through(of: dict[str, ProcedureRecord], unread: set[str]) -> set[str]:
     """The procedures none of whose Drucksachen are among ``unread``."""
     return {
@@ -274,6 +369,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     parser.add_argument(
         "--no-feed", action="store_true", help="leave feed items as they are"
+    )
+    parser.add_argument(
+        "--no-summaries", action="store_true", help="write no step summaries"
     )
     parser.add_argument(
         "--report", action="store_true", help="print the coverage report only"
@@ -335,6 +433,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         link=not args.no_link,
         sync=not args.link_only,
         feed=not args.no_feed,
+        summary_call=None if args.no_summaries else _publication_call(),
         today=date.today(),
         dry_run=args.dry_run,
         # Not cached: each PDF is read once per run, and a Cloud Run job's

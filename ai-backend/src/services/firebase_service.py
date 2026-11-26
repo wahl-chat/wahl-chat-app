@@ -4,9 +4,11 @@ import logging
 import os
 import re
 import sys
+from datetime import date
 from typing import Optional
 import firebase_admin
 from firebase_admin import firestore, credentials, firestore_async
+from google.cloud.firestore_v1.base_query import FieldFilter
 import google.auth
 import google.auth.credentials
 import google.auth.transport.requests
@@ -258,6 +260,53 @@ async def aget_party_for_context(
     if party.exists:
         return ContextParty(**party.to_dict())
     return None
+
+
+# =============================================================================
+# Parliament feed (written by the ingestion feed job; read-only here)
+# =============================================================================
+
+_FEED_ITEM_COLLECTION = "feed_items"
+
+
+async def aget_feed_item(item_id: str) -> Optional[dict]:
+    """One stored feed item as a raw dict (its id included), or None."""
+    snapshot = await async_db.collection(_FEED_ITEM_COLLECTION).document(item_id).get()
+    if not snapshot.exists:
+        return None
+    return {**(snapshot.to_dict() or {}), "id": snapshot.id}
+
+
+async def aget_feed_items(
+    parliament: str,
+    since: date,
+    until: date,
+    kind: Optional[str] = None,
+    limit: int = 200,
+) -> list[dict]:
+    """Published feed items of one parliament dated within [since, until],
+    newest first.
+
+    Served by the (parliament, date DESC) index the web's feed read uses;
+    ``kind`` and ``status`` are filtered here so no further index is needed.
+    """
+    query = (
+        async_db.collection(_FEED_ITEM_COLLECTION)
+        .where(filter=FieldFilter("parliament", "==", parliament))
+        .where(filter=FieldFilter("date", ">=", since.isoformat()))
+        .where(filter=FieldFilter("date", "<=", until.isoformat()))
+        .order_by("date", direction="DESCENDING")
+        .limit(limit)
+    )
+    items: list[dict] = []
+    async for snapshot in query.stream():
+        data = {**(snapshot.to_dict() or {}), "id": snapshot.id}
+        if data.get("status", "published") != "published":
+            continue
+        if kind is not None and data.get("kind") != kind:
+            continue
+        items.append(data)
+    return items
 
 
 async def aget_pledges_by_ids(pledge_ids: list[str]) -> list[PledgeRecord]:

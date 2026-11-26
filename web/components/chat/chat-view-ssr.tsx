@@ -1,12 +1,16 @@
+import type { FeedPick } from '@/lib/chat-feed';
 import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
 import {
   getChatSession,
   getChatSessionMessages,
+  getContext,
   getCurrentUser,
   getPartiesForContext,
   getPartiesForContextById,
   getProposedQuestionsForContext,
 } from '@/lib/firebase/firebase-server';
+import type { ChatAnchor, ChatPreset } from '@/lib/firebase/firebase.types';
+import { getChatFeedPicks } from '@/lib/server-actions/chat-feed-picks';
 import { redirect } from 'next/navigation';
 import ChatMessagesView from './chat-messages-view';
 
@@ -16,6 +20,8 @@ type Props = {
   initialQuestion?: string;
   prefilledQuestion?: string;
   contextId?: string;
+  anchor?: ChatAnchor;
+  preset?: ChatPreset;
 };
 
 async function getChatSessionServer(
@@ -53,6 +59,8 @@ async function ChatViewSsr({
   initialQuestion,
   prefilledQuestion,
   contextId = DEFAULT_CONTEXT_ID,
+  anchor,
+  preset,
 }: Props) {
   const chatSession = chatSessionId
     ? await getChatSessionServer(chatSessionId, contextId, partyIds)
@@ -70,10 +78,16 @@ async function ChatViewSsr({
 
   const allParties = await getPartiesForContext(contextId);
 
-  const proposedQuestions = await getProposedQuestionsForContext(
-    contextId,
-    normalizedPartyIds,
-  );
+  const context = await getContext(contextId);
+  const isGeneral = context?.type === 'general';
+
+  // A general chat opens with questions from the feed instead.
+  const proposedQuestions = isGeneral
+    ? []
+    : await getProposedQuestionsForContext(contextId, normalizedPartyIds);
+  const feedPicks: FeedPick[] | undefined = isGeneral
+    ? await getChatFeedPicks()
+    : undefined;
 
   return (
     <ChatMessagesView
@@ -83,8 +97,11 @@ async function ChatViewSsr({
       allParties={allParties}
       messages={messages}
       proposedQuestions={proposedQuestions}
+      feedPicks={feedPicks}
       initialQuestion={initialQuestion}
       prefilledQuestion={prefilledQuestion}
+      anchor={anchor}
+      preset={preset}
     />
   );
 }

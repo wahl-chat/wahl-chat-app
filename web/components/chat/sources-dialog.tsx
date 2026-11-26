@@ -54,6 +54,12 @@ export function SourcesDialog({
 }: Props) {
   const [activeMedia, setActiveMedia] = useState<ActiveMedia | null>(null);
 
+  // Cited web results from outside the preferred outlets get their own heading.
+  const own = referenced.filter((i) => i.source.preferred_outlet !== false);
+  const external = referenced.filter(
+    (i) => i.source.preferred_outlet === false,
+  );
+
   const renderRow = (item: NumberedSource, prefix: string) => (
     <SourceRow
       key={`${prefix}-${item.displayNumber}`}
@@ -106,10 +112,18 @@ export function SourcesDialog({
             </ResponsiveDialogHeader>
 
             <div className="flex grow flex-col overflow-y-auto p-4 md:p-0">
-              {referenced.length > 0 && (
+              {own.length > 0 && (
                 <p className="text-sm font-bold">Im Text referenziert:</p>
               )}
-              {referenced.map((item) => renderRow(item, 'ref'))}
+              {own.map((item) => renderRow(item, 'ref'))}
+              {external.length > 0 && (
+                <p
+                  className={cn('text-sm font-bold', own.length > 0 && 'mt-4')}
+                >
+                  Externe Quellen:
+                </p>
+              )}
+              {external.map((item) => renderRow(item, 'ext'))}
               {notReferenced.length > 0 && (
                 <p
                   className={cn(

@@ -11,7 +11,9 @@ so the item is reassembled field by field on our side. A translation is
 accepted only when it keeps the German text's structure and every number in
 it; otherwise the locale stays empty and the reader sees the German text, and
 the next run tries again. A translation whose German source has changed since
-is dropped rather than shown.
+is dropped rather than shown. Answers to the suggested questions keep their
+German sources and their index; an answer that fails the checks is left out
+on its own (``None``), so it never holds back the rest of the translation.
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ from ingestion.feed.models import (
     Locale,
     LocalizedContent,
     LocalizedPosition,
+    SuggestedAnswer,
 )
 from ingestion.feed.prompts import (
     TRANSLATION_PROMPT_VERSION,
@@ -49,7 +52,7 @@ _RUNAWAY_RE = re.compile(r"deepl|translated with|\n\s*\n\s*\n", re.IGNORECASE)
 _QUOTE_MARKS = " \"'„“”‚‘’»«"
 
 SegmentField = Literal[
-    "headline", "teaser", "key_point", "position", "question", "quote"
+    "headline", "teaser", "key_point", "position", "question", "answer", "quote"
 ]
 
 
@@ -59,6 +62,8 @@ class Segment:
     # The party for a position, else unused.
     party_id: str
     text: str
+    # The question's index for an answer, else unused.
+    index: int = -1
 
 
 @dataclass
@@ -91,6 +96,11 @@ def item_segments(item: FeedItem) -> list[Segment]:
     segments += [Segment("key_point", "", p) for p in source.key_points]
     segments += [Segment("position", p.party_id, p.text) for p in source.positions]
     segments += [Segment("question", "", q) for q in source.suggested_questions]
+    segments += [
+        Segment("answer", "", a.text, n)
+        for n, a in enumerate(source.suggested_answers)
+        if a is not None
+    ]
     if quote := _quote(item):
         segments.append(Segment("quote", "", quote))
     return segments
@@ -123,6 +133,7 @@ def assemble(
         return found[0][1] if found else None
 
     quote = first("quote")
+    answers = {segment.index: text for segment, text in texts("answer")}
     return LocalizedContent(
         headline=first("headline") or "",
         teaser=first("teaser"),
@@ -132,6 +143,14 @@ def assemble(
             for segment, text in texts("position")
         ],
         suggested_questions=[text for _, text in texts("question")],
+        suggested_answers=_aligned(
+            [
+                SuggestedAnswer(text=answers[n], sources=de.sources)
+                if de is not None and n in answers
+                else None
+                for n, de in enumerate(item.content[CANONICAL_LOCALE].suggested_answers)
+            ]
+        ),
         quote_translation=quote.strip(_QUOTE_MARKS) if quote else None,
         origin="translated",
         source_hash=item.content[CANONICAL_LOCALE].source_hash,
@@ -205,6 +224,39 @@ def translation_problems(
     return problems
 
 
+def _aligned(
+    answers: list[Optional[SuggestedAnswer]],
+) -> list[Optional[SuggestedAnswer]]:
+    """Empty, like the German, when no answer is left."""
+    return answers if any(a is not None for a in answers) else []
+
+
+def answer_problems(
+    source: LocalizedContent, translated: LocalizedContent
+) -> dict[int, str]:
+    """What makes each translated answer unfit to publish, by its index, by
+    the same measures as the other texts; their citations are numbers too.
+    A German answer the translation lacks is a problem too."""
+    problems: dict[int, str] = {}
+    for n, de in enumerate(source.suggested_answers):
+        if de is None:
+            continue
+        en = (
+            translated.suggested_answers[n]
+            if n < len(translated.suggested_answers)
+            else None
+        )
+        if en is None:
+            problems[n] = "missing"
+        elif _RUNAWAY_RE.search(en.text) or len(en.text) > 2 * len(de.text) + 80:
+            problems[n] = "runaway text"
+        elif missing := set(_DIGITS_RE.findall(de.text)) - set(
+            _DIGITS_RE.findall(en.text)
+        ):
+            problems[n] = f"numbers lost: {sorted(missing)}"
+    return problems
+
+
 def _translate_batch(
     builder: FeedBuilder,
     parliament_name: str,
@@ -241,6 +293,21 @@ def _translate_batch(
             item.content[CANONICAL_LOCALE], _quote(item), content
         )
         if not problems:
+            if answer_issues := answer_problems(
+                item.content[CANONICAL_LOCALE], content
+            ):
+                logger.warning(
+                    "Not publishing %s answers of %s: %s",
+                    locale,
+                    item.id,
+                    answer_issues,
+                )
+                content.suggested_answers = _aligned(
+                    [
+                        None if n in answer_issues else a
+                        for n, a in enumerate(content.suggested_answers)
+                    ]
+                )
             item.content[locale] = content
             report.translated += 1
             continue

@@ -29,6 +29,12 @@ service cloud.firestore {
       allow read;
     }
 
+    // Bundestag procedures (DIP Vorgänge), public parliamentary records;
+    // written only by the procedures job.
+    match /procedures/{vorgang_id} {
+      allow read;
+    }
+
     // The people who spoke in the feed's debates, as the Bundestag publishes
     // them; written only by the feed builder.
     match /politicians/{mdb_id} {

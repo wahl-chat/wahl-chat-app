@@ -9,7 +9,8 @@
         collect-speeches fetch-mdb-stammdaten \
         update-speeches speeches-stats export-prod-slice \
         build-feed setup-feed-collection backfill-feed eval-feed \
-        run-procedures procedures-report eval-procedure-documents
+        run-procedures procedures-report eval-procedure-documents \
+        eval-procedure-chat eval-web-context eval-citation-check
 
 # --- Install dependencies ---
 
@@ -351,6 +352,27 @@ eval-feed:
 #   make eval-procedure-documents ARGS="--out /tmp/procedure-documents.md"
 eval-procedure-documents:
 	cd evals && $(QDRANT_ENV) uv run python -m wahlchat_evals.procedure_documents $(ARGS)
+
+# The generic chat's agent on procedure questions, one answer per question
+# (LLM calls, writes nothing). Reads the
+# local emulator and store, like the backend in local mode.
+#   make eval-procedure-chat ARGS="--out /tmp/procedure-chat.md"
+eval-procedure-chat:
+	cd ai-backend && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$${FIRESTORE_EMULATOR_HOST:-localhost:8081} \
+		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) PYTHONPATH=.:../evals/src \
+		uv run python -m wahlchat_evals.procedure_chat $(ARGS)
+
+# How many citations hold, and what the repair would change, on eval runs:
+#   make eval-citation-check ARGS="--runs DIR/runs.json --out-dir DIR2"
+eval-citation-check:
+	cd ai-backend && PYTHONPATH=.:../evals/src uv run python -m wahlchat_evals.citation_check $(ARGS)
+
+# The chat with and without press coverage, written out for blind judging:
+#   make eval-web-context ARGS="--out-dir /tmp/web-context"
+eval-web-context:
+	cd ai-backend && $(QDRANT_ENV) FIRESTORE_EMULATOR_HOST=$${FIRESTORE_EMULATOR_HOST:-localhost:8081} \
+		GOOGLE_CLOUD_PROJECT=$(EMULATOR_PROJECT) PYTHONPATH=.:../evals/src \
+		uv run python -m wahlchat_evals.web_context $(ARGS)
 
 # Uploaded manifestos: party PDFs supplied directly, for elections with no AW
 # coverage. Metadata comes from the object path + Firestore seed fixtures.

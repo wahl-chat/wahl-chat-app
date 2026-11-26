@@ -152,11 +152,13 @@ Outside the registry (bespoke runner, like the manifesto bulk CLIs):
   tally against DIP decisions) and speeches (DIP `aktivitaet`) by writing
   `vorgang_ids`, `sachgebiete` and `procedure_link` payload-only, and attaches
   procedure summaries to feed items (`--revalidate` then clears the web cache
-  tag `feed`: the feed build finds those items unchanged and would not). What a
-  synced change still needs from the later steps is kept in
-  `procedures_meta/sync` (`pending_*`) until that step succeeds, so a failed or
-  stopped run leaves it to the next one. Runs after the speech and vote ingestion
-  (it links what they wrote) and before the feed build.
+  tag `feed`: the feed build finds those items unchanged and would not). For
+  laws in the feed or with a recent stage it writes checked step summaries of
+  their Drucksachen (`step_summaries`, one LLM call per law; `--no-summaries`
+  skips them). What a synced change still needs from the later steps is kept
+  in `procedures_meta/sync` (`pending_*`) until that step succeeds, so a
+  failed or stopped run leaves it to the next one. Runs after the speech and
+  vote ingestion (it links what they wrote) and before the feed build.
   Runner: `ingestion/src/ingestion/procedures/bulk.py`; reader:
   `ai-backend/src/services/procedure_service.py`.
 
@@ -195,6 +197,32 @@ SSE is used instead of WebSockets/Socket.IO because WebSockets fail behind some
 corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 `/healthz` check.
 
+### Generic chat
+
+A context of `type: general` (`bundestag-aktuell`, served at `/chat`) is
+answered by a tool-calling agent instead of the election RAG pipeline:
+`services/chat/service.py` hands the request to
+`generic_chat/stream.stream_generic_chat`. The agent (pydantic-ai) searches the
+corpus, votes, debates, procedures and the feed, and the web (Perplexity).
+`ChatRequestDto` carries `anchor` (the feed item, vote or procedure the chat
+was opened from), `preset` (a feed button's fixed question) and `language`.
+The stream adds a `tool_status` event per tool call.
+
+- **Press coverage.** A procedure the agent looks up also brings up to three
+  dated, on-topic results from preferred outlets and Fraktion sites
+  (`generic_chat/web_context.py`). `GENERIC_CHAT_WEB_CONTEXT=off` turns it off.
+- **Citation check.** After the answer, one small-model call re-points a
+  citation to the source that supports its sentence, or drops the number; the
+  text stays (`generic_chat/citation_check.py`). Fails open after 5 s.
+  `GENERIC_CHAT_CITATION_CHECK=off` turns it off.
+- **Preset cache.** A feed button's answer (no web, no press) is stored in
+  Firestore `cached_chat_answers/{sha256}`, server-only (admin SDK). The key
+  holds the rendered prompt, so new data on the item misses the cache; entries
+  older than 7 days are ignored. Bump `presets._VERSION` when the answer path
+  changes.
+- `PERPLEXITY_API_KEY` is required for web search and press coverage;
+  without it both return nothing and the chat answers from the corpus.
+
 ## Repository layout
 
 | Path | What lives there |
@@ -208,6 +236,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ai-backend/src/config/` | LLM client setup (`llms.py`). |
 | `ai-backend/src/core/` | Cross-cutting helpers: auth, prompts, SSE framing, utils. |
 | `ai-backend/src/services/chat/service.py`, `chatbot_async.py` | RAG chat pipeline + LLM streaming. |
+| `ai-backend/src/generic_chat/` | The generic chat for `type: general` contexts: agent, tools, procedures, prompt, preset cache, press coverage, citation check (see "Generic chat"). |
 | `ai-backend/src/retrieve.py` | Query-time retrieval over the corpus: filtered vector search, two-pass term windows, vote re-rank, prefer-op dedup. |
 | `ingestion/` | Connectors + runner. Ships its own image for the scheduled Jobs. Depends on `wahlchat-common`, never on `ai-backend`. |
 | `ingestion/src/ingestion/` | Ingestion framework: `connector.py` (base class), `run.py` (runner), `registry.py`, `schemas.py` (data contract), `setup_collection.py`, `embeddings.py`, `vertex_credentials.py`, `governance_levels.py`, `legislature_config.py`, `ids.py`, `speech_key.py`, `speech_dedup.py`. |
@@ -215,7 +244,7 @@ corporate networks. Other routers: `pro_con`, `voting_behavior`, `misc`, plus a
 | `ingestion/src/ingestion/feed/` | The parliament feed: builds feed items from the corpus, translates and indexes them (see "The parliament feed"). |
 | `ingestion/src/ingestion/procedures/` | Bundestag procedures: DIP sync, Drucksache text, links on votes/speeches/feed items, coverage report (`make run-procedures`, `make procedures-report`). |
 | `ingestion/tests/` | pytest suite for the corpus layer (runner, schema, connectors). |
-| `evals/` | Offline evaluations (uv workspace member `wahlchat-evals`): the feed eval (`make eval-feed`) and its gold set in `evals/data/feed_eval/`; the Drucksache retrieval comparison (`make eval-procedure-documents`). Not part of any image. |
+| `evals/` | Offline evaluations (uv workspace member `wahlchat-evals`): the feed eval (`make eval-feed`) and its gold set in `evals/data/feed_eval/`; the Drucksache retrieval comparison (`make eval-procedure-documents`); the generic chat on procedure and "why" questions (`make eval-procedure-chat`), with and without press coverage for blind judging (`make eval-web-context`), and its citation check (`make eval-citation-check`). Not part of any image. |
 | `ingestion/data/` | Connector inputs: `manifesto_uploads/{env}.txt` manifests; MdB-Stammdaten XML (gitignored, fetched on demand). |
 | `ai-backend/src/models/` | Pydantic DTOs and domain models for the chat API. |
 | `ai-backend/tests/` | pytest suite for the chat service and retrieval (Qdrant/embeddings mocked in `conftest.py`). |
@@ -623,6 +652,12 @@ reuse the same item: the feed now, later briefings and social posts.
   (`feed/passages.py`). It links the video time when openparliament.tv has it,
   else the protocol page. The sources are facts (`debate.key_point_sources`,
   `parties[].position_sources`). They are the same in all languages.
+- **Answers.** One call per item answers its suggested questions
+  (`feed/answers.py`, `suggested_answers`) with the chat's own rules and
+  sources; a question without a valid answer stays a plain question, and
+  later runs retry it up to `MAX_ANSWER_ATTEMPTS`. Debates store their
+  `speech_ids`; `--backfill-speech-ids` fills them on stored items (no LLM
+  calls).
 - **Card video.** The job chooses the speech a debate card plays and the
   second it starts at (`feed/card_video.py`, stored as
   `debate.card_video`). After the run has published and cleared the web

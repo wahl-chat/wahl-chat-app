@@ -22,7 +22,7 @@ import hashlib
 import json
 import logging
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Literal, Optional
@@ -67,6 +67,9 @@ _WHOLE_OVERVIEW: frozenset[str] = frozenset(
     {"Antrag", "Entschließungsantrag", "Änderungsantrag"}
 )
 MAX_TEXT_CHARS = 1_500_000
+# Raised when the rules for what yields a chunk change: Drucksachen once found
+# to have none are read again.
+CHUNK_RULES = 2
 
 _VORBLATT = re.compile(r"^[A-F]\. [A-ZÄÖÜ][\wäöüß ,/-]{2,60}$")
 _TOP = re.compile(
@@ -204,9 +207,8 @@ def drucksache_chunks(
     number = str(doc["dokumentnummer"])
     doc_type = str(doc.get("drucksachetyp") or "Drucksache")
     text = str(doc.get("text") or "")
-    if len(text) > MAX_TEXT_CHARS:
-        logger.warning("Drucksache %s: %d chars, skipped", number, len(text))
-        return []
+    # The Vorblatt opens the document; law text and Begründung follow.
+    text = text[:MAX_TEXT_CHARS]
     vorgang_ids = sorted(
         {str(ref["id"]) for ref in doc.get("vorgangsbezug") or []} & set(procedures)
     )
@@ -338,8 +340,13 @@ class DrucksacheReport:
 
 
 def _pdf_of(doc: dict[str, Any], pdfs: Optional[PdfSource]) -> Optional[ProtocolPdf]:
+    """The document's PDF. A text over ``MAX_TEXT_CHARS`` is chunked from its
+    start only, and its PDF can be hundreds of MB, so it is not fetched: those
+    chunks get no pages."""
     url = (doc.get("fundstelle") or {}).get("pdf_url")
-    return pdfs.pdf(url) if pdfs is not None and url else None
+    if pdfs is None or not url or len(str(doc.get("text") or "")) > MAX_TEXT_CHARS:
+        return None
+    return pdfs.pdf(url)
 
 
 def stored_drucksachen(qdrant: Any, collection: str) -> set[str]:
@@ -377,22 +384,27 @@ def ingest_drucksachen(
     today: date,
     batch_size: int = 10,
     pdfs: Optional[PdfSource] = None,
+    on_batch: Optional[Callable[[list[str], set[str]], None]] = None,
 ) -> DrucksacheReport:
     """Read, chunk and write the given Drucksachen, a batch at a time.
 
     A document DIP has no text for yet keeps whatever is stored; a failing
     batch, or a document that cannot be chunked, is reported and retried
-    next run while the others are written.
+    next run while the others are written. ``on_batch`` gets each batch's
+    numbers and those of it that failed, once the batch is written.
     """
     report = DrucksacheReport()
     ordered = sorted(set(numbers))
     for start in range(0, len(ordered), batch_size):
         batch = ordered[start : start + batch_size]
+        failed: set[str] = set()
         try:
             texts = dip.drucksache_texts(batch)
         except Exception:  # noqa: BLE001 — retried next run
             logger.exception("Drucksache texts failed for %s", batch)
             report.failed.extend(batch)
+            if on_batch is not None:
+                on_batch(batch, set(batch))
             continue
         parents: dict[str, list[ChunkRecord]] = {}
         for number, doc in texts.items():
@@ -404,7 +416,7 @@ def ingest_drucksachen(
                 )
             except Exception:  # noqa: BLE001 — retried next run
                 logger.exception("Drucksache %s could not be chunked", number)
-                report.failed.append(number)
+                failed.add(number)
         report.documents += len(parents)
         report.empty.extend(
             k.rsplit(":", 1)[-1] for k, chunks in parents.items() if not chunks
@@ -413,7 +425,10 @@ def ingest_drucksachen(
         written = replace_parents(qdrant, collection, embed, parents)
         report.written += written.written
         report.skipped += written.skipped
-        report.failed.extend(k.rsplit(":", 1)[-1] for k in written.failed_parents)
+        failed.update(k.rsplit(":", 1)[-1] for k in written.failed_parents)
+        report.failed.extend(sorted(failed))
+        if on_batch is not None:
+            on_batch(batch, failed)
         logger.info(
             "Drucksachen %d/%d: %d chunks so far",
             min(start + batch_size, len(ordered)),

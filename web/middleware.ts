@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import {
   CONTEXT_ID_HEADER,
   DEFAULT_CONTEXT_ID,
+  GENERAL_CONTEXT_ID,
   REGION_CONTEXTS,
   TENANT_ID_HEADER,
 } from './lib/constants';
@@ -113,15 +114,13 @@ export async function middleware(request: NextRequest) {
   // party or session still need a context, and middleware can only guess one
   // from the request's region, so those stay temporary (307).
 
-  // The chat landing page lives at /election-chat. /chat forwards there only
-  // temporarily (307): the path is reserved for another product, and a 308
-  // would be kept by browsers and search engines, which already happened once
-  // when production sent /chat to / permanently.
+  // /chat is the general chat: served from its context's session page under
+  // its own URL, query (q, feed_item, procedure, poll_id) included.
   if (pathname === '/chat') {
-    return NextResponse.redirect(
-      buildRedirectUrl(request, '/election-chat'),
-      307,
-    );
+    const url = request.nextUrl.clone();
+    url.pathname = `/${GENERAL_CONTEXT_ID}/session`;
+    requestHeaders.set(CONTEXT_ID_HEADER, GENERAL_CONTEXT_ID);
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
   }
 
   if (pathname.startsWith('/chat/')) {

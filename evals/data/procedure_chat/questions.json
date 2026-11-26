@@ -1,0 +1,274 @@
+[
+ {
+  "id": "user-1",
+  "group": "user",
+  "question": "Wie ist das Haushaltsbegleitgesetz 2027 zustande gekommen?",
+  "expect": [
+   "338366"
+  ]
+ },
+ {
+  "id": "user-2",
+  "group": "user",
+  "question": "Was ändert das Haushaltsbegleitgesetz 2027?",
+  "expect": [
+   "338366"
+  ]
+ },
+ {
+  "id": "user-3",
+  "group": "user",
+  "question": "Was hat die SPD in den Beratungen zur Schuldenbremse gesagt und wie abgestimmt?",
+  "expect": [
+   "320784"
+  ]
+ },
+ {
+  "id": "user-4",
+  "group": "user",
+  "question": "Wo steht das Wehrdienstgesetz gerade?",
+  "expect": [
+   "325558"
+  ]
+ },
+ {
+  "id": "user-5",
+  "group": "user",
+  "question": "Was hat der Haushaltsausschuss am Haushaltsbegleitgesetz 2027 geändert?",
+  "expect": [
+   "338366"
+  ]
+ },
+ {
+  "id": "name-1",
+  "group": "name",
+  "question": "Wie ist der Stand beim Tariftreuegesetz?",
+  "expect": [
+   "324929"
+  ]
+ },
+ {
+  "id": "name-2",
+  "group": "name",
+  "question": "Wurde das Startchancen-Gesetz beschlossen?",
+  "expect": [
+   "338785"
+  ]
+ },
+ {
+  "id": "name-3",
+  "group": "name",
+  "question": "Was ist aus der Reform des Nachrichtendienstrechts geworden?",
+  "expect": [
+   "338341"
+  ]
+ },
+ {
+  "id": "name-4",
+  "group": "name",
+  "question": "Wie lief das Heizungsgesetz im Bundestag?",
+  "expect": [
+   "298723",
+   "334923"
+  ]
+ },
+ {
+  "id": "name-5",
+  "group": "name",
+  "question": "Wie ist der Stand beim Haushalt 2027?",
+  "expect": [
+   "338317",
+   "338366"
+  ],
+  "ask_ok": true
+ },
+ {
+  "id": "name-6",
+  "group": "name",
+  "question": "Wo steht der Antrag zur Schuldenbremse?",
+  "expect": [],
+  "ask_ok": true
+ },
+ {
+  "id": "name-7",
+  "group": "name",
+  "question": "Welche Schritte hatte die Grundgesetzänderung zur Schuldenbremse 2025?",
+  "expect": [
+   "320784"
+  ]
+ },
+ {
+  "id": "name-8",
+  "group": "name",
+  "question": "Ist das Gesetz zur Verlängerung der Mietpreisbremse schon beraten worden?",
+  "expect": [
+   "318555"
+  ]
+ },
+ {
+  "id": "name-9",
+  "group": "name",
+  "question": "Wie ging es mit dem Wehrdienst-Modernisierungsgesetz nach der ersten Lesung weiter?",
+  "expect": [
+   "325558"
+  ]
+ },
+ {
+  "id": "name-10",
+  "group": "name",
+  "question": "Was passiert gerade mit dem Haushaltsgesetz 2027?",
+  "expect": [
+   "338317"
+  ]
+ },
+ {
+  "id": "why-1",
+  "group": "why",
+  "question": "Warum haben die Fraktionen so abgestimmt?",
+  "expect": [
+   "338341"
+  ],
+  "parties": [
+   "cdu",
+   "spd",
+   "afd",
+   "gruene",
+   "linke"
+  ],
+  "anchor": "bundestag_2026-11-13_v6771"
+ },
+ {
+  "id": "why-2",
+  "group": "why",
+  "question": "Warum haben sich die Grünen beim Nachrichtendienstrecht enthalten?",
+  "expect": [
+   "338341"
+  ],
+  "parties": [
+   "gruene"
+  ]
+ },
+ {
+  "id": "why-3",
+  "group": "why",
+  "question": "Warum haben Linke und AfD beide gegen das Nachrichtendienstrecht gestimmt?",
+  "expect": [
+   "338341"
+  ],
+  "parties": [
+   "linke",
+   "afd"
+  ]
+ },
+ {
+  "id": "why-4",
+  "group": "why",
+  "question": "Warum haben die Grünen dagegen gestimmt?",
+  "expect": [
+   "338785"
+  ],
+  "parties": [
+   "gruene"
+  ],
+  "anchor": "bundestag_2026-11-12_v6756"
+ },
+ {
+  "id": "why-5",
+  "group": "why",
+  "question": "Warum haben die Fraktionen so abgestimmt?",
+  "expect": [
+   "338785"
+  ],
+  "parties": [
+   "cdu",
+   "spd",
+   "afd",
+   "gruene",
+   "linke"
+  ],
+  "anchor": "bundestag_2026-11-12_v6756"
+ },
+ {
+  "id": "why-6",
+  "group": "why",
+  "question": "Warum hat die AfD dem Startchancen-Gesetz zugestimmt?",
+  "expect": [
+   "338785"
+  ],
+  "parties": [
+   "afd"
+  ]
+ },
+ {
+  "id": "why-7",
+  "group": "why",
+  "question": "Warum hat sich die Linke enthalten?",
+  "expect": [
+   "338357"
+  ],
+  "parties": [
+   "linke"
+  ],
+  "anchor": "bundestag_2026-10-16_v6733"
+ },
+ {
+  "id": "why-8",
+  "group": "why",
+  "question": "Warum waren die Grünen gegen die Änderung beim CO₂-Preis im Oktober?",
+  "expect": [
+   "338357"
+  ],
+  "parties": [
+   "gruene"
+  ]
+ },
+ {
+  "id": "why-9",
+  "group": "why",
+  "question": "Warum hat die SPD den Antrag abgelehnt?",
+  "expect": [
+   "338341"
+  ],
+  "parties": [
+   "spd"
+  ],
+  "anchor": "bundestag_2026-11-13_v6772"
+ },
+ {
+  "id": "why-10",
+  "group": "why",
+  "question": "Warum hat die Union die EEG-Reform der Grünen abgelehnt?",
+  "expect": [
+   "336979"
+  ],
+  "parties": [
+   "cdu"
+  ]
+ },
+ {
+  "id": "recent-1",
+  "group": "recent",
+  "question": "Ich hab gesehen, dass ab Januar die Strompreise sinken sollen. Stimmt das? Wann wurde das beschlossen?",
+  "expect": [],
+  "web": "expect",
+  "note": "The news is a coalition agreement on the Stromsteuer for 2027; the 2025 Netzkostenzuschuss in our data is something else and must not be presented as it."
+ },
+ {
+  "id": "recent-2",
+  "group": "recent",
+  "question": "Ich hab gelesen, der Bundestag hat gerade das Nachrichtendienstrecht reformiert. Was steht da drin?",
+  "expect": [
+   "338341"
+  ],
+  "web": "any",
+  "note": "Recent-sounding, and our data has it: the answer stands on the procedure, the web may add to it."
+ },
+ {
+  "id": "recent-3",
+  "group": "recent",
+  "question": "Wie haben die Fraktionen beim Gebäudeenergiegesetz 2023 abgestimmt?",
+  "expect": [],
+  "web": "avoid",
+  "note": "An old vote without a recency cue: our data only."
+ }
+]

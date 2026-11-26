@@ -4,14 +4,15 @@ import { useMediaViewer } from '@/components/providers/media-viewer-provider';
 import StickyInput from '@/components/sticky-input';
 import { FEED_CHAT_ENABLED, feedChatHref } from '@/lib/daily/chat-handoff';
 import { DAILY_THEME_CLASSES } from '@/lib/daily/fonts';
+import { itemQuestions } from '@/lib/daily/inline-answers';
 import {
   type DetailItem,
   type SectionItem,
   type VoteItem,
+  itemTitle,
   openingParty,
   protocolLabel,
   sectionTopics,
-  suggestedQuestions,
 } from '@/lib/daily/items';
 import { scoreOf } from '@/lib/daily/opinions';
 import { speakerIds } from '@/lib/daily/politicians';
@@ -21,18 +22,21 @@ import {
   type AskConsent,
   useFeedOpinions,
 } from '@/lib/daily/use-feed-opinions';
+import type { ChatPreset } from '@/lib/firebase/firebase.types';
 import type {
   DigestPartyPosition,
   DigestSpeaker,
 } from '@/lib/firebase/firebase.types';
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ChevronLeftIcon, ShareIcon } from 'lucide-react';
+import { ChevronLeftIcon, MessageCircleIcon, ShareIcon } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { FOCUS_RING, MUTED_TEXT, SECTION_LABEL } from './card-styles';
 import { GlossaryText } from './glossary-text';
 import { Hemicycle, PartyVoteBreakdown, SeatLegend } from './hemicycle';
+import { InlineAnswers } from './inline-answers';
 import { OpinionConsentSheet } from './opinion-consent-sheet';
 import { OutcomeBadge } from './outcome-badge';
 import { PartyPositions, orderedPositions } from './party-positions';
@@ -43,6 +47,7 @@ import {
   useSpeakerPhotos,
 } from './politician-sheet';
 import { PositionRating } from './position-rating';
+import { ProcedureSection } from './procedure-section';
 import { SourcePills } from './source-pills';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
@@ -67,41 +72,105 @@ function placeholderFor(item: DetailItem): string {
     : 'Frag zu dieser Debatte …';
 }
 
+function useAskChat(item: DetailItem, preset?: ChatPreset) {
+  const router = useRouter();
+  return (question: string) => {
+    if (question.trim()) {
+      router.push(feedChatHref(item, question, preset));
+    }
+  };
+}
+
 /**
- * "Mehr wissen? Frag nach.": suggested questions and a free input, both
- * handing the question plus the item's context to the chat.
+ * "Mehr wissen? Frag nach.": suggested questions without a precomputed
+ * answer and a free input, both opening the chat with the item attached.
+ * `showTarget` names the item the question goes to, for a bar whose item
+ * follows the scroll position; the target stays put while the input has focus
+ * or text, so a question never moves to another item mid-typing.
  */
 export function AskPanel({
   item,
   withSuggestions = true,
+  showTarget = false,
   className,
 }: {
   item: DetailItem;
   withSuggestions?: boolean;
+  showTarget?: boolean;
   className?: string;
 }) {
-  const router = useRouter();
-  const ask = (question: string) => {
-    if (question.trim()) {
-      router.push(feedChatHref(item, question));
-    }
-  };
-  const suggestions = withSuggestions ? suggestedQuestions(item) : [];
+  const [locked, setLocked] = useState<DetailItem | null>(null);
+  const target = locked ?? item;
+  const ask = useAskChat(target);
+  const suggestions = withSuggestions ? itemQuestions(target).chips : [];
   return (
-    <div className={className}>
+    <div
+      className={className}
+      onFocusCapture={showTarget ? () => setLocked(target) : undefined}
+      onBlurCapture={
+        showTarget
+          ? (e) => {
+              const field = e.target as HTMLInputElement;
+              if (!field.value?.trim()) setLocked(null);
+            }
+          : undefined
+      }
+    >
       {suggestions.length > 0 && (
         <p className="px-4 pb-2 pt-3 text-[15px] font-semibold">
           Mehr wissen? Frag nach.
+        </p>
+      )}
+      {showTarget && (
+        <p
+          className={cn(
+            'mx-auto mb-1.5 w-fit max-w-[min(36rem,100%)] truncate rounded-full border border-[var(--daily-border)] bg-[var(--daily-surface)] px-3 py-1 text-[13px]',
+            MUTED_TEXT,
+          )}
+        >
+          Frage zu: <span className="font-medium">{itemTitle(target)}</span>
         </p>
       )}
       <StickyInput
         isLoading={false}
         onSubmit={ask}
         quickReplies={suggestions}
-        placeholder={placeholderFor(item)}
-        className="static mx-2 pb-3 md:pb-3"
+        placeholder={placeholderFor(target)}
+        className="relative mx-2 pb-3 md:pb-3"
       />
     </div>
+  );
+}
+
+function ItemAnswers({ item }: { item: DetailItem }) {
+  const ask = useAskChat(item, 'ask');
+  return (
+    <InlineAnswers
+      answers={itemQuestions(item).answers}
+      onAsk={FEED_CHAT_ENABLED ? ask : undefined}
+    />
+  );
+}
+
+// The question a vote or debate raises most, one tap from the answer.
+const WHY_VOTED = 'Warum haben die Fraktionen so abgestimmt?';
+const WHY_ARGUED = 'Wie haben die Fraktionen argumentiert?';
+
+function WhyLink({ item, question }: { item: DetailItem; question: string }) {
+  if (!FEED_CHAT_ENABLED) {
+    return null;
+  }
+  return (
+    <Link
+      href={feedChatHref(item, question, 'why')}
+      className={cn(
+        FOCUS_RING,
+        'mt-2 inline-flex min-h-11 items-center gap-2 self-start rounded-2xl border border-[var(--daily-border)] bg-[var(--daily-surface)] px-4 py-2 text-left text-[15px] leading-snug font-semibold transition-colors hover:bg-[var(--daily-border)]',
+      )}
+    >
+      <MessageCircleIcon className="size-4 shrink-0" aria-hidden />
+      {question}
+    </Link>
   );
 }
 
@@ -213,6 +282,7 @@ function SectionDetail({
                 Tippe auf eine Person für mehr
               </p>
             )}
+            <WhyLink item={item} question={WHY_ARGUED} />
           </section>
         )}
         {protocol &&
@@ -291,6 +361,7 @@ function VoteDetail({
           onSelect={select}
           breakdownId={breakdownId}
         />
+        <WhyLink item={item} question={WHY_VOTED} />
       </section>
       <p className={cn('text-[13px]', MUTED_TEXT)}>
         Originaltitel: {vote.title}
@@ -309,6 +380,8 @@ type Props = {
   /** Day-relative heat of the item, see `dayHeat`. */
   heat: number | undefined;
   onClose: () => void;
+  /** Back leads to the item this one was opened from. */
+  backToItem?: boolean;
   /** Off in embedded deployments: they have no menu to withdraw consent from,
    * so they must not ask for it. */
   opinionsEnabled?: boolean;
@@ -332,6 +405,7 @@ export function DailyDetailDialog({
   item,
   heat,
   onClose,
+  backToItem = false,
   opinionsEnabled = true,
 }: Props) {
   // The speaker sheet belongs to the item it was opened from, so another
@@ -392,6 +466,28 @@ export function DailyDetailDialog({
       setOpened(null);
     }
   };
+  // Where each item was scrolled to, so going back to one resumes there.
+  const scrolled = useRef(new Map<string, number>());
+  const body = useRef<HTMLDivElement | null>(null);
+  const shownKey = useRef<string | null>(null);
+  const key = item?.key ?? null;
+  useEffect(() => {
+    const previous = shownKey.current;
+    shownKey.current = key;
+    if (key === null) {
+      scrolled.current.clear();
+      return;
+    }
+    const node = body.current;
+    if (!node || previous === null || previous === key) {
+      return;
+    }
+    node.scrollTop = scrolled.current.get(key) ?? 0;
+    // Another item in the open dialog: screen readers hear its title.
+    const title = node.querySelector<HTMLElement>('h2');
+    title?.setAttribute('tabindex', '-1');
+    title?.focus({ preventScroll: true });
+  }, [key]);
   const context = item
     ? `${item.kind === 'vote' ? 'Abstimmung' : 'Plenarsitzung'} · ${longDayFormat.format(new Date(`${item.digest.date}T00:00:00Z`))}`
     : '';
@@ -426,7 +522,7 @@ export function DailyDetailDialog({
             <>
               <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--daily-border)] px-2 py-1.5">
                 <DialogPrimitive.Close
-                  aria-label="Zurück zum Feed"
+                  aria-label={backToItem ? 'Zurück' : 'Zurück zum Feed'}
                   className={ICON_BUTTON}
                 >
                   <ChevronLeftIcon className="size-6" />
@@ -445,7 +541,14 @@ export function DailyDetailDialog({
                   <ShareIcon className="size-5" />
                 </button>
               </header>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
+              <div
+                key={item.key}
+                ref={body}
+                onScroll={(event) =>
+                  scrolled.current.set(item.key, event.currentTarget.scrollTop)
+                }
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6"
+              >
                 {/* Keyed by item, so opinions never carry over to the next. */}
                 {item.kind === 'vote' ? (
                   <VoteDetail
@@ -468,6 +571,18 @@ export function DailyDetailDialog({
                     }
                   />
                 )}
+                <ProcedureSection
+                  day={item.digest.date}
+                  kind={item.kind === 'vote' ? 'vote' : 'debate'}
+                  itemId={item.key}
+                  voteTitle={item.kind === 'vote' ? item.vote.title : undefined}
+                  procedures={
+                    item.kind === 'vote'
+                      ? item.vote.procedures
+                      : item.section.procedures
+                  }
+                />
+                <ItemAnswers item={item} />
               </div>
               {FEED_CHAT_ENABLED && (
                 <AskPanel

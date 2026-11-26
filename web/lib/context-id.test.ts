@@ -4,8 +4,12 @@ import prodContexts from '../../firebase/firestore_data/prod/contexts.json';
 
 describe('looksLikeContextId', () => {
   // A miss here 404s a stale link to a real election instead of redirecting it.
-  it('accepts every context id in production', () => {
-    const ids = Object.keys(prodContexts);
+  // General contexts are served under their own route (/chat), not as an
+  // election link.
+  it('accepts every election context id in production', () => {
+    const ids = Object.entries(prodContexts)
+      .filter(([, context]) => context.type !== 'general')
+      .map(([id]) => id);
     expect(ids.length).toBeGreaterThan(0);
 
     for (const id of ids) {

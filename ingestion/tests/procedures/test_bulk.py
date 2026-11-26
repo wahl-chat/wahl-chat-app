@@ -3,11 +3,15 @@
 # SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 from datetime import date
+from functools import partial
 
 import pytest
 
-from ingestion.procedures.bulk import run
+from ingestion.procedures import bulk
+from ingestion.procedures.bulk import _clear_as_read, known_empty, run
+from ingestion.procedures.drucksachen import CHUNK_RULES, ingest_drucksachen
 from ingestion.procedures.link_apply import Linker
+from ingestion.procedures.store import ProcedureStore
 
 from .conftest import load
 from .fakes import FakeDip, FakeEmbed, FakeFirestore, FakeQdrant
@@ -137,6 +141,15 @@ def test_rebuilt_collection_gets_profiles_back_on_backfill(
     )
 
 
+def test_documents_without_chunks_are_read_again_under_new_rules() -> None:
+    listed = {"drucksachen_without_chunks": ["21/7868"]}
+    assert known_empty({**listed, "drucksachen_chunk_rules": CHUNK_RULES}) == {
+        "21/7868"
+    }
+    assert known_empty({**listed, "drucksachen_chunk_rules": CHUNK_RULES - 1}) == set()
+    assert known_empty(listed) == set()
+
+
 def test_a_run_that_stops_after_the_sync_is_followed_up_next_time(
     vorgaenge, positions, capsys, monkeypatch
 ) -> None:
@@ -206,3 +219,54 @@ def test_a_run_that_stops_after_the_sync_is_followed_up_next_time(
         revalidate=lambda: cleared.append(True),
     )
     assert cleared == [True]
+
+
+def test_a_procedure_is_cleared_once_its_last_document_is_written(
+    vorgaenge, positions, capsys
+) -> None:
+    db, qdrant = FakeFirestore(), FakeQdrant()
+    _run(_dip(vorgaenge, positions), db, qdrant)
+    # 338366 has 21/7860 and 21/9241, 341758 has 21/9233
+    cleared: list[set[str]] = []
+    on_batch = _clear_as_read(ProcedureStore(db).all(), cleared.append)
+    on_batch(["21/7860"], set())
+    assert cleared == []
+    on_batch(["21/9233", "21/9241"], set())
+    assert cleared == [{"338366", "341758"}]
+
+
+def test_a_procedure_with_a_failed_document_stays_pending(
+    vorgaenge, positions, capsys
+) -> None:
+    db, qdrant = FakeFirestore(), FakeQdrant()
+    _run(_dip(vorgaenge, positions), db, qdrant)
+    cleared: list[set[str]] = []
+    on_batch = _clear_as_read(ProcedureStore(db).all(), cleared.append)
+    on_batch(["21/7860"], {"21/7860"})
+    on_batch(["21/9233", "21/9241"], set())
+    assert cleared == [{"341758"}]
+
+
+class _Killed(BaseException):
+    """The job's process ending mid-step, as on running out of memory."""
+
+
+def test_a_run_killed_while_reading_keeps_what_it_read(
+    vorgaenge, positions, capsys, monkeypatch
+) -> None:
+    dip, db, qdrant = _dip(vorgaenge, positions), FakeFirestore(), FakeQdrant()
+    monkeypatch.setattr(
+        bulk, "ingest_drucksachen", partial(ingest_drucksachen, batch_size=1)
+    )
+    read = dip.drucksache_texts
+
+    def killed_at_the_last(numbers):
+        if "21/9241" in numbers:
+            raise _Killed
+        return read(numbers)
+
+    monkeypatch.setattr(dip, "drucksache_texts", killed_at_the_last)
+    with pytest.raises(_Killed):
+        _run(dip, db, qdrant)
+    # 341758's only document was written before the end; 338366's was not
+    assert db.data["procedures_meta"]["sync"]["pending_drucksachen"] == ["338366"]

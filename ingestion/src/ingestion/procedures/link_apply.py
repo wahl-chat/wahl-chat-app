@@ -80,7 +80,11 @@ def _needs_link(today: date) -> models.Filter:
     )
     return models.Filter(
         should=[
-            models.IsEmptyCondition(is_empty=models.PayloadField(key="procedure_link")),
+            # The writer always sets a method; strict Qdrant can only filter
+            # on an indexed value, not on the object around it.
+            models.IsEmptyCondition(
+                is_empty=models.PayloadField(key="procedure_link.method")
+            ),
             models.Filter(
                 must=[
                     models.FieldCondition(

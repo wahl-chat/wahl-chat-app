@@ -20,6 +20,7 @@ import {
 } from './card-styles';
 import HotTopicTrail from './hot-topic-trail';
 import { InfoTooltip } from './info-tooltip';
+import { CardProcedureMarker } from './procedure-section';
 import { SectionMediaFrame, sectionMedia } from './speech-videos';
 import { TopicMeta } from './topic-chip';
 
@@ -128,7 +129,12 @@ export function PlenaryCard({ item, heat, onOpen, variant }: Props) {
           terms={itemTerms(item)}
           label={section.headline}
           onOpen={onOpen}
-        />
+        >
+          <CardProcedureMarker
+            day={item.digest.date}
+            procedures={section.procedures}
+          />
+        </ItemTeaser>
         <CardFooter item={item} />
       </div>
       {hot && <HotTopicTrail />}

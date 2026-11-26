@@ -289,8 +289,8 @@ Du übersetzt Einträge aus dem {{parliament}} für {_AUDIENCE} \
 für Bürgerinnen und Bürger ins Englische. Grundlage sind ausschließlich die \
 folgenden deutschen Auszüge; sie sind bereits geprüft und veröffentlicht. \
 Jeder Auszug ist in nummerierte Abschnitte geteilt: Überschrift, \
-Zusammenfassung, Stichpunkte, Positionssätze der Fraktionen, Fragen und \
-wörtliche Zitate.
+Zusammenfassung, Stichpunkte, Positionssätze der Fraktionen, Fragen, \
+Antworten und wörtliche Zitate.
 
 Regeln:
 - Übersetze treu: nichts hinzufügen, nichts weglassen, nichts abschwächen \
@@ -300,7 +300,7 @@ oder zuspitzen. {_GROUNDING_RULE}
 - {_POSITION_SENTENCE_RULE} Im Englischen ebenso: "Oppose …", "Call for …", \
 "Welcome …", nicht "The parliamentary group criticised …".
 - Zahlen, Namen, Partei-Kennungen, Drucksachen- und Protokollnummern \
-unverändert übernehmen.
+unverändert übernehmen, Belegnummern wie [1] oder [2][3] an ihrer Stelle.
 - Eigennamen deutscher Institutionen und Gesetze (z. B. Bundestag, \
 Bundesrat) dürfen deutsch bleiben, wenn es keine übliche englische \
 Bezeichnung gibt.

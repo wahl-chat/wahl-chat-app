@@ -12,6 +12,17 @@ import type { GroupedMessage } from '@/lib/stores/chat-store.types';
 import type { WahlSwiperResultHistory } from '@/lib/wahl-swiper/wahl-swiper.types';
 import type { Timestamp } from 'firebase/firestore';
 
+/** What a general chat is about: a feed item or a vote. Sent with every
+ * turn, so the backend resolves it again for follow-ups. */
+export type ChatAnchor =
+  | { feed_item_id: string }
+  | { poll_id: number }
+  | { vorgang_id: string };
+
+/** A question from a feed button rather than typed: "why" asks each
+ * Fraktion's reasons. The backend caches these answers. */
+export type ChatPreset = 'ask' | 'why';
+
 export type ChatSession = {
   id: string;
   user_id: string;
@@ -31,6 +42,7 @@ export type ChatSession = {
   tenant_id?: string;
   context_id?: string;
   visit_id?: string;
+  anchor?: ChatAnchor;
 };
 
 export type PageVisit = {
@@ -203,12 +215,15 @@ export type DigestVote = {
   parties: DigestVoteParty[];
   /** Absent on digests built before the feed's chat handoff. */
   suggested_questions?: string[];
+  suggested_answers?: (SuggestedAnswer | null)[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
   /** The Drucksachen the poll was about, `"21/6130"`; absent until known. */
   drucksachen?: string[];
   /** Expert terms in the summary. */
   terms?: TermRef[];
+  /** Bundestag procedures the item is about; absent until linked. */
+  procedures?: ProcedureSummary[];
 };
 
 export type DigestCitation = {
@@ -324,10 +339,13 @@ export type DigestSessionSection = {
   /** Fraktion of the debate's first speaker. */
   opened_by?: string | null;
   suggested_questions?: string[];
+  suggested_answers?: (SuggestedAnswer | null)[];
   /** The `FeedItem` it came from; absent on local previews. */
   item_id?: string;
   /** The Drucksachen its agenda item deals with; absent until known. */
   drucksachen?: string[];
+  /** Bundestag procedures the item is about; absent until linked. */
+  procedures?: ProcedureSummary[];
   /** Conflict reactions during the debate; absent until counted. */
   interjections?: number | null;
   /** Expert terms in the summary, bullets and positions. */
@@ -378,12 +396,35 @@ export type GlossaryEntry = {
   sources: GlossarySource[];
 };
 
+/** A source of a precomputed answer, with the chat's source fields. */
+export type AnswerSource = {
+  source: string;
+  url?: string | null;
+  page?: number | null;
+  source_type?:
+    | 'party_manifesto'
+    | 'vote_record'
+    | 'parliamentary_speech'
+    | null;
+  party_id?: string | null;
+  snippet?: string | null;
+  video_url?: string | null;
+  pdf_url?: string | null;
+  document_publish_date?: string | null;
+};
+
+/** The answer to `suggested_questions[i]`; `[n]` cites `sources[n - 1]`. */
+export type SuggestedAnswer = { text: string; sources: AnswerSource[] };
+
 export type LocalizedContent = {
   headline: string;
   teaser: string | null;
   key_points: string[];
   positions: LocalizedPosition[];
   suggested_questions: string[];
+  /** Aligned with `suggested_questions` by index, `null` for a question
+   * without an answer; absent or empty when none has one. */
+  suggested_answers?: (SuggestedAnswer | null)[];
   /** Other locales only: the verbatim German quote stays in `debate`. */
   quote_translation: string | null;
   origin: 'generated' | 'translated';
@@ -416,6 +457,8 @@ export type DebateFacts = {
   interjections?: number | null;
   key_point_sources?: { sources: SpeechSource[] }[];
   card_video?: CardVideo | null;
+  /** The corpus ids of the debate's speeches; absent before feed v7. */
+  speech_ids?: string[];
 };
 
 export type VoteFacts = {
@@ -467,16 +510,50 @@ export type ProcedureSummary = {
     | 'report'
     | 'procedural';
   beratungsstand: string | null;
+  /** Who tabled it; absent until the next procedures run writes it. */
+  initiative?: string[];
   latest_stage: string | null;
   /** ISO day, `YYYY-MM-DD`. */
   latest_stage_on: string | null;
   stage_changed_on: string | null;
-  milestones: {
-    date: string;
-    chamber: 'BT' | 'BR' | 'BV' | 'EK';
-    name: string;
-  }[];
+  milestones: ProcedureMilestone[];
   dip_url: string;
+};
+
+/** What a chamber decided at a stage (`wahlchat_common.procedures.StageDecision`). */
+export type StageDecision = {
+  /** e.g. "Annahme in Ausschussfassung". */
+  tenor: string;
+  /** e.g. "Namentliche Abstimmung"; null for a show of hands. */
+  vote_kind: string | null;
+  /** e.g. "308:190:71" (yes:no:abstain). */
+  result: string | null;
+  majority: string | null;
+};
+
+export type ProcedureMilestone = {
+  date: string;
+  chamber: 'BT' | 'BR' | 'BV' | 'EK';
+  name: string;
+  /** Absent on items written before documents and decisions were added. */
+  document_kind?: 'Drucksache' | 'Plenarprotokoll' | null;
+  document_number?: string | null;
+  url?: string | null;
+  /** 1-based PDF page; DIP's own anchor names the printed page. */
+  pdf_page?: number | null;
+  decisions?: StageDecision[];
+  /** A checked model summary of its Drucksache. */
+  summary?: string | null;
+};
+
+/** `procedures/{vorgang_id}` (`wahlchat_common.procedures.ProcedureRecord`),
+ * reduced to what the chat's anchor card shows. */
+export type StoredProcedure = {
+  vorgang_id: string;
+  titel: string;
+  latest_stage: string | null;
+  /** ISO day, `YYYY-MM-DD`. */
+  latest_stage_on: string | null;
 };
 
 export type FeedEdition = {

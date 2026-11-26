@@ -49,12 +49,14 @@ export interface HowToFeedIntro {
 }
 
 export interface HowToIntroText {
+  title: string;
   main: string;
   sources: string;
 }
 
 export interface HowToPDFExportData {
   feedIntro: HowToFeedIntro;
+  chatIntro: HowToFeedIntro;
   introText: HowToIntroText;
   processSteps: string[];
   accordionContent: HowToAccordionItem[];
@@ -117,11 +119,15 @@ export async function exportHowToPDF(data: HowToPDFExportData): Promise<void> {
   addText('wahl.chat - Anleitung', 18, true, true);
   yPosition += 5;
 
-  // Parliament feed
-  addText(data.feedIntro.title, 14, true);
-  data.feedIntro.paragraphs.forEach((paragraph) => addText(paragraph, 11));
-  data.feedIntro.list.forEach((item) => addText(`• ${item}`, 11));
-  yPosition += 5;
+  // Parliament feed, then the general chat
+  for (const section of [data.feedIntro, data.chatIntro]) {
+    addText(section.title, 14, true);
+    section.paragraphs.forEach((paragraph) => addText(paragraph, 11));
+    section.list.forEach((item) => addText(`• ${item}`, 11));
+    yPosition += 5;
+  }
+
+  addText(data.introText.title, 14, true);
 
   // Introduction
   addText(data.introText.main, 11);

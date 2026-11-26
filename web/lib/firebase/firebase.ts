@@ -48,8 +48,11 @@ import {
   firebaseEmulatorsEnabled,
 } from './firebase-emulators';
 import type {
+  ChatAnchor,
   ChatSession,
+  FeedItem,
   LlmSystemStatus,
+  StoredProcedure,
   StudyParticipant,
   StudyParticipantEvent,
   StudyStatus,
@@ -160,6 +163,7 @@ export async function createChatSession(
   contextId?: string,
   prolificMetadata?: ProlificMetadata,
   studyCohort?: StudyCohort,
+  anchor?: ChatAnchor,
 ): Promise<void> {
   const visitId = getCurrentVisitId();
   await setDoc(doc(db, 'chat_sessions', sessionId), {
@@ -178,6 +182,7 @@ export async function createChatSession(
       ? { study_cohort: studyCohort, is_pledge_study: true }
       : {}),
     ...(visitId ? { visit_id: visitId } : {}),
+    ...(anchor ? { anchor } : {}),
   });
   if (visitId) {
     void attachChatSessionToPageVisit(visitId, sessionId, userId).catch(
@@ -320,6 +325,35 @@ export async function setFeedInterest(
   });
 }
 
+/** One stored feed item, or null when there is none by that id. */
+export async function getFeedItem(itemId: string): Promise<FeedItem | null> {
+  const snapshot = await getDoc(doc(db, 'feed_items', itemId));
+  return snapshot.exists() ? (snapshot.data() as FeedItem) : null;
+}
+
+/** The feed items about one procedure, for its timeline's steps. */
+export async function getFeedItemsForProcedure(
+  vorgangId: string,
+): Promise<FeedItem[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(db, 'feed_items'),
+      where('procedure_ids', 'array-contains', vorgangId),
+      limit(40),
+    ),
+  );
+  return snapshot.docs.map((d) => d.data() as FeedItem);
+}
+
+/** A Bundestag procedure as the procedures job stores it; only the fields
+ * the chat shows are typed. */
+export async function getProcedure(
+  vorgangId: string,
+): Promise<StoredProcedure | null> {
+  const snapshot = await getDoc(doc(db, 'procedures', vorgangId));
+  return snapshot.exists() ? (snapshot.data() as StoredProcedure) : null;
+}
+
 /** The reader's own opinion on a feed item. Written only by the server. */
 export async function getFeedOpinion(
   uid: string,
@@ -453,6 +487,7 @@ export async function addVotingBehaviorToMessage(
 export async function addUserMessageToChatSession(
   sessionId: string,
   message: string,
+  extra?: Pick<MessageItem, 'focus_party_ids'>,
 ) {
   const messageId = generateUuid();
 
@@ -465,6 +500,7 @@ export async function addUserMessageToChatSession(
         sources: [],
         created_at: Timestamp.now(),
         role: 'user',
+        ...extra,
       },
     ],
     quick_replies: [],

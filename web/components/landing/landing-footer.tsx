@@ -2,7 +2,7 @@ import Logo from '@/components/chat/logo';
 import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import HomeSocialMediaIcon from '@/components/icons/home-social-media-icon';
 import { Separator } from '@/components/ui/separator';
-import { getNextUpcomingElection } from '@/lib/elections';
+import { electionContexts, getNextUpcomingElection } from '@/lib/elections';
 import { getContexts } from '@/lib/firebase/firebase-server';
 import { SITE_LINKS, type SiteLink, sourcesLink } from '@/lib/site-links';
 import { IS_EMBEDDED } from '@/lib/utils';
@@ -53,7 +53,7 @@ function FooterColumn({
 }
 
 async function LandingFooter() {
-  const contexts = await getContexts();
+  const contexts = electionContexts(await getContexts());
   const featured = getNextUpcomingElection(contexts) ?? contexts[0];
 
   const productLinks: SiteLink[] = [

@@ -823,6 +823,7 @@ async def generate_chat_title_and_chick_replies(
     parties_in_chat: List[ContextParty],
     wahl_chat_assistant_last_responded: bool = False,
     is_comparing: bool = False,
+    quick_reply_guidelines: Optional[str] = None,
 ) -> GroupChatTitleQuickReplyGenerator:
     # filter wahl-chat party out of the list of parties
     parties_in_chat = [
@@ -837,9 +838,8 @@ async def generate_chat_title_and_chick_replies(
         system_prompt = (
             generate_wahl_chat_title_and_quick_replies_system_prompt_str.format(
                 party_list=party_list,
-                quick_reply_guidelines=get_quick_reply_guidelines(
-                    is_comparing=is_comparing
-                ),
+                quick_reply_guidelines=quick_reply_guidelines
+                or get_quick_reply_guidelines(is_comparing=is_comparing),
             )
         )
     else:

@@ -113,6 +113,22 @@ class DrucksacheRef(BaseModel):
     pdf_url: Optional[str] = None
 
 
+class StepSummary(BaseModel):
+    """A short summary of one stage's Drucksache, written once by a model and
+    checked against the text before it is stored."""
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    text: Optional[str] = Field(
+        ...,
+        description="None when no draft passed the check; kept so it is not retried",
+    )
+    document_number: str
+    source_hash: str = Field(..., description="sha256 of the text it was written from")
+    model: str
+    written_on: Date
+
+
 class ProcedureRecord(BaseModel):
     """The stored procedure: Firestore ``procedures/{vorgang_id}``."""
 
@@ -144,6 +160,9 @@ class ProcedureRecord(BaseModel):
     has_links: bool = Field(
         False, description="Any vote, speech or feed item in our data points here"
     )
+    step_summaries: dict[str, StepSummary] = Field(
+        default_factory=dict, description="By Drucksache number; kept across DIP syncs"
+    )
     dip_url: str
     dip_updated_at: str = Field(..., description="DIP 'aktualisiert' of the Vorgang")
     content_hash: str
@@ -155,10 +174,11 @@ class ProcedureRecord(BaseModel):
             vorgangstyp=self.vorgangstyp,
             kind=self.kind,
             beratungsstand=self.beratungsstand,
+            initiative=self.initiative,
             latest_stage=self.latest_stage,
             latest_stage_on=self.latest_stage_on,
             stage_changed_on=self.stage_changed_on,
-            milestones=milestones(self.stages),
+            milestones=milestones(self.stages, self.step_summaries),
             dip_url=self.dip_url,
         )
 
@@ -169,6 +189,14 @@ class Milestone(BaseModel):
     date: Date
     chamber: Chamber
     name: str
+    document_kind: Optional[Literal["Drucksache", "Plenarprotokoll"]] = None
+    document_number: Optional[str] = None
+    url: Optional[str] = None
+    pdf_page: Optional[int] = Field(None, ge=1)
+    decisions: list[StageDecision] = Field(default_factory=list)
+    summary: Optional[str] = Field(
+        None, description="StepSummary.text of its Drucksache"
+    )
 
 
 class ProcedureSummary(BaseModel):
@@ -181,6 +209,8 @@ class ProcedureSummary(BaseModel):
     vorgangstyp: str
     kind: ProcedureKind
     beratungsstand: Optional[str] = None
+    # Who tabled it, e.g. "Bundesregierung", "Fraktion der SPD".
+    initiative: list[str] = Field(default_factory=list)
     latest_stage: Optional[str] = None
     latest_stage_on: Optional[Date] = None
     stage_changed_on: Optional[Date] = None
@@ -211,16 +241,35 @@ _MILESTONE_PREFIXES = (
 )
 
 
-def milestones(stages: list[ProcedureStage]) -> list[Milestone]:
-    """The stages a timeline shows, oldest first, one per (date, chamber, name)."""
-    seen: set[tuple[Date, str, str]] = set()
-    out: list[Milestone] = []
+def milestones(
+    stages: list[ProcedureStage], summaries: Optional[dict[str, StepSummary]] = None
+) -> list[Milestone]:
+    """The stages a timeline shows, oldest first, one per (date, chamber, name).
+    DIP lists some stages twice (once per Plenarprotokoll page); their
+    decisions are merged into the one shown."""
+    summaries = summaries or {}
+    by_key: dict[tuple[Date, str, str], Milestone] = {}
     for stage in sorted(stages, key=lambda s: (s.date, s.position_id)):
         if not stage.name.startswith(_MILESTONE_PREFIXES):
             continue
         key = (stage.date, stage.chamber, stage.name)
-        if key in seen:
+        shown = by_key.get(key)
+        if shown is not None:
+            if stage.decisions:
+                by_key[key] = shown.model_copy(
+                    update={"decisions": [*shown.decisions, *stage.decisions]}
+                )
             continue
-        seen.add(key)
-        out.append(Milestone(date=stage.date, chamber=stage.chamber, name=stage.name))
-    return out
+        summary = summaries.get(stage.document_number or "")
+        by_key[key] = Milestone(
+            date=stage.date,
+            chamber=stage.chamber,
+            name=stage.name,
+            document_kind=stage.document_kind,
+            document_number=stage.document_number,
+            url=stage.url,
+            pdf_page=stage.pdf_page,
+            decisions=list(stage.decisions),
+            summary=summary.text if summary is not None else None,
+        )
+    return list(by_key.values())

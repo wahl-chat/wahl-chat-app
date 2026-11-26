@@ -1,4 +1,6 @@
 import type {
+  ChatAnchor,
+  ChatPreset,
   ChatSession,
   StudyParticipant,
   Tenant,
@@ -38,11 +40,23 @@ export type Source = {
   // Leading excerpt of the cited chunk — the PDF viewer's highlight anchor.
   // Absent on votes, Perplexity sources, and messages persisted before it shipped.
   snippet?: string;
+  // False for a web result from outside wahl.chat's preferred outlets.
+  preferred_outlet?: boolean;
+};
+
+/** One `tool_status` line of the general chat's agent. */
+export type ToolStatus = {
+  call_id: string;
+  tool: string;
+  label: string;
+  state: 'running' | 'done';
 };
 
 export type CurrentStreamingMessages = {
   id: string;
   messages: Record<string, StreamingMessage>;
+  /** The agent's tool calls for this turn, in order of their first event. */
+  tool_status?: ToolStatus[];
   chat_title?: string;
   quick_replies?: string[];
   streaming_complete?: boolean;
@@ -101,6 +115,8 @@ export type MessageItem = {
   created_at?: Timestamp;
   voting_behavior?: VotingBehavior;
   pledge_tracker?: PledgeTrackerSuggestions;
+  /** General chat, user messages: the parties in focus when it was sent. */
+  focus_party_ids?: string[];
 };
 
 export type CurrentStreamedVotingBehavior = {
@@ -137,6 +153,8 @@ export type ChatStoreState = {
   // preliminary chat session id should be the same as the chat session id.
   localPreliminaryChatSessionId?: string;
   partyIds: Set<string>;
+  /** The general chat's anchor; sent with every turn. */
+  anchor?: ChatAnchor;
   preSelectedParties?: PartyDetails[];
   messages: GroupedMessage[];
   input: string;
@@ -152,6 +170,8 @@ export type ChatStoreState = {
   };
   error?: string;
   pendingInitialQuestion?: string;
+  /** Sent with the initial question when a feed button asked it. */
+  pendingPreset?: ChatPreset;
   initialQuestionError?: string;
   currentQuickReplies: string[];
   currentChatTitle?: string;
@@ -241,6 +261,8 @@ export type ChatStoreActions = {
     prefilledQuestion,
     userId,
     tenant,
+    anchor,
+    preset,
   }: {
     chatSession?: ChatSession;
     messages?: GroupedMessage[];
@@ -255,6 +277,9 @@ export type ChatStoreActions = {
     prefilledQuestion?: string;
     userId: string;
     tenant?: Tenant;
+    /** From the URL of a new general chat; a stored session brings its own. */
+    anchor?: ChatAnchor;
+    preset?: ChatPreset;
   }) => void;
   generateProConPerspective: (
     partyId: string,
@@ -276,6 +301,7 @@ export type ChatStoreActions = {
     partyId: string,
     streamingMessage: PartyResponseChunkReadyPayload,
   ) => void;
+  updateToolStatus: (sessionId: string, status: ToolStatus) => void;
   updateQuickRepliesAndTitleForCurrentStreamingMessage: (
     sessionId: string,
     quickReplies: string[],
@@ -314,6 +340,8 @@ export type ChatStoreActions = {
     message: string,
   ) => void;
   setPartyIds: (partyIds: string[]) => void;
+  /** Replaces the general chat's anchor; earlier messages stay. */
+  setAnchor: (anchor: ChatAnchor) => void;
   setProlificMetadata: (metadata: ProlificMetadata) => void;
   setProlificConfig: (config: { minInteractions: number }) => void;
   setProlificDisclaimerDismissed: (dismissed: boolean) => void;

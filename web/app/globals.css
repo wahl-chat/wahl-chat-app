@@ -237,6 +237,10 @@ body {
   --daily-action-bg: #e4e4e7;
   /* The light that sweeps once across the Stimmt's? card's ink button. */
   --daily-glint: rgba(255, 255, 255, 0.45);
+  /* A procedure's current step: apart from the vote colours and the ink of
+     the steps around it. */
+  --daily-accent: #1d4ed8;
+  --daily-accent-soft: #dbeafe;
   color: var(--daily-ink);
   background: var(--daily-canvas);
   font-family: var(--font-daily-body), Arial, Helvetica, sans-serif;
@@ -287,6 +291,8 @@ body {
   --daily-day-upcoming: #3f3f46;
   --daily-action-bg: #3f3f46;
   --daily-glint: rgba(113, 113, 122, 0.45);
+  --daily-accent: #6ea8fe;
+  --daily-accent-soft: #172a4a;
 }
 
 /* Stimmt's? card in the feed. The presence script in the root layout marks
@@ -317,27 +323,6 @@ html[data-stimmts] .stimmts-header-icon {
 
 html[data-stimmts="today"] .stimmts-header-badge {
   display: inline-flex;
-}
-
-/* The icon takes 40 px of a phone's header, so on the narrowest phones
-   "Meine Woche" gives up its words before the header would scroll sideways.
-   It keeps its icon and its accessible name. Keyed on the icon being in the
-   header, not only on the player mark: with the game switched off there is
-   no icon, and the words stay. */
-@media (max-width: 369.98px) {
-  html[data-stimmts]
-    .daily-header:has(.stimmts-header-icon)
-    .daily-header-weekly-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
 }
 
 /* The icon appears as the card arrives: hidden until the flight fades it in,

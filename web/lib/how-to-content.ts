@@ -55,7 +55,23 @@ export const FEED_INTRO: HowToFeedIntro = {
   ],
 };
 
+/** The general chat, reached from the feed or the Chat link. */
+export const CHAT_INTRO: HowToFeedIntro = {
+  title: 'Der Chat',
+  paragraphs: [
+    'Im Chat fragst du nach, was im Bundestag passiert: zu Debatten, Abstimmungen und den Positionen der Fraktionen. wahl.chat durchsucht dafür Reden, namentliche Abstimmungen und Wahlprogramme, bei Bedarf auch aktuelle Berichte im Web, und belegt seine Aussagen mit Quellen.',
+    'Neuere Quellen haben Vorrang. Ältere Aussagen nennt der Chat mit Datum und hält sie getrennt von den Gründen, die in der Debatte zu einer Abstimmung genannt wurden.',
+  ],
+  list: [
+    'Mit dem Plus-Knopf am Eingabefeld legst du Parteien in den Fokus. Der Chat geht dann auf jede von ihnen ein, bis du sie wieder entfernst.',
+    'Ebenfalls über den Plus-Knopf oder direkt auf der Startseite des Chats wählst du ein Thema aus dem Feed. Deine Fragen beziehen sich dann auf diese Debatte oder Abstimmung.',
+    'Im Feed führt dich das Eingabefeld unter einer Debatte oder Abstimmung direkt in einen Chat dazu.',
+    'Für eine bestimmte Wahl wechselst du über „Wahlen“ in den Chat zu dieser Wahl.',
+  ],
+};
+
 export const INTRO_TEXT: HowToIntroText = {
+  title: 'Chat zu einer Wahl',
   main: 'wahl.chat ist ein interaktives KI-Tool, das dir hilft, dich über die Positionen und Pläne der Parteien zu informieren. Du kannst dem KI-Assistenten Fragen zu verschiedenen politischen Themen stellen, und er liefert dir neutrale Antworten basierend auf den Wahlprogrammen und weiteren Veröffentlichungen der Parteien.',
   sources:
     'Alle Antworten sind mit den entsprechenden Quellen versehen und nutzen für die ausgewählte Wahl relevante Dokumente.',
@@ -111,14 +127,10 @@ export const ACCORDION_CONTENT: HowToAccordionItem[] = [
     id: 'elections-supported',
     title: 'Welche Wahlen werden unterstützt?',
     content: {
-      intro: 'Aktuell unterstützen wir folgende Wahlen:',
-      list: [
-        'Landtagswahl Baden-Württemberg - 8. März 2026',
-        'Landtagswahl Rheinland-Pfalz - 22. März 2026',
-        'Kommunalwahl München - 8. März 2026',
-      ],
+      intro:
+        'Welche Wahlen wahl.chat gerade unterstützt, siehst du unter „Wahlen“.',
       outro:
-        'Zusätzlich können im Bereich **Bundesebene** allgemeine Informationen über die Positionen der Parteien beantwortet werden.',
+        'Fragen zum Bundestag beantwortet der Chat unabhängig von einer Wahl.',
     },
   },
   {
@@ -313,8 +325,8 @@ export function getAccordionItem(id: string): HowToAccordionItem | undefined {
  * page's. It leads with the Wahl-O-Mat differentiator because that is the
  * question a first-time visitor actually arrives with.
  *
- * Deliberately excludes 'elections-supported': it hardcodes three elections
- * while Firestore has seven, and the landing page renders the real list.
+ * Deliberately excludes 'elections-supported': it points to the elections
+ * page, which the landing page itself is.
  * 'data' is excluded too — it carries the data-sources section instead.
  */
 const LANDING_FAQ_IDS = [

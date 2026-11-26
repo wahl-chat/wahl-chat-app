@@ -4,7 +4,6 @@ import { ThemeModeToggle } from '@/components/chat/theme-mode-toggle';
 import DonationDialog from '@/components/donation-dialog';
 import FeedbackDialog from '@/components/feedback-dialog';
 import LoadingSpinner from '@/components/loading-spinner';
-import { Button } from '@/components/ui/button';
 import {
   Sidebar,
   SidebarContent,
@@ -19,19 +18,19 @@ import {
 } from '@/components/ui/sidebar';
 import { getCurrentUser } from '@/lib/firebase/firebase-server';
 import { IS_EMBEDDED, getUserDetailsFromUser } from '@/lib/utils';
-import {
-  HeartHandshakeIcon,
-  HomeIcon,
-  MessageCircleIcon,
-  UserIcon,
-} from 'lucide-react';
+import { HeartHandshakeIcon, MessageCircleIcon, UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import ChatSidebarGroupSelect from './chat-sidebar-group-select';
+import {
+  SidebarElections,
+  SidebarGeneralChatLink,
+  SidebarNewGeneralChatButton,
+} from './sidebar-general-nav';
 import SidebarHistorySr from './sidebar-history-sr';
 import SidebarNewChatButtons from './sidebar-new-chat-buttons';
 
-import { DEFAULT_CONTEXT_ID } from '@/lib/constants';
+import { DEFAULT_CONTEXT_ID, GENERAL_CONTEXT_ID } from '@/lib/constants';
 
 type Props = {
   contextId?: string;
@@ -41,6 +40,67 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
   const user = !IS_EMBEDDED ? await getCurrentUser() : undefined;
 
   const userDetails = user ? getUserDetailsFromUser(user) : undefined;
+  const isGeneral = contextId === GENERAL_CONTEXT_ID;
+  // The general chat has no start page of its own; home is the feed.
+  const homeHref = isGeneral ? '/' : `/${contextId}`;
+
+  const support = (
+    <SidebarGroup>
+      <SidebarGroupLabel>Unterstütze wahl.chat</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {!IS_EMBEDDED && (
+            <SidebarMenuItem>
+              <LoginButton
+                userDetails={userDetails}
+                userDialogAsChild
+                noUserChildren={
+                  <SidebarMenuButton>
+                    <UserIcon className="size-4" />
+                    <span>Anmelden</span>
+                  </SidebarMenuButton>
+                }
+                userChildren={
+                  <SidebarMenuButton>
+                    <UserIcon className="size-4" />
+                    <span>Account</span>
+                  </SidebarMenuButton>
+                }
+              />
+            </SidebarMenuItem>
+          )}
+          <SidebarMenuItem>
+            <DonationDialog>
+              <SidebarMenuButton>
+                <HeartHandshakeIcon className="size-4 text-red-400" />
+                <span>Spenden</span>
+              </SidebarMenuButton>
+            </DonationDialog>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <FeedbackDialog>
+              <SidebarMenuButton>
+                <MessageCircleIcon className="size-4 text-blue-400" />
+                <span>Feedback</span>
+              </SidebarMenuButton>
+            </FeedbackDialog>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+  const history = (
+    <Suspense
+      fallback={
+        <div className="flex h-32 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+          <LoadingSpinner />
+          <p>Lade Historie...</p>
+        </div>
+      }
+    >
+      <SidebarHistorySr />
+    </Suspense>
+  );
 
   return (
     <Sidebar
@@ -48,87 +108,51 @@ async function ChatSidebar({ contextId = DEFAULT_CONTEXT_ID }: Props) {
       mobileVisuallyHiddenDescription="Starte einen neuen Chat oder wähle eine vorherige Konversation aus."
     >
       <SidebarHeader className="flex h-chat-header flex-row items-center justify-between border-b border-b-muted pl-4 pr-2">
-        <Link href={`/${contextId}`} className="flex items-center gap-4">
+        <Link
+          href={homeHref}
+          aria-label="Startseite"
+          title="Startseite"
+          className="flex items-center gap-4"
+        >
           <Logo variant="small" className="size-6" />
         </Link>
         <div className="flex flex-row items-center gap-1">
           <ThemeModeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="size-8"
-            tooltip="Startseite"
-          >
-            <Link href={`/${contextId}`}>
-              <HomeIcon className="size-4" />
-            </Link>
-          </Button>
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarGroupLabel>Neuer Chat</SidebarGroupLabel>
-            <SidebarNewChatButtons contextId={contextId} />
+        {isGeneral ? (
+          <>
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarNewGeneralChatButton />
+              </SidebarGroupContent>
+            </SidebarGroup>
+            <SidebarElections />
+          </>
+        ) : (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarGeneralChatLink />
+              <SidebarGroupLabel className="mt-2">Neuer Chat</SidebarGroupLabel>
+              <SidebarNewChatButtons contextId={contextId} />
 
-            <ChatSidebarGroupSelect contextId={contextId} />
-          </SidebarGroupContent>
-        </SidebarGroup>
+              <ChatSidebarGroupSelect contextId={contextId} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Unterstütze wahl.chat</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {!IS_EMBEDDED && (
-                <SidebarMenuItem>
-                  <LoginButton
-                    userDetails={userDetails}
-                    userDialogAsChild
-                    noUserChildren={
-                      <SidebarMenuButton>
-                        <UserIcon className="size-4" />
-                        <span>Anmelden</span>
-                      </SidebarMenuButton>
-                    }
-                    userChildren={
-                      <SidebarMenuButton>
-                        <UserIcon className="size-4" />
-                        <span>Account</span>
-                      </SidebarMenuButton>
-                    }
-                  />
-                </SidebarMenuItem>
-              )}
-              <SidebarMenuItem>
-                <DonationDialog>
-                  <SidebarMenuButton>
-                    <HeartHandshakeIcon className="size-4 text-red-400" />
-                    <span>Spenden</span>
-                  </SidebarMenuButton>
-                </DonationDialog>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <FeedbackDialog>
-                  <SidebarMenuButton>
-                    <MessageCircleIcon className="size-4 text-blue-400" />
-                    <span>Feedback</span>
-                  </SidebarMenuButton>
-                </FeedbackDialog>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <Suspense
-          fallback={
-            <div className="flex h-32 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
-              <LoadingSpinner />
-              <p>Lade Historie...</p>
-            </div>
-          }
-        >
-          <SidebarHistorySr />
-        </Suspense>
+        {isGeneral ? (
+          <>
+            {history}
+            {support}
+          </>
+        ) : (
+          <>
+            {support}
+            {history}
+          </>
+        )}
         <SidebarGroup>
           <SidebarGroupLabel>Informationen</SidebarGroupLabel>
           <SidebarGroupContent>
