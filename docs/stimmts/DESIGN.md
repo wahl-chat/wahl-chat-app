@@ -8,8 +8,8 @@ Status: the game is complete, with all 30 puzzles of the pilot written and
 scheduled, and **off by default**; it goes live by flipping a Firestore switch
 (see the Stimmt's? section in `AGENTS.md`). The feed on `/` invites to it
 with a card above the Hot Topic, and players find their result through an
-icon in the header. The chat card on the result screen is built but switched
-off until the general chat exists. See [Status and rollout](#status-and-rollout).
+icon in the header. The chat card on the result screen answers follow-up
+questions from the general chat. See [Status and rollout](#status-and-rollout).
 
 ## Why it exists
 
@@ -18,8 +18,8 @@ off until the general chat exists. See [Status and rollout](#status-and-rollout)
 - It teaches how the parties actually vote, which is often not what their
   reputation suggests; the puzzles are picked for exactly those surprises.
 - A result that can be shared brings in new visitors.
-- Once the general chat exists, every puzzle can end with a door into it, to
-  ask why a party voted the way it did.
+- Every puzzle ends with a door into the general chat, to ask why a party
+  voted the way it did.
 
 ## The game
 
@@ -246,17 +246,16 @@ count.
 - The point of the game is to learn, and the natural next question is "why
   did this party vote that way?". The chat card on the result screen offers
   three questions as chips (why a party voted as it did, whether the bill is
-  in force, what happens next) and a free question. It is built and sits
-  behind `STIMMTS_CHAT_ENABLED` in `chat-chips.ts`, committed `false`
-  (preview mode shows it). A chip or a typed question is answered inside the
+  in force, what happens next) and a free question, shown while
+  `STIMMTS_CHAT_ENABLED` in `chat-chips.ts` is on. A chip or a typed question is answered inside the
   card: the question as a bubble, the answer streaming under it, then its
   sources as pills. Only the latest answer stays open; older ones fold into
   a row that unfolds on tap, and a chip once asked disappears. "Im Chat
   weiter" opens the general chat at `/chat?q&poll_id`, anchored on the
-  day's vote. Until the general chat is in `develop` the answers come from
-  a local placeholder (`CHAT_ANSWERS` in `chat-answer.ts`); then flip it to
-  `'general-chat'` together with `STIMMTS_CHAT_ENABLED`. It must never open
-  a study context.
+  day's vote. The card's answers come from the same general chat through
+  `/api/chat` (`CHAT_ANSWERS = 'general-chat'` in `chat-answer.ts`; the
+  local placeholder is only for trying the card without a backend, and a
+  test refuses it with the card on). It must never open a study context.
 
 **Technical**
 
@@ -452,23 +451,16 @@ them after changing it.
 sharing, robustness, accessibility, analytics and the more-games question; the
 landing-page card on `/` and the header icon; the exporter; the 30 puzzles,
 reviewed in three batches, and their running order (see
-[puzzle-selection.md](puzzle-selection.md) for why each vote was picked). The
-chat card is built and switched off; the game is switched off and stays
-`noindex` until launch.
+[puzzle-selection.md](puzzle-selection.md) for why each vote was picked); the
+chat card, on the general chat. The game is switched off and stays `noindex`
+until launch.
 
 **Launch checklist.** In this order.
 
-1. *The chat card.* Only once the general chat is merged into `develop` and
-   `/chat` serves it (today `web/middleware.ts` redirects `/chat` to
-   `/election-chat`, which ignores `q` and `poll_id`):
-   - `web/lib/stimmts/chat-chips.ts`: `STIMMTS_CHAT_ENABLED = true`.
-   - `web/lib/stimmts/chat-answer.ts`: `CHAT_ANSWERS = 'general-chat'`, and
-     replace the local `GENERAL_CONTEXT_ID` with the general chat's own
-     constant.
-   - On a preview deployment, ask one real question per chip with a real
-     `poll_id`. Check how the general chat's anchor card shows a vote that
-     is only a `poll_id`: it may read "Abstimmung Nr. N" unless a feed item
-     matches.
+1. *The chat card.* On a preview deployment, ask one real question per chip
+   with a real `poll_id`, and open "Im Chat weiter". The general chat's
+   anchor card shows a vote given only by its `poll_id` as
+   "Abstimmung Nr. N".
 2. *The production switch.* Firestore console, production project, document
    `system_status/stimmts`: `{enabled: true, launch_date: "YYYY-MM-DD"}`.
    Never change `launch_date` once anyone has played. Then bust the cache tag
@@ -487,8 +479,8 @@ more-games question over the 30 days.
 - **Content quality.** Each briefing must be neutral and correct; it is the
   slowest part of the work.
 - **The chat card** depends on the general chat. Whether it reliably finds a
-  vote from 2025 or 2026 from its `poll_id` alone, and what its anchor card
-  shows for one, is untested until checklist step 1.
+  vote from 2025 or 2026 from its `poll_id` alone is untested until
+  checklist step 1, and its anchor card names such a vote only by number.
 - **Sharing on Instagram** is up to Instagram: a website cannot add an app to
   the share sheet.
 

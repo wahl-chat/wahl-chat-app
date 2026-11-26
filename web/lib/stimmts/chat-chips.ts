@@ -3,12 +3,12 @@ import { ANSWER_LABELS } from './labels';
 import type { Guesses, Puzzle } from './types';
 
 /**
- * Off until the general chat is merged into `develop`: the card on the result
- * screen answers inline and its "Im Chat weiter" link opens the general chat,
- * so both depend on it and switching it on earlier would show players
- * answers that do not exist. Switch it together with CHAT_ANSWERS.
+ * Shows the chat card on the result screen. It answers inline from the
+ * general chat and its "Im Chat weiter" link opens the general chat, so it
+ * only goes together with CHAT_ANSWERS on 'general-chat': with the
+ * placeholder, players would see answers that do not exist.
  */
-export const STIMMTS_CHAT_ENABLED = false;
+export const STIMMTS_CHAT_ENABLED = true;
 
 export type ChatChipId = 'why_party' | 'surprise' | 'in_force' | 'next';
 

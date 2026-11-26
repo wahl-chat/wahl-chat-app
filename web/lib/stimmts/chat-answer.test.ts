@@ -159,8 +159,8 @@ describe('placeholderAnswer', () => {
 });
 
 describe('CHAT_ANSWERS', () => {
-  it('uses the placeholder until the general chat is in develop', () => {
-    expect(CHAT_ANSWERS).toBe('placeholder');
+  it('asks the general chat', () => {
+    expect(CHAT_ANSWERS).toBe('general-chat');
   });
 });
 

@@ -20,8 +20,8 @@ function guessed(answers: VoteAnswer[]): Guesses {
 }
 
 describe('chatChips', () => {
-  it('stays switched off until the general chat is in develop', () => {
-    expect(STIMMTS_CHAT_ENABLED).toBe(false);
+  it('is switched on, now that the general chat serves /chat', () => {
+    expect(STIMMTS_CHAT_ENABLED).toBe(true);
   });
 
   it('gives each chip an id that does not change with the wording', () => {

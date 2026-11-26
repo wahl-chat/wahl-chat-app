@@ -1,3 +1,4 @@
+import { GENERAL_CONTEXT_ID, WAHL_CHAT_PARTY_ID } from '@/lib/constants';
 import type { Puzzle } from './types';
 
 export type ChatAnswerSource = {
@@ -41,9 +42,9 @@ const PLACEHOLDER_SENTENCE =
   'Hier antwortet bald wahl.chat: kurz, in zwei bis drei Sätzen, mit Quellen aus Plenarprotokoll oder Drucksache.';
 
 /**
- * Stands in for the general chat until it exists: words arrive one by one
- * like a streamed answer, so every state of the card can be tried locally.
- * Nothing leaves the device.
+ * Stands in for the general chat: words arrive one by one like a streamed
+ * answer, so every state of the card can be tried locally without the
+ * backend. Nothing leaves the device.
  */
 export function createPlaceholderAnswer(delayMs: number): AnswerStream {
   return async function* placeholder({ puzzle }, signal) {
@@ -63,14 +64,6 @@ export function createPlaceholderAnswer(delayMs: number): AnswerStream {
 }
 
 export const placeholderAnswer: AnswerStream = createPlaceholderAnswer(70);
-
-/**
- * The general chat's context. Its own constant lives with the general chat;
- * this copy keeps the card independent of that code until it is merged.
- */
-const GENERAL_CONTEXT_ID = 'bundestag-aktuell';
-/** The general chat answers as this one "party". */
-const WAHL_CHAT_PARTY_ID = 'wahl-chat';
 
 type ParsedPart = Record<string, unknown>;
 
@@ -278,12 +271,12 @@ export const generalChatAnswer: AnswerStream = createGeneralChatAnswer({
 type ChatAnswerMode = 'placeholder' | 'general-chat';
 
 /**
- * Where the card's answers come from. 'placeholder' until the general chat
- * is in `develop`; then switch to 'general-chat' together with
- * STIMMTS_CHAT_ENABLED. Until then `/api/chat` on `develop` is the old party
- * chat, which must not be called with this payload.
+ * Where the card's answers come from: the general chat behind `/api/chat`.
+ * 'placeholder' is for trying the card without a backend; switching to it
+ * needs STIMMTS_CHAT_ENABLED off for any real deployment (a test holds the
+ * two together).
  */
-export const CHAT_ANSWERS: ChatAnswerMode = 'placeholder';
+export const CHAT_ANSWERS: ChatAnswerMode = 'general-chat';
 
 const ANSWER_STREAMS: Record<ChatAnswerMode, AnswerStream> = {
   placeholder: placeholderAnswer,

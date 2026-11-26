@@ -592,17 +592,15 @@ The game's analytics events and their props are listed in
 - **Chat card.** Follow-up questions on the result screen, answered inside
   the card (`web/components/stimmts/chat-card.tsx`); "Im Chat weiter" opens
   the general chat at `/chat?q=…&poll_id=…` (the question and the vote's
-  Abgeordnetenwatch poll id, no `party_id`). It needs the general chat to be
-  merged into `develop` and `/chat` to serve it: today `web/middleware.ts`
-  redirects `/chat` to `/election-chat`, which ignores both parameters. Two
-  switches, both committed off, flipped together at launch:
-  `STIMMTS_CHAT_ENABLED` in `web/lib/stimmts/chat-chips.ts` shows the card
-  (preview mode shows it regardless), and `CHAT_ANSWERS` in
-  `web/lib/stimmts/chat-answer.ts` moves its answers from a local
-  placeholder to the general chat's `/api/chat`. Never flip `CHAT_ANSWERS`
-  earlier: `/api/chat` is the old party chat until then. The ordered launch
-  checklist (chat switches, production switch doc, indexing) is in
-  `docs/stimmts/DESIGN.md` under "Status and rollout".
+  Abgeordnetenwatch poll id, no `party_id`), which `web/middleware.ts`
+  serves from the `bundestag-aktuell` context. The card asks the same
+  general chat through `/api/chat`, anchored on the poll. Two switches go
+  together: `STIMMTS_CHAT_ENABLED` in `web/lib/stimmts/chat-chips.ts` shows
+  the card, and `CHAT_ANSWERS` in `web/lib/stimmts/chat-answer.ts` picks
+  where its answers come from (`'general-chat'`, or a local placeholder for
+  trying the card without a backend); a test refuses the card on with the
+  placeholder. The ordered launch checklist (production switch doc,
+  indexing) is in `docs/stimmts/DESIGN.md` under "Status and rollout".
 - **Never change `launch_date` once anyone has played.** It renumbers every
   day, so played days turn into missed ones. Switching off and on again does
   not pause the calendar: the days keep counting from the launch date.
